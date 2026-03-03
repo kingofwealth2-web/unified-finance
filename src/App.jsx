@@ -167,6 +167,7 @@ export default function App({ session }) {
             <SettingsTab
               data={app.data} t={t} fmt={app.fmt}
               isSuperAdmin={isSuperAdmin} openModal={app.openModal}
+              orgName={orgName} session={session}
               setEditingPaymentType={app.setEditingPaymentType}
               handleDeletePaymentType={app.handleDeletePaymentType}
               setEditingExpenseCategory={app.setEditingExpenseCategory}
