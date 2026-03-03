@@ -27,7 +27,10 @@ const Avatar = ({ name, size = 36 }) => {
   );
 };
 
-export default function App() {
+export default function App({ session }) {
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+  }
   const [activeTab, setActiveTab] = useState("overview");
   const [data, setData] = useState(emptyData);
   const [loading, setLoading] = useState(true);
@@ -215,11 +218,16 @@ export default function App() {
             padding: "12px", borderRadius: 12,
             background: "rgba(0,0,0,0.03)",
           }}>
-            <Avatar name={data.user.name} size={32} />
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#1C1C1E" }}>{data.user.name}</div>
-              <div style={{ fontSize: 11, color: "#8E8E93" }}>{data.user.role}</div>
+            <Avatar name={session?.user?.email || "Admin"} size={32} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, color: "#8E8E93", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {session?.user?.email || "Admin"}
+              </div>
             </div>
+            <button onClick={handleSignOut} title="Sign out" style={{
+              background: "none", border: "none", cursor: "pointer",
+              color: "#8E8E93", fontSize: 16, padding: 4, flexShrink: 0,
+            }}>↪</button>
           </div>
         </div>
       </div>
