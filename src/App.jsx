@@ -447,6 +447,11 @@ export default function App({ session }) {
   const [peopleSearch, setPeopleSearch] = useState("");
   const [activitySearch, setActivitySearch] = useState("");
   const [activityFilter, setActivityFilter] = useState("all"); // all | contributions | expenses
+  const [activityDateFrom, setActivityDateFrom] = useState("");
+  const [activityDateTo, setActivityDateTo] = useState("");
+  const [showPrintView, setShowPrintView] = useState(false);
+  const [exportDateFrom, setExportDateFrom] = useState("");
+  const [exportDateTo, setExportDateTo] = useState("");
 
   // Member detail panel
   const [selectedMember, setSelectedMember] = useState(null);
@@ -603,16 +608,23 @@ export default function App({ session }) {
     exportToCSV(`people-report-${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
   }
 
+  function inExportRange(dateStr) {
+    const d = new Date(dateStr);
+    if (exportDateFrom && d < new Date(exportDateFrom)) return false;
+    if (exportDateTo && d > new Date(exportDateTo + "T23:59:59")) return false;
+    return true;
+  }
+
   function exportFinancialReport() {
     const headers = ["Date", "Type", "Category / Person", "Description", "Amount"];
-    const contribRows = (data.rawContributions || []).map(c => [
+    const contribRows = (data.rawContributions || []).filter(c => inExportRange(c.created_at)).map(c => [
       new Date(c.created_at).toLocaleDateString(),
       "Income",
       c.profiles?.full_name || "Member",
       c.payment_types?.name || "Contribution",
       c.amount,
     ]);
-    const expenseRows = (data.rawExpenses || []).map(e => [
+    const expenseRows = (data.rawExpenses || []).filter(e => inExportRange(e.created_at)).map(e => [
       new Date(e.created_at).toLocaleDateString(),
       "Expense",
       e.expense_categories?.name || "Expense",
@@ -620,7 +632,10 @@ export default function App({ session }) {
       `-${e.amount}`,
     ]);
     const rows = [...contribRows, ...expenseRows].sort((a, b) => new Date(b[0]) - new Date(a[0]));
-    exportToCSV(`financial-report-${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
+    const suffix = exportDateFrom || exportDateTo
+      ? `_${exportDateFrom||"start"}_to_${exportDateTo||"today"}`
+      : "";
+    exportToCSV(`financial-report${suffix}-${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
   }
 
   // ── Audit log helper ──────────────────────────────────────────
@@ -738,6 +753,11 @@ export default function App({ session }) {
         .row-hover:hover { background:rgba(0,113,227,0.04) !important; transition:background 0.15s; }
         .card-hover { transition:transform 0.2s ease, box-shadow 0.2s ease; }
         .card-hover:hover { transform:translateY(-2px); box-shadow:0 10px 36px rgba(0,0,0,0.13) !important; }
+        @media print {
+          .no-print { display:none !important; }
+          body { background:white !important; }
+          #print-area { border:none !important; border-radius:0 !important; box-shadow:none !important; padding:0 !important; }
+        }
       `}</style>
 
       {/* Sidebar */}
@@ -1013,7 +1033,7 @@ export default function App({ session }) {
                           </div>
                           <div><h4 style={{ fontSize:17, fontWeight:600, margin:0, color:t.text }}>{pt.name}</h4>{pt.description&&<p style={{ fontSize:12, color:t.textSub, margin:"2px 0 0" }}>{pt.description}</p>}</div>
                         </div>
-                        <div style={{ textAlign:"right" }}><p style={{ fontSize:28, fontWeight:700, letterSpacing:"-1px", margin:0, color:t.text }}>{fmt(pt.total)}</p>{pt.goal>0&&<p style={{ fontSize:12, color:t.textSub, margin:0 }}>of {fmt(pt.goal)} goal</p>}</div>
+                        <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:8 }}><p style={{ fontSize:28, fontWeight:700, letterSpacing:"-1px", margin:0, color:t.text }}>{fmt(pt.total)}</p>{pt.goal>0&&<p style={{ fontSize:12, color:t.textSub, margin:0 }}>of {fmt(pt.goal)} goal</p>}<div style={{ display:"flex", gap:6 }}><Btn size="sm" variant="secondary" t={t} onClick={()=>{setEditingPaymentType({...pt,goal:pt.goal||""});openModal("editPaymentType");}}>Edit</Btn><Btn size="sm" variant="danger" t={t} onClick={()=>handleDeletePaymentType(pt.id)}>Delete</Btn></div></div>
                       </div>
                       {pt.goal>0&&<><div style={{ height:8, background:t.surfaceAlt, borderRadius:99, overflow:"hidden", marginBottom:10 }}><div style={{ height:"100%", width:`${pct}%`, background:pt.color, borderRadius:99, transition:"width 0.8s cubic-bezier(0.4,0,0.2,1)", boxShadow:`0 0 8px ${pt.color}55` }}/></div><p style={{ fontSize:12, color:t.textSub, margin:0 }}><span style={{ color:"#34C759", fontWeight:600 }}>{fmt(pt.goal-pt.total)} remaining</span> · {pct}% reached</p></>}
                     </div>
@@ -1049,7 +1069,7 @@ export default function App({ session }) {
                           </div>
                           <div><h4 style={{ fontSize:17, fontWeight:600, margin:0, color:t.text }}>{exp.label}</h4>{exp.description&&<p style={{ fontSize:12, color:t.textSub, margin:"2px 0 0" }}>{exp.description}</p>}{exp.budget>0&&<p style={{ fontSize:12, color:t.textSub, margin:"2px 0 0" }}>{pct}% of budget used</p>}</div>
                         </div>
-                        <div style={{ textAlign:"right" }}><p style={{ fontSize:28, fontWeight:700, letterSpacing:"-1px", margin:0, color:t.text }}>{fmt(exp.amount)}</p>{exp.budget>0&&<p style={{ fontSize:12, color:t.textSub, margin:0 }}>of {fmt(exp.budget)} budget</p>}</div>
+                        <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:8 }}><p style={{ fontSize:28, fontWeight:700, letterSpacing:"-1px", margin:0, color:t.text }}>{fmt(exp.amount)}</p>{exp.budget>0&&<p style={{ fontSize:12, color:t.textSub, margin:0 }}>of {fmt(exp.budget)} budget</p>}<div style={{ display:"flex", gap:6 }}><Btn size="sm" variant="secondary" t={t} onClick={()=>{setEditingExpenseCategory({...exp,budget:exp.budget||"",name:exp.label});openModal("editExpenseCategory");}}>Edit</Btn><Btn size="sm" variant="danger" t={t} onClick={()=>handleDeleteExpenseCategory(exp.id)}>Delete</Btn></div></div>
                       </div>
                       {exp.budget>0&&<><div style={{ height:8, background:t.surfaceAlt, borderRadius:99, overflow:"hidden", marginBottom:10 }}><div style={{ height:"100%", width:`${pct}%`, background:exp.color, borderRadius:99, transition:"width 0.8s cubic-bezier(0.4,0,0.2,1)", boxShadow:`0 0 8px ${exp.color}55` }}/></div><p style={{ fontSize:12, color:t.textSub, margin:0 }}><span style={{ color:"#34C759", fontWeight:600 }}>{fmt(exp.budget-exp.amount)} remaining</span></p></>}
                     </div>
@@ -1061,41 +1081,158 @@ export default function App({ session }) {
         )}
 
         {/* ── ACTIVITY ── */}
-        {activeTab==="activity" && (
-          <Card t={t}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
-              <h3 style={{ fontSize:15, fontWeight:700, margin:0, color:t.text }}>All Activity</h3>
-              <Btn t={t} onClick={exportFinancialReport} variant="secondary" style={{ fontSize:12 }}>↓ Export CSV</Btn>
-            </div>
-            {/* Search + filter */}
-            <div style={{ display:"flex", gap:10, marginBottom:20 }}>
-              <div style={{ flex:1, position:"relative" }}>
-                <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:t.textSub, fontSize:14, pointerEvents:"none" }}>🔍</span>
-                <input value={activitySearch} onChange={e=>setActivitySearch(e.target.value)} placeholder="Search activity..." style={{ ...iStyle(t), paddingLeft:36 }}/>
+        {activeTab==="activity" && (() => {
+          // Build full activity list from raw data (not capped at 10)
+          const fmtLocal = fmt;
+          const allActivity = [
+            ...(data.rawContributions||[]).map(c=>({
+              id:`c-${c.id}`, name:c.profiles?.full_name||"Member",
+              action:c.payment_types?.name||"Contribution",
+              amount:`+${fmtLocal(c.amount)}`, rawAmount:Number(c.amount),
+              time:new Date(c.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}),
+              date:c.created_at, positive:true,
+            })),
+            ...(data.rawExpenses||[]).map(e=>({
+              id:`e-${e.id}`, name:e.expense_categories?.name||"Expense",
+              action:e.label, amount:`-${fmtLocal(e.amount)}`, rawAmount:Number(e.amount),
+              time:new Date(e.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}),
+              date:e.created_at, positive:false,
+            })),
+          ].sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+          const filtered = allActivity.filter(item => {
+            const matchSearch = item.name.toLowerCase().includes(activitySearch.toLowerCase()) || item.action.toLowerCase().includes(activitySearch.toLowerCase());
+            const matchFilter = activityFilter==="all" || (activityFilter==="contributions"&&item.positive) || (activityFilter==="expenses"&&!item.positive);
+            const d = new Date(item.date);
+            const matchFrom = !activityDateFrom || d >= new Date(activityDateFrom);
+            const matchTo = !activityDateTo || d <= new Date(activityDateTo+"T23:59:59");
+            return matchSearch && matchFilter && matchFrom && matchTo;
+          });
+
+          const filteredIncome = filtered.filter(i=>i.positive).reduce((s,i)=>s+i.rawAmount,0);
+          const filteredExpense = filtered.filter(i=>!i.positive).reduce((s,i)=>s+i.rawAmount,0);
+          const hasDateFilter = activityDateFrom || activityDateTo;
+
+          if (showPrintView) return (
+            <div>
+              <div className="no-print" style={{ marginBottom:20, display:"flex", gap:10 }}>
+                <Btn t={t} onClick={()=>{ window.print(); }} variant="secondary">🖨 Print</Btn>
+                <Btn t={t} onClick={()=>setShowPrintView(false)} variant="secondary">← Back</Btn>
               </div>
-              {["all","contributions","expenses"].map(f=>(
-                <button key={f} onClick={()=>setActivityFilter(f)} style={{ padding:"10px 16px", borderRadius:10, border:"none", cursor:"pointer", fontSize:13, fontWeight:600, background:activityFilter===f?t.accent:t.surfaceAlt, color:activityFilter===f?"white":t.textSub, transition:"all 0.15s", textTransform:"capitalize" }}>{f==="all"?"All":f==="contributions"?"Income":"Expenses"}</button>
-              ))}
-            </div>
-            {(() => {
-              const filtered = data.recentActivity.filter(item => {
-                const matchSearch = item.name.toLowerCase().includes(activitySearch.toLowerCase()) || item.action.toLowerCase().includes(activitySearch.toLowerCase());
-                const matchFilter = activityFilter==="all" || (activityFilter==="contributions"&&item.positive) || (activityFilter==="expenses"&&!item.positive);
-                return matchSearch && matchFilter;
-              });
-              return filtered.length===0?<EmptyState message="No activity matches your search." t={t}/>:
-                <div>{filtered.map((item,i)=>(
-                  <div key={item.id} className="row-hover" style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 8px", borderBottom:i<filtered.length-1?`1px solid ${t.border}`:"none", borderRadius:8, animation:`slideIn 0.3s ease ${i*0.04}s both` }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-                      <div style={{ width:36, height:36, borderRadius:10, background:item.positive?"rgba(52,199,89,0.12)":"rgba(255,55,95,0.1)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>{item.positive?"↑":"↓"}</div>
-                      <div><p style={{ fontSize:14, fontWeight:600, margin:0, color:t.text }}>{item.name}</p><p style={{ fontSize:12, color:t.textSub, margin:0 }}>{item.action} · {item.time}</p></div>
+              <div id="print-area" style={{ background:"white", color:"#1C1C1E", padding:"40px 48px", borderRadius:16, border:`1px solid ${t.border}` }}>
+                <div style={{ borderBottom:"2px solid #1C1C1E", paddingBottom:16, marginBottom:28 }}>
+                  <h1 style={{ fontSize:22, fontWeight:700, margin:"0 0 4px" }}>{orgName} — Financial Report</h1>
+                  <p style={{ fontSize:13, color:"#636366", margin:0 }}>
+                    {hasDateFilter
+                      ? `Period: ${activityDateFrom||"All time"} → ${activityDateTo||"Today"}`
+                      : `Generated ${new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}`}
+                    {" · "}{filtered.length} transactions
+                  </p>
+                </div>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:20, marginBottom:28 }}>
+                  {[
+                    {label:"Total Income", value:fmt(filteredIncome), color:"#34C759"},
+                    {label:"Total Expenses", value:fmt(filteredExpense), color:"#FF375F"},
+                    {label:"Net", value:fmt(filteredIncome-filteredExpense), color:"#0071E3"},
+                  ].map(({label,value,color})=>(
+                    <div key={label} style={{ padding:"16px 20px", background:"#F2F2F7", borderRadius:12 }}>
+                      <p style={{ fontSize:11, fontWeight:600, color:"#8E8E93", textTransform:"uppercase", letterSpacing:"0.06em", margin:"0 0 6px" }}>{label}</p>
+                      <p style={{ fontSize:22, fontWeight:700, color, margin:0 }}>{value}</p>
                     </div>
-                    <span style={{ fontSize:15, fontWeight:700, color:item.positive?"#34C759":"#FF375F" }}>{item.amount}</span>
-                  </div>
-                ))}</div>;
-            })()}
-          </Card>
-        )}
+                  ))}
+                </div>
+                <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
+                  <thead>
+                    <tr style={{ borderBottom:"2px solid #E5E5EA" }}>
+                      {["Date","Type","Name / Category","Description","Amount"].map(h=>(
+                        <th key={h} style={{ textAlign:"left", padding:"8px 12px", fontSize:11, fontWeight:700, color:"#8E8E93", textTransform:"uppercase", letterSpacing:"0.05em" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((item,i)=>(
+                      <tr key={item.id} style={{ borderBottom:"1px solid #F2F2F7", background:i%2===0?"white":"#FAFAFA" }}>
+                        <td style={{ padding:"10px 12px", color:"#636366", whiteSpace:"nowrap" }}>{item.time}</td>
+                        <td style={{ padding:"10px 12px" }}>
+                          <span style={{ fontSize:11, fontWeight:600, padding:"2px 8px", borderRadius:6, background:item.positive?"rgba(52,199,89,0.12)":"rgba(255,55,95,0.1)", color:item.positive?"#34C759":"#FF375F" }}>
+                            {item.positive?"Income":"Expense"}
+                          </span>
+                        </td>
+                        <td style={{ padding:"10px 12px", fontWeight:600 }}>{item.name}</td>
+                        <td style={{ padding:"10px 12px", color:"#636366" }}>{item.action}</td>
+                        <td style={{ padding:"10px 12px", fontWeight:700, color:item.positive?"#34C759":"#FF375F", textAlign:"right" }}>{item.amount}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p style={{ fontSize:11, color:"#AEAEB2", marginTop:24, borderTop:"1px solid #E5E5EA", paddingTop:12 }}>
+                  Generated by {orgName} · {new Date().toLocaleString()}
+                </p>
+              </div>
+            </div>
+          );
+
+          return (
+            <Card t={t}>
+              {/* Header */}
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20, flexWrap:"wrap", gap:10 }}>
+                <h3 style={{ fontSize:15, fontWeight:700, margin:0, color:t.text }}>All Activity <span style={{ fontSize:13, fontWeight:400, color:t.textSub }}>({filtered.length})</span></h3>
+                <div style={{ display:"flex", gap:8 }}>
+                  <Btn t={t} onClick={()=>setShowPrintView(true)} variant="secondary" style={{ fontSize:12 }}>🖨 Print View</Btn>
+                  <Btn t={t} onClick={exportFinancialReport} variant="secondary" style={{ fontSize:12 }}>↓ Export CSV</Btn>
+                </div>
+              </div>
+
+              {/* Date range */}
+              <div style={{ display:"flex", gap:10, marginBottom:14, alignItems:"center", flexWrap:"wrap" }}>
+                <span style={{ fontSize:12, fontWeight:500, color:t.textSub, whiteSpace:"nowrap" }}>Date range:</span>
+                <input type="date" value={activityDateFrom} onChange={e=>setActivityDateFrom(e.target.value)} style={{ ...iStyle(t), width:"auto", fontSize:13, padding:"8px 12px" }}/>
+                <span style={{ fontSize:12, color:t.textSub }}>→</span>
+                <input type="date" value={activityDateTo} onChange={e=>setActivityDateTo(e.target.value)} style={{ ...iStyle(t), width:"auto", fontSize:13, padding:"8px 12px" }}/>
+                {hasDateFilter && (
+                  <button onClick={()=>{setActivityDateFrom("");setActivityDateTo("");}} style={{ fontSize:12, color:t.accent, background:"none", border:"none", cursor:"pointer", fontWeight:500 }}>Clear</button>
+                )}
+              </div>
+
+              {/* Search + type filter */}
+              <div style={{ display:"flex", gap:10, marginBottom:20, flexWrap:"wrap" }}>
+                <div style={{ flex:1, minWidth:180, position:"relative" }}>
+                  <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:t.textSub, fontSize:14, pointerEvents:"none" }}>🔍</span>
+                  <input value={activitySearch} onChange={e=>setActivitySearch(e.target.value)} placeholder="Search activity..." style={{ ...iStyle(t), paddingLeft:36 }}/>
+                </div>
+                {["all","contributions","expenses"].map(f=>(
+                  <button key={f} onClick={()=>setActivityFilter(f)} style={{ padding:"10px 16px", borderRadius:10, border:"none", cursor:"pointer", fontSize:13, fontWeight:600, background:activityFilter===f?t.accent:t.surfaceAlt, color:activityFilter===f?"white":t.textSub, transition:"all 0.15s" }}>
+                    {f==="all"?"All":f==="contributions"?"Income":"Expenses"}
+                  </button>
+                ))}
+              </div>
+
+              {/* Summary strip when date filter active */}
+              {hasDateFilter && filtered.length>0 && (
+                <div style={{ display:"flex", gap:12, marginBottom:16, padding:"12px 16px", background:t.surfaceAlt, borderRadius:12 }}>
+                  <span style={{ fontSize:13, color:"#34C759", fontWeight:600 }}>+{fmt(filteredIncome)}</span>
+                  <span style={{ fontSize:13, color:t.textSub }}>·</span>
+                  <span style={{ fontSize:13, color:"#FF375F", fontWeight:600 }}>-{fmt(filteredExpense)}</span>
+                  <span style={{ fontSize:13, color:t.textSub }}>·</span>
+                  <span style={{ fontSize:13, color:t.accent, fontWeight:600 }}>Net {fmt(filteredIncome-filteredExpense)}</span>
+                </div>
+              )}
+
+              {filtered.length===0
+                ? <EmptyState message="No activity matches your filters." t={t}/>
+                : <div>{filtered.map((item,i)=>(
+                    <div key={item.id} className="row-hover" style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 8px", borderBottom:i<filtered.length-1?`1px solid ${t.border}`:"none", borderRadius:8, animation:`slideIn 0.3s ease ${Math.min(i,15)*0.03}s both` }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+                        <div style={{ width:36, height:36, borderRadius:10, background:item.positive?"rgba(52,199,89,0.12)":"rgba(255,55,95,0.1)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>{item.positive?"↑":"↓"}</div>
+                        <div><p style={{ fontSize:14, fontWeight:600, margin:0, color:t.text }}>{item.name}</p><p style={{ fontSize:12, color:t.textSub, margin:0 }}>{item.action} · {item.time}</p></div>
+                      </div>
+                      <span style={{ fontSize:15, fontWeight:700, color:item.positive?"#34C759":"#FF375F" }}>{item.amount}</span>
+                    </div>
+                  ))}</div>
+              }
+            </Card>
+          );
+        })()}
 
 
         {/* ── AUDIT LOG ── */}
