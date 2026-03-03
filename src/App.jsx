@@ -450,6 +450,14 @@ export default function App({ session }) {
   // Member detail panel
   const [selectedMember, setSelectedMember] = useState(null);
 
+  // Edit contribution / expense entries
+  const [editingContribution, setEditingContribution] = useState(null);
+  const [editingExpenseEntry, setEditingExpenseEntry] = useState(null);
+
+  // Audit log
+  const [auditLog, setAuditLog] = useState([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+
   const visible = useFadeIn([activeTab]);
   useEffect(() => { fetchAllData(); }, []);
 
@@ -459,13 +467,14 @@ export default function App({ session }) {
   async function fetchAllData() {
     setLoading(true);
     try {
-      const [{ data: profiles }, { data: contributions }, { data: categories }, { data: expenses }, { data: paymentTypes }, { data: orgRows }] = await Promise.all([
+      const [{ data: profiles }, { data: contributions }, { data: categories }, { data: expenses }, { data: paymentTypes }, { data: orgRows }, { data: auditRows }] = await Promise.all([
         supabase.from("profiles").select("*").order("created_at",{ascending:false}),
         supabase.from("contributions").select("*, profiles(full_name), payment_types(name,color)").order("created_at",{ascending:false}),
         supabase.from("expense_categories").select("*").order("created_at",{ascending:false}),
         supabase.from("expenses").select("*, expense_categories(name,color)").order("created_at",{ascending:false}),
         supabase.from("payment_types").select("*").order("created_at",{ascending:false}),
         supabase.from("org_settings").select("*").limit(1),
+        supabase.from("audit_log").select("*").order("created_at",{ascending:false}).limit(200),
       ]);
 
       const org = orgRows?.[0] || null;
@@ -499,6 +508,7 @@ export default function App({ session }) {
       const totalE=(expenses||[]).reduce((s,e)=>s+Number(e.amount),0);
 
       setData({ totalBalance:totalC-totalE, totalContributions:totalC, totalExpenses:totalE, people, expenses:expenseData, recentActivity:[...cA,...eA].slice(0,10), users:(profiles||[]).filter(p=>["super_admin","admin"].includes(p.role)), paymentTypes:paymentTypeData, allPeople:profiles||[], org, categories:categories||[], rawContributions:contributions||[], rawExpenses:expenses||[] });
+      setAuditLog(auditRows || []);
     } catch(err) { console.error(err); } finally { setLoading(false); }
   }
 
@@ -595,6 +605,79 @@ export default function App({ session }) {
     exportToCSV(`financial-report-${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
   }
 
+  // ── Audit log helper ──────────────────────────────────────────
+  async function logAudit(action, entity, entityId, memberName, description, oldVal, newVal) {
+    try {
+      await supabase.from("audit_log").insert({
+        action, entity, entity_id: entityId, member_name: memberName,
+        description, old_value: oldVal || null, new_value: newVal || null,
+        performed_by: session?.user?.id, performed_by_email: session?.user?.email,
+      });
+    } catch(e) { console.error("audit log failed", e); }
+  }
+
+  // ── Edit contribution ──────────────────────────────────────────
+  async function handleEditContribution(e) {
+    e.preventDefault(); setFormLoading(true); setFormError(null);
+    try {
+      const old = data.rawContributions.find(c => c.id === editingContribution.id);
+      const { error } = await supabase.from("contributions").update({
+        amount: Number(editingContribution.amount),
+        payment_type_id: editingContribution.payment_type_id || null,
+        note: editingContribution.note,
+      }).eq("id", editingContribution.id);
+      if (error) throw error;
+      await logAudit("edit", "contribution", editingContribution.id,
+        editingContribution.member_name,
+        `Edited contribution for ${editingContribution.member_name}`,
+        { amount: old?.amount, note: old?.note },
+        { amount: editingContribution.amount, note: editingContribution.note }
+      );
+      closeModal(); fetchAllData();
+    } catch(err) { setFormError(err.message); } finally { setFormLoading(false); }
+  }
+
+  async function handleDeleteContribution(c) {
+    if (!confirm(`Delete this ${fmt(c.amount)} contribution? This cannot be undone.`)) return;
+    await supabase.from("contributions").delete().eq("id", c.id);
+    await logAudit("delete", "contribution", c.id, c.profiles?.full_name || "Member",
+      `Deleted contribution of ${c.amount} for ${c.profiles?.full_name || "Member"}`,
+      { amount: c.amount }, null
+    );
+    fetchAllData();
+  }
+
+  // ── Edit expense entry ─────────────────────────────────────────
+  async function handleEditExpenseEntry(e) {
+    e.preventDefault(); setFormLoading(true); setFormError(null);
+    try {
+      const old = data.rawExpenses.find(ex => ex.id === editingExpenseEntry.id);
+      const { error } = await supabase.from("expenses").update({
+        amount: Number(editingExpenseEntry.amount),
+        label: editingExpenseEntry.label,
+        category_id: editingExpenseEntry.category_id,
+      }).eq("id", editingExpenseEntry.id);
+      if (error) throw error;
+      await logAudit("edit", "expense", editingExpenseEntry.id,
+        null,
+        `Edited expense: ${editingExpenseEntry.label}`,
+        { amount: old?.amount, label: old?.label },
+        { amount: editingExpenseEntry.amount, label: editingExpenseEntry.label }
+      );
+      closeModal(); fetchAllData();
+    } catch(err) { setFormError(err.message); } finally { setFormLoading(false); }
+  }
+
+  async function handleDeleteExpenseEntry(ex) {
+    if (!confirm(`Delete "${ex.label}" (${fmt(ex.amount)})? This cannot be undone.`)) return;
+    await supabase.from("expenses").delete().eq("id", ex.id);
+    await logAudit("delete", "expense", ex.id, null,
+      `Deleted expense: ${ex.label} (${ex.amount})`,
+      { amount: ex.amount, label: ex.label }, null
+    );
+    fetchAllData();
+  }
+
   const isSuperAdmin = userRole === "super_admin";
   const orgName = data.org?.name || "Unified";
   const fyText = data.org ? fyLabel(data.org.financial_year_start, data.org.financial_year_format) : "";
@@ -607,7 +690,7 @@ export default function App({ session }) {
     {id:"payments",label:"Payments",icon:"◈"},
     {id:"expenses",label:"Expenses",icon:"◉"},
     {id:"activity",label:"Activity",icon:"◷"},
-    ...(isSuperAdmin?[{id:"settings",label:"Settings",icon:"⊙"}]:[]),
+    ...(isSuperAdmin?[{id:"settings",label:"Settings",icon:"⊙"},{id:"audit",label:"Audit Log",icon:"◑"}]:[]),
   ];
 
   if (loading) return (
@@ -726,9 +809,15 @@ export default function App({ session }) {
                       <Avatar name={item.name} size={36}/>
                       <div><p style={{ fontSize:14, fontWeight:500, margin:0, color:t.text }}>{item.name}</p><p style={{ fontSize:12, color:t.textSub, margin:0 }}>{item.action}</p></div>
                     </div>
-                    <div style={{ textAlign:"right" }}>
-                      <p style={{ fontSize:14, fontWeight:600, margin:0, color:item.positive?"#34C759":"#FF375F" }}>{item.amount}</p>
-                      <p style={{ fontSize:11, color:t.textSub, margin:0 }}>{item.time}</p>
+                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                      <span style={{ fontSize:15, fontWeight:700, color:item.positive?"#34C759":"#FF375F" }}>{item.amount}</span>
+                      {item.positive?(
+                        <><Btn size="sm" variant="secondary" t={t} onClick={()=>{const c=data.rawContributions.find(r=>`c-${r.id}`===item.id);if(c){setEditingContribution({id:c.id,member_name:c.profiles?.full_name||"",amount:c.amount,payment_type_id:c.payment_type_id||"",note:c.note||""});openModal("editContribution");}}}>Edit</Btn>
+                        <Btn size="sm" variant="danger" t={t} onClick={()=>{const c=data.rawContributions.find(r=>`c-${r.id}`===item.id);if(c)handleDeleteContribution(c);}}>Del</Btn></>
+                      ):(
+                        <><Btn size="sm" variant="secondary" t={t} onClick={()=>{const ex=data.rawExpenses.find(r=>`e-${r.id}`===item.id);if(ex){setEditingExpenseEntry({id:ex.id,label:ex.label,amount:ex.amount,category_id:ex.category_id||""});openModal("editExpenseEntry");}}}>Edit</Btn>
+                        <Btn size="sm" variant="danger" t={t} onClick={()=>{const ex=data.rawExpenses.find(r=>`e-${r.id}`===item.id);if(ex)handleDeleteExpenseEntry(ex);}}>Del</Btn></>
+                      )}
                     </div>
                   </div>
                 ))}</div>
@@ -804,9 +893,13 @@ export default function App({ session }) {
                                       {c.note&&<p style={{ fontSize:11, color:t.textSub, margin:0 }}>{c.note}</p>}
                                     </div>
                                   </div>
-                                  <div style={{ textAlign:"right" }}>
-                                    <p style={{ fontSize:13, fontWeight:700, color:"#34C759", margin:0 }}>{fmt(c.amount)}</p>
-                                    <p style={{ fontSize:11, color:t.textSub, margin:0 }}>{new Date(c.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</p>
+                                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                                    <div style={{ textAlign:"right" }}>
+                                      <p style={{ fontSize:13, fontWeight:700, color:"#34C759", margin:0 }}>{fmt(c.amount)}</p>
+                                      <p style={{ fontSize:11, color:t.textSub, margin:0 }}>{new Date(c.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</p>
+                                    </div>
+                                    <Btn size="sm" variant="secondary" t={t} onClick={()=>{setEditingContribution({id:c.id,member_name:p.name,amount:c.amount,payment_type_id:c.payment_type_id||"",note:c.note||""});openModal("editContribution");}}>Edit</Btn>
+                                    <Btn size="sm" variant="danger" t={t} onClick={()=>handleDeleteContribution(c)}>Del</Btn>
                                   </div>
                                 </div>
                               ))}
@@ -928,6 +1021,46 @@ export default function App({ session }) {
                   </div>
                 ))}</div>;
             })()}
+          </Card>
+        )}
+
+
+        {/* ── AUDIT LOG ── */}
+        {activeTab==="audit" && isSuperAdmin && (
+          <Card t={t}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 }}>
+              <div>
+                <h3 style={{ fontSize:15, fontWeight:700, margin:0, color:t.text }}>Audit Log</h3>
+                <p style={{ fontSize:12, color:t.textSub, margin:"4px 0 0" }}>Every create, edit and delete — who did it and when</p>
+              </div>
+            </div>
+            {auditLog.length===0?<EmptyState message="No audit entries yet." t={t}/>:
+              <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                {auditLog.map((entry,i)=>{
+                  const ac=entry.action==="create"?"#34C759":entry.action==="edit"?"#FF9F0A":"#FF375F";
+                  const al=entry.action==="create"?"Created":entry.action==="edit"?"Edited":"Deleted";
+                  return (
+                    <div key={entry.id} style={{ padding:"14px 16px", background:t.surfaceAlt, borderRadius:12, border:`1px solid ${t.border}`, animation:`slideIn 0.25s ease ${Math.min(i,10)*0.03}s both` }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:12 }}>
+                        <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
+                          <span style={{ fontSize:10, fontWeight:700, padding:"3px 8px", borderRadius:6, background:`${ac}18`, color:ac, flexShrink:0, marginTop:1 }}>{al}</span>
+                          <div>
+                            <p style={{ fontSize:13, fontWeight:600, margin:0, color:t.text }}>{entry.description}</p>
+                            <p style={{ fontSize:11, color:t.textSub, margin:"3px 0 0" }}>by {entry.performed_by_email||"unknown"}</p>
+                            {entry.old_value&&entry.new_value&&(
+                              <p style={{ fontSize:11, color:t.textMuted, margin:"3px 0 0" }}>
+                                {Object.keys(entry.new_value).filter(k=>String(entry.old_value[k])!==String(entry.new_value[k])).map(k=>`${k}: ${entry.old_value[k]} → ${entry.new_value[k]}`).join(" · ")}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <p style={{ fontSize:11, color:t.textSub, margin:0, flexShrink:0, whiteSpace:"nowrap" }}>{new Date(entry.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            }
           </Card>
         )}
 
@@ -1150,6 +1283,41 @@ export default function App({ session }) {
             <Field label="Color" t={t}><ColorPicker value={editingExpenseCategory.color} onChange={color=>setEditingExpenseCategory({...editingExpenseCategory,color})}/></Field>
             {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
             <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:24 }}>
+              <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
+              <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Saving...":"Save Changes"}</Btn>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+
+      {modal==="editContribution"&&editingContribution&&(
+        <Modal title="Edit Contribution" onClose={closeModal} t={t}>
+          <form onSubmit={handleEditContribution}>
+            <div style={{ marginBottom:16, padding:"12px 16px", background:t.surfaceAlt, borderRadius:10 }}>
+              <p style={{ fontSize:12, color:t.textSub, margin:0 }}>Editing contribution for</p>
+              <p style={{ fontSize:15, fontWeight:700, color:t.text, margin:"2px 0 0" }}>{editingContribution.member_name}</p>
+            </div>
+            <Field label="Amount" t={t}><Input t={t} type="number" min="1" step="0.01" value={editingContribution.amount} onChange={e=>setEditingContribution({...editingContribution,amount:e.target.value})} required/></Field>
+            <Field label="Payment Type" t={t}><Select t={t} value={editingContribution.payment_type_id} onChange={e=>setEditingContribution({...editingContribution,payment_type_id:e.target.value})}><option value="">None</option>{data.paymentTypes.map(pt=><option key={pt.id} value={pt.id}>{pt.name}</option>)}</Select></Field>
+            <Field label="Note (optional)" t={t}><Textarea t={t} value={editingContribution.note} onChange={e=>setEditingContribution({...editingContribution,note:e.target.value})}/></Field>
+            {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
+            <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
+              <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
+              <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Saving...":"Save Changes"}</Btn>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {modal==="editExpenseEntry"&&editingExpenseEntry&&(
+        <Modal title="Edit Expense" onClose={closeModal} t={t}>
+          <form onSubmit={handleEditExpenseEntry}>
+            <Field label="Description" t={t}><Input t={t} value={editingExpenseEntry.label} onChange={e=>setEditingExpenseEntry({...editingExpenseEntry,label:e.target.value})} required/></Field>
+            <Field label="Amount" t={t}><Input t={t} type="number" min="1" step="0.01" value={editingExpenseEntry.amount} onChange={e=>setEditingExpenseEntry({...editingExpenseEntry,amount:e.target.value})} required/></Field>
+            <Field label="Category" t={t}><Select t={t} value={editingExpenseEntry.category_id} onChange={e=>setEditingExpenseEntry({...editingExpenseEntry,category_id:e.target.value})} required><option value="">Select category...</option>{data.expenses.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</Select></Field>
+            {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
+            <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
               <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
               <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Saving...":"Save Changes"}</Btn>
             </div>
