@@ -442,6 +442,14 @@ export default function App({ session }) {
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState(null);
 
+  // Search & filter
+  const [peopleSearch, setPeopleSearch] = useState("");
+  const [activitySearch, setActivitySearch] = useState("");
+  const [activityFilter, setActivityFilter] = useState("all"); // all | contributions | expenses
+
+  // Member detail panel
+  const [selectedMember, setSelectedMember] = useState(null);
+
   const visible = useFadeIn([activeTab]);
   useEffect(() => { fetchAllData(); }, []);
 
@@ -537,6 +545,54 @@ export default function App({ session }) {
   async function handleSaveOrg(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
     try { const {error}=await supabase.from("org_settings").update({...orgForm,financial_year_start:Number(orgForm.financial_year_start),updated_by:session?.user?.id,updated_at:new Date().toISOString()}).eq("id",data.org.id); if(error)throw error; closeModal(); fetchAllData(); } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
+  }
+
+  async function handleDeactivatePerson(id, currentStatus) {
+    const newStatus = currentStatus === "Active" ? "inactive" : "active";
+    await supabase.from("profiles").update({ status: newStatus }).eq("id", id);
+    fetchAllData();
+  }
+
+  async function handleDeletePerson(id) {
+    if (!confirm("Permanently delete this person and all their contribution records? This cannot be undone.")) return;
+    await supabase.from("contributions").delete().eq("member_id", id);
+    await supabase.from("profiles").delete().eq("id", id);
+    fetchAllData();
+  }
+
+  function exportToCSV(filename, headers, rows) {
+    const escape = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const csv = [headers.map(escape).join(","), ...rows.map(r => r.map(escape).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportPeopleReport() {
+    const headers = ["Name", "Status", "Total Contributed", "Last Activity"];
+    const rows = data.people.map(p => [p.name, p.status, p.contributions, p.lastActivity]);
+    exportToCSV(`people-report-${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
+  }
+
+  function exportFinancialReport() {
+    const headers = ["Date", "Type", "Category / Person", "Description", "Amount"];
+    const contribRows = (data.rawContributions || []).map(c => [
+      new Date(c.created_at).toLocaleDateString(),
+      "Income",
+      c.profiles?.full_name || "Member",
+      c.payment_types?.name || "Contribution",
+      c.amount,
+    ]);
+    const expenseRows = (data.rawExpenses || []).map(e => [
+      new Date(e.created_at).toLocaleDateString(),
+      "Expense",
+      e.expense_categories?.name || "Expense",
+      e.label,
+      `-${e.amount}`,
+    ]);
+    const rows = [...contribRows, ...expenseRows].sort((a, b) => new Date(b[0]) - new Date(a[0]));
+    exportToCSV(`financial-report-${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
   }
 
   const isSuperAdmin = userRole === "super_admin";
@@ -690,27 +746,78 @@ export default function App({ session }) {
               </ChartCard>
             )}
             <Card t={t} style={{ animation:"slideUp 0.3s ease 0.08s both" }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:28 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
                 <h3 style={{ fontSize:15, fontWeight:700, margin:0, color:t.text }}>{data.people.length} People</h3>
                 <div style={{ display:"flex", gap:10 }}>
+                  <Btn t={t} onClick={exportPeopleReport} variant="secondary" style={{ fontSize:12 }}>↓ Export</Btn>
                   <Btn t={t} onClick={()=>openModal("addContribution")} variant="secondary">+ Contribution</Btn>
                   <Btn t={t} onClick={()=>openModal("addPerson")}>+ Add Person</Btn>
                 </div>
               </div>
-              {data.people.length===0?<EmptyState message="No people added yet." action={<Btn t={t} onClick={()=>openModal("addPerson")}>Add First Person</Btn>} t={t}/>:
-                <div>{data.people.map((p,i)=>(
-                  <div key={p.id} className="row-hover" style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px", borderRadius:12, background:i%2===0?t.surfaceAlt:"transparent", animation:`slideIn 0.3s ease ${i*0.04}s both` }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-                      <Avatar name={p.name} size={42}/>
-                      <div><p style={{ fontSize:15, fontWeight:600, margin:0, color:t.text }}>{p.name}</p><p style={{ fontSize:12, color:t.textSub, margin:0 }}>Last active {p.lastActivity}</p></div>
+              {/* Search */}
+              <div style={{ marginBottom:20, position:"relative" }}>
+                <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:t.textSub, fontSize:14, pointerEvents:"none" }}>🔍</span>
+                <input value={peopleSearch} onChange={e=>setPeopleSearch(e.target.value)} placeholder="Search people..." style={{ ...iStyle(t), paddingLeft:36 }}/>
+              </div>
+              {data.people.length===0?<EmptyState message="No people added yet." action={<Btn t={t} onClick={()=>openModal("addPerson")}>Add First Person</Btn>} t={t}/>:(() => {
+                const filtered = data.people.filter(p=>p.name.toLowerCase().includes(peopleSearch.toLowerCase()));
+                return filtered.length===0?<EmptyState message="No people match your search." t={t}/>:
+                <div>{filtered.map((p,i)=>(
+                  <div key={p.id} style={{ borderRadius:12, background:i%2===0?t.surfaceAlt:"transparent", animation:`slideIn 0.3s ease ${i*0.04}s both`, marginBottom:2 }}>
+                    <div className="row-hover" onClick={()=>setSelectedMember(selectedMember?.id===p.id?null:p)} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px", borderRadius:12, cursor:"pointer" }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+                        <Avatar name={p.name} size={42}/>
+                        <div>
+                          <p style={{ fontSize:15, fontWeight:600, margin:0, color:t.text }}>{p.name}</p>
+                          <p style={{ fontSize:12, color:t.textSub, margin:0 }}>Last active {p.lastActivity} · click to view history</p>
+                        </div>
+                      </div>
+                      <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                        <div style={{ textAlign:"right" }}>
+                          <p style={{ fontSize:15, fontWeight:700, margin:0, color:t.text }}>{fmt(p.contributions)}</p>
+                          <p style={{ fontSize:11, color:t.textSub, margin:0 }}>Total contributed</p>
+                        </div>
+                        <span style={{ fontSize:11, fontWeight:600, padding:"4px 10px", borderRadius:20, background:p.status==="Active"?"rgba(52,199,89,0.12)":"rgba(142,142,147,0.12)", color:p.status==="Active"?"#34C759":"#8E8E93" }}>{p.status}</span>
+                        <div style={{ display:"flex", gap:6 }}>
+                          <Btn size="sm" variant="secondary" t={t} onClick={e=>{e.stopPropagation();handleDeactivatePerson(p.id,p.status);}}>{p.status==="Active"?"Deactivate":"Activate"}</Btn>
+                          <Btn size="sm" variant="danger" t={t} onClick={e=>{e.stopPropagation();handleDeletePerson(p.id);}}>Delete</Btn>
+                        </div>
+                      </div>
                     </div>
-                    <div style={{ display:"flex", alignItems:"center", gap:20 }}>
-                      <div style={{ textAlign:"right" }}><p style={{ fontSize:15, fontWeight:700, margin:0, color:t.text }}>{fmt(p.contributions)}</p><p style={{ fontSize:11, color:t.textSub, margin:0 }}>Total contributed</p></div>
-                      <span style={{ fontSize:11, fontWeight:600, padding:"4px 10px", borderRadius:20, background:p.status==="Active"?"rgba(52,199,89,0.12)":"rgba(142,142,147,0.12)", color:p.status==="Active"?"#34C759":"#8E8E93" }}>{p.status}</span>
-                    </div>
+                    {/* Member detail panel */}
+                    {selectedMember?.id===p.id && (() => {
+                      const memberContribs = (data.rawContributions||[]).filter(c=>c.member_id===p.id);
+                      return (
+                        <div style={{ margin:"0 14px 14px", background:t.bg, borderRadius:14, padding:"20px 24px", border:`1px solid ${t.border}`, animation:"slideUp 0.25s ease" }}>
+                          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+                            <p style={{ fontSize:13, fontWeight:700, color:t.text, margin:0 }}>Contribution History</p>
+                            <p style={{ fontSize:12, color:t.textSub, margin:0 }}>{memberContribs.length} records · {fmt(p.contributions)} total</p>
+                          </div>
+                          {memberContribs.length===0?<p style={{ fontSize:13, color:t.textSub, margin:0, textAlign:"center", padding:"16px 0" }}>No contributions yet.</p>:
+                            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                              {memberContribs.map((c,ci)=>(
+                                <div key={c.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", background:t.surface, borderRadius:10, border:`1px solid ${t.border}`, animation:`slideIn 0.2s ease ${ci*0.04}s both` }}>
+                                  <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                                    <div style={{ width:8, height:8, borderRadius:"50%", background:c.payment_types?.color||t.accent, flexShrink:0 }}/>
+                                    <div>
+                                      <p style={{ fontSize:13, fontWeight:600, margin:0, color:t.text }}>{c.payment_types?.name||"General"}</p>
+                                      {c.note&&<p style={{ fontSize:11, color:t.textSub, margin:0 }}>{c.note}</p>}
+                                    </div>
+                                  </div>
+                                  <div style={{ textAlign:"right" }}>
+                                    <p style={{ fontSize:13, fontWeight:700, color:"#34C759", margin:0 }}>{fmt(c.amount)}</p>
+                                    <p style={{ fontSize:11, color:t.textSub, margin:0 }}>{new Date(c.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          }
+                        </div>
+                      );
+                    })()}
                   </div>
-                ))}</div>
-              }
+                ))}</div>;
+              })()}
             </Card>
           </div>
         )}
@@ -790,18 +897,37 @@ export default function App({ session }) {
         {/* ── ACTIVITY ── */}
         {activeTab==="activity" && (
           <Card t={t}>
-            <h3 style={{ fontSize:15, fontWeight:700, marginBottom:24, color:t.text }}>All Activity</h3>
-            {data.recentActivity.length===0?<EmptyState message="No activity yet." t={t}/>:
-              <div>{data.recentActivity.map((item,i)=>(
-                <div key={item.id} className="row-hover" style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 8px", borderBottom:i<data.recentActivity.length-1?`1px solid ${t.border}`:"none", borderRadius:8, animation:`slideIn 0.3s ease ${i*0.04}s both` }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-                    <Avatar name={item.name} size={42}/>
-                    <div><p style={{ fontSize:14, fontWeight:600, margin:0, color:t.text }}>{item.name}</p><p style={{ fontSize:12, color:t.textSub, margin:0 }}>{item.action} · {item.time}</p></div>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+              <h3 style={{ fontSize:15, fontWeight:700, margin:0, color:t.text }}>All Activity</h3>
+              <Btn t={t} onClick={exportFinancialReport} variant="secondary" style={{ fontSize:12 }}>↓ Export CSV</Btn>
+            </div>
+            {/* Search + filter */}
+            <div style={{ display:"flex", gap:10, marginBottom:20 }}>
+              <div style={{ flex:1, position:"relative" }}>
+                <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:t.textSub, fontSize:14, pointerEvents:"none" }}>🔍</span>
+                <input value={activitySearch} onChange={e=>setActivitySearch(e.target.value)} placeholder="Search activity..." style={{ ...iStyle(t), paddingLeft:36 }}/>
+              </div>
+              {["all","contributions","expenses"].map(f=>(
+                <button key={f} onClick={()=>setActivityFilter(f)} style={{ padding:"10px 16px", borderRadius:10, border:"none", cursor:"pointer", fontSize:13, fontWeight:600, background:activityFilter===f?t.accent:t.surfaceAlt, color:activityFilter===f?"white":t.textSub, transition:"all 0.15s", textTransform:"capitalize" }}>{f==="all"?"All":f==="contributions"?"Income":"Expenses"}</button>
+              ))}
+            </div>
+            {(() => {
+              const filtered = data.recentActivity.filter(item => {
+                const matchSearch = item.name.toLowerCase().includes(activitySearch.toLowerCase()) || item.action.toLowerCase().includes(activitySearch.toLowerCase());
+                const matchFilter = activityFilter==="all" || (activityFilter==="contributions"&&item.positive) || (activityFilter==="expenses"&&!item.positive);
+                return matchSearch && matchFilter;
+              });
+              return filtered.length===0?<EmptyState message="No activity matches your search." t={t}/>:
+                <div>{filtered.map((item,i)=>(
+                  <div key={item.id} className="row-hover" style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 8px", borderBottom:i<filtered.length-1?`1px solid ${t.border}`:"none", borderRadius:8, animation:`slideIn 0.3s ease ${i*0.04}s both` }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+                      <div style={{ width:36, height:36, borderRadius:10, background:item.positive?"rgba(52,199,89,0.12)":"rgba(255,55,95,0.1)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>{item.positive?"↑":"↓"}</div>
+                      <div><p style={{ fontSize:14, fontWeight:600, margin:0, color:t.text }}>{item.name}</p><p style={{ fontSize:12, color:t.textSub, margin:0 }}>{item.action} · {item.time}</p></div>
+                    </div>
+                    <span style={{ fontSize:15, fontWeight:700, color:item.positive?"#34C759":"#FF375F" }}>{item.amount}</span>
                   </div>
-                  <span style={{ fontSize:15, fontWeight:700, color:item.positive?"#34C759":"#FF375F" }}>{item.amount}</span>
-                </div>
-              ))}</div>
-            }
+                ))}</div>;
+            })()}
           </Card>
         )}
 
