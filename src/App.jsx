@@ -795,12 +795,8 @@ export default function App({ session }) {
         </nav>
 
         <div style={{ padding:"0 12px", display:"flex", flexDirection:"column", gap:8 }}>
-          <button onClick={toggleTheme} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderRadius:10, border:"none", cursor:"pointer", background:t.surfaceAlt, color:t.textSub, fontSize:13, fontWeight:500, transition:"all 0.2s", width:"100%" }}>
-            <span style={{ fontSize:16 }}>{isDark?"☀️":"🌙"}</span>
-            {isDark?"Light Mode":"Dark Mode"}
-            <div style={{ marginLeft:"auto", width:32, height:18, borderRadius:99, background:isDark?t.accent:t.borderStrong, position:"relative", transition:"background 0.3s" }}>
-              <div style={{ position:"absolute", top:2, left:isDark?16:2, width:14, height:14, borderRadius:"50%", background:"white", transition:"left 0.25s cubic-bezier(0.34,1.56,0.64,1)", boxShadow:"0 1px 4px rgba(0,0,0,0.3)" }}/>
-            </div>
+          <button onClick={toggleTheme} style={{ background:"none", border:"none", cursor:"pointer", color:t.textSub, fontSize:18, padding:4, lineHeight:1, alignSelf:"flex-end" }} title="Toggle theme">
+            {isDark?"☀️":"🌙"}
           </button>
           <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderRadius:12, background:t.surfaceAlt }}>
             <Avatar name={session?.user?.email||"A"} size={30}/>
