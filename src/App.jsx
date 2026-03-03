@@ -560,7 +560,9 @@ export default function App({ session }) {
   }
   async function handleDeleteExpenseCategory(id) {
     if(!confirm("Delete this category? This cannot be undone."))return;
-    await supabase.from("expense_categories").delete().eq("id",id); fetchAllData();
+    await supabase.from("expenses").delete().eq("category_id",id);
+    await supabase.from("expense_categories").delete().eq("id",id);
+    fetchAllData();
   }
   async function handleSaveOrg(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
