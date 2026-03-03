@@ -431,13 +431,14 @@ export default function App({ session }) {
 
   const [modal, setModal] = useState(null);
   const [newUser, setNewUser] = useState({ full_name:"", email:"", password:"", role:"admin" });
-  const [newPerson, setNewPerson] = useState({ full_name:"", status:"active" });
+  const [newPerson, setNewPerson] = useState({ full_name:"", status:"active", monthly_target:"" });
   const [newContribution, setNewContribution] = useState({ member_id:"", amount:"", payment_type_id:"", note:"" });
   const [newExpense, setNewExpense] = useState({ category_id:"", amount:"", label:"" });
   const [newPaymentType, setNewPaymentType] = useState({ name:"", description:"", goal:"", color:"#0071E3" });
   const [newExpenseCategory, setNewExpenseCategory] = useState({ name:"", description:"", budget:"", color:"#0071E3" });
   const [editingPaymentType, setEditingPaymentType] = useState(null);
   const [editingExpenseCategory, setEditingExpenseCategory] = useState(null);
+  const [editingPerson, setEditingPerson] = useState(null);
   const [orgForm, setOrgForm] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState(null);
@@ -462,7 +463,7 @@ export default function App({ session }) {
   useEffect(() => { fetchAllData(); }, []);
 
   const openModal = (name) => { setFormError(null); setModal(name); };
-  const closeModal = () => { setModal(null); setEditingPaymentType(null); setEditingExpenseCategory(null); };
+  const closeModal = () => { setModal(null); setEditingPaymentType(null); setEditingExpenseCategory(null); setEditingPerson(null); };
 
   async function fetchAllData() {
     setLoading(true);
@@ -487,10 +488,14 @@ export default function App({ session }) {
       setUserRole(me?.role || "admin");
 
       const fmtLocal = makeFmt(org?.currency||"USD");
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       const people = (profiles||[]).filter(p=>p.role==="member").map(p=>{
         const total=(contributions||[]).filter(c=>c.member_id===p.id).reduce((s,c)=>s+Number(c.amount),0);
+        const thisMonth=(contributions||[]).filter(c=>c.member_id===p.id&&new Date(c.created_at)>=monthStart).reduce((s,c)=>s+Number(c.amount),0);
         const last=(contributions||[]).find(c=>c.member_id===p.id);
-        return {id:p.id,name:p.full_name,status:p.status==="active"?"Active":"Inactive",contributions:total,lastActivity:last?new Date(last.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"}):"No activity"};
+        const target=Number(p.monthly_target||0);
+        return {id:p.id,name:p.full_name,status:p.status==="active"?"Active":"Inactive",contributions:total,thisMonth,target,lastActivity:last?new Date(last.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"}):"No activity"};
       });
 
       const expenseData=(categories||[]).map(cat=>{
@@ -518,7 +523,7 @@ export default function App({ session }) {
   }
   async function handleAddPerson(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
-    try { const {error}=await supabase.from("profiles").insert({id:crypto.randomUUID(),full_name:newPerson.full_name,role:"member",status:newPerson.status}); if(error)throw error; closeModal(); setNewPerson({full_name:"",status:"active"}); fetchAllData(); } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
+    try { const {error}=await supabase.from("profiles").insert({id:crypto.randomUUID(),full_name:newPerson.full_name,role:"member",status:newPerson.status,monthly_target:newPerson.monthly_target?Number(newPerson.monthly_target):0}); if(error)throw error; closeModal(); setNewPerson({full_name:"",status:"active",monthly_target:""}); fetchAllData(); } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleAddContribution(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
@@ -557,7 +562,20 @@ export default function App({ session }) {
     try { const {error}=await supabase.from("org_settings").update({...orgForm,financial_year_start:Number(orgForm.financial_year_start),updated_by:session?.user?.id,updated_at:new Date().toISOString()}).eq("id",data.org.id); if(error)throw error; closeModal(); fetchAllData(); } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
 
-  async function handleDeactivatePerson(id, currentStatus) {
+  async function handleEditPerson(e) {
+    e.preventDefault(); setFormLoading(true); setFormError(null);
+    try {
+      const {error} = await supabase.from("profiles").update({
+        full_name: editingPerson.full_name,
+        status: editingPerson.status,
+        monthly_target: editingPerson.monthly_target ? Number(editingPerson.monthly_target) : 0,
+      }).eq("id", editingPerson.id);
+      if (error) throw error;
+      closeModal(); fetchAllData();
+    } catch(err) { setFormError(err.message); } finally { setFormLoading(false); }
+  }
+
+    async function handleDeactivatePerson(id, currentStatus) {
     const newStatus = currentStatus === "Active" ? "inactive" : "active";
     await supabase.from("profiles").update({ status: newStatus }).eq("id", id);
     fetchAllData();
@@ -679,6 +697,13 @@ export default function App({ session }) {
   }
 
   const isSuperAdmin = userRole === "super_admin";
+  const currentMonth = new Date().toLocaleString("en-US",{month:"long"});
+  const membersWithTarget = data.people.filter(p=>p.target>0);
+  const onTrack = membersWithTarget.filter(p=>p.thisMonth>=p.target).length;
+  const behind = membersWithTarget.filter(p=>p.thisMonth>0&&p.thisMonth<p.target).length;
+  const missed = membersWithTarget.filter(p=>p.thisMonth===0&&p.target>0).length;
+  const totalTargetThisMonth = membersWithTarget.reduce((s,p)=>s+p.target,0);
+  const totalActualThisMonth = data.people.reduce((s,p)=>s+(p.thisMonth||0),0);
   const orgName = data.org?.name || "Unified";
   const fyText = data.org ? fyLabel(data.org.financial_year_start, data.org.financial_year_format) : "";
   const monthlyData = buildMonthly(data.rawContributions, data.rawExpenses);
@@ -784,7 +809,7 @@ export default function App({ session }) {
               </div>
               <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
                 <StatCard label="People Tracked" value={data.people.length} t={t} style={{ animation:"slideUp 0.35s ease 0.05s both" }}/>
-                <StatCard label="Payment Types" value={data.paymentTypes.length} t={t} style={{ animation:"slideUp 0.35s ease 0.1s both" }}/>
+                <StatCard label="This Month" value={fmt(totalActualThisMonth)} t={t} style={{ animation:"slideUp 0.35s ease 0.1s both" }}/>
               </div>
             </div>
 
@@ -796,6 +821,53 @@ export default function App({ session }) {
                 <LineChart data={timelineData} fmt={fmt} t={t} height={210}/>
               </ChartCard>
             </div>
+
+            {membersWithTarget.length>0&&(
+              <Card t={t} style={{ marginBottom:20, animation:"slideUp 0.35s ease 0.18s both" }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+                  <div>
+                    <h3 style={{ fontSize:15, fontWeight:700, margin:0, color:t.text }}>Consistency Tracker</h3>
+                    <p style={{ fontSize:12, color:t.textSub, margin:"3px 0 0" }}>{currentMonth} - {membersWithTarget.length} members with targets</p>
+                  </div>
+                  <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                    <span style={{ fontSize:12, fontWeight:600, padding:"4px 10px", borderRadius:20, background:"rgba(52,199,89,0.12)", color:"#34C759" }}>{onTrack} on track</span>
+                    {behind>0&&<span style={{ fontSize:12, fontWeight:600, padding:"4px 10px", borderRadius:20, background:"rgba(255,159,10,0.12)", color:"#FF9F0A" }}>{behind} behind</span>}
+                    {missed>0&&<span style={{ fontSize:12, fontWeight:600, padding:"4px 10px", borderRadius:20, background:"rgba(255,55,95,0.12)", color:"#FF375F" }}>{missed} missed</span>}
+                  </div>
+                </div>
+                {totalTargetThisMonth>0&&(
+                  <div style={{ marginBottom:20 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+                      <span style={{ fontSize:12, color:t.textSub }}>Overall progress</span>
+                      <span style={{ fontSize:12, fontWeight:700, color:t.text }}>{fmt(totalActualThisMonth)} / {fmt(totalTargetThisMonth)}</span>
+                    </div>
+                    <div style={{ height:10, background:t.surfaceAlt, borderRadius:99, overflow:"hidden" }}>
+                      <div style={{ height:"100%", width:`${Math.min(Math.round((totalActualThisMonth/totalTargetThisMonth)*100),100)}%`, background:`linear-gradient(90deg,${t.accent},#34C759)`, borderRadius:99, transition:"width 0.9s cubic-bezier(0.34,1.1,0.64,1)", boxShadow:`0 0 10px ${t.accent}55` }}/>
+                    </div>
+                  </div>
+                )}
+                <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                  {membersWithTarget.map((p,i)=>{
+                    const pct=Math.min(Math.round((p.thisMonth/p.target)*100),100);
+                    const clr=p.thisMonth>=p.target?"#34C759":p.thisMonth>0?"#FF9F0A":"#FF375F";
+                    return (
+                      <div key={p.id} style={{ animation:`slideIn 0.3s ease ${i*0.05}s both` }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:5 }}>
+                          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                            <div style={{ width:8, height:8, borderRadius:"50%", background:clr, flexShrink:0 }}/>
+                            <span style={{ fontSize:13, fontWeight:600, color:t.text }}>{p.name}</span>
+                          </div>
+                          <span style={{ fontSize:12, color:t.textSub }}>{fmt(p.thisMonth)} / {fmt(p.target)}</span>
+                        </div>
+                        <div style={{ height:6, background:t.surfaceAlt, borderRadius:99, overflow:"hidden" }}>
+                          <div style={{ height:"100%", width:`${pct}%`, background:clr, borderRadius:99, transition:`width 0.8s cubic-bezier(0.34,1.1,0.64,1) ${i*0.06}s`, boxShadow:`0 0 6px ${clr}66` }}/>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            )}
 
             <Card t={t} style={{ animation:"slideUp 0.35s ease 0.2s both" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 }}>
@@ -868,6 +940,7 @@ export default function App({ session }) {
                         </div>
                         <span style={{ fontSize:11, fontWeight:600, padding:"4px 10px", borderRadius:20, background:p.status==="Active"?"rgba(52,199,89,0.12)":"rgba(142,142,147,0.12)", color:p.status==="Active"?"#34C759":"#8E8E93" }}>{p.status}</span>
                         <div style={{ display:"flex", gap:6 }}>
+                          <Btn size="sm" variant="secondary" t={t} onClick={e=>{e.stopPropagation();setEditingPerson({id:p.id,full_name:p.name,status:p.status==="Active"?"active":"inactive",monthly_target:p.target||""});openModal("editPerson");}}>Edit</Btn>
                           <Btn size="sm" variant="secondary" t={t} onClick={e=>{e.stopPropagation();handleDeactivatePerson(p.id,p.status);}}>{p.status==="Active"?"Deactivate":"Activate"}</Btn>
                           <Btn size="sm" variant="danger" t={t} onClick={e=>{e.stopPropagation();handleDeletePerson(p.id);}}>Delete</Btn>
                         </div>
@@ -1192,6 +1265,7 @@ export default function App({ session }) {
           <form onSubmit={handleAddPerson}>
             <Field label="Full Name" t={t}><Input t={t} value={newPerson.full_name} onChange={e=>setNewPerson({...newPerson,full_name:e.target.value})} placeholder="Jane Doe" required/></Field>
             <Field label="Status" t={t}><Select t={t} value={newPerson.status} onChange={e=>setNewPerson({...newPerson,status:e.target.value})}><option value="active">Active</option><option value="inactive">Inactive</option></Select></Field>
+            <Field label="Monthly Target (optional)" t={t}><Input t={t} type="number" min="0" step="0.01" value={newPerson.monthly_target||""} onChange={e=>setNewPerson({...newPerson,monthly_target:e.target.value})} placeholder="e.g. 100"/></Field>
             {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
             <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
               <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
@@ -1290,6 +1364,21 @@ export default function App({ session }) {
         </Modal>
       )}
 
+
+      {modal==="editPerson"&&editingPerson&&(
+        <Modal title="Edit Person" onClose={closeModal} t={t}>
+          <form onSubmit={handleEditPerson}>
+            <Field label="Full Name" t={t}><Input t={t} value={editingPerson.full_name} onChange={e=>setEditingPerson({...editingPerson,full_name:e.target.value})} required/></Field>
+            <Field label="Status" t={t}><Select t={t} value={editingPerson.status} onChange={e=>setEditingPerson({...editingPerson,status:e.target.value})}><option value="active">Active</option><option value="inactive">Inactive</option></Select></Field>
+            <Field label="Monthly Target (optional)" t={t}><Input t={t} type="number" min="0" step="0.01" value={editingPerson.monthly_target||""} onChange={e=>setEditingPerson({...editingPerson,monthly_target:e.target.value})} placeholder="e.g. 100"/></Field>
+            {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
+            <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
+              <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
+              <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Saving...":"Save Changes"}</Btn>
+            </div>
+          </form>
+        </Modal>
+      )}
 
       {modal==="editContribution"&&editingContribution&&(
         <Modal title="Edit Contribution" onClose={closeModal} t={t}>
