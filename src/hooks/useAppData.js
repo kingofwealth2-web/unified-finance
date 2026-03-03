@@ -52,7 +52,8 @@ export function useAppData({ session }) {
   const [auditLog, setAuditLog] = useState([]);
   const [auditLoading, setAuditLoading] = useState(false);
 
-  const visible = useFadeIn([activeTab]);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => { setVisible(false); const timer = setTimeout(() => setVisible(true), 30); return () => clearTimeout(timer); }, [activeTab]);
   useEffect(() => { fetchAllData(); }, []);
 
   const openModal = (name) => { setFormError(null); setModal(name); };
@@ -326,16 +327,6 @@ export function useAppData({ session }) {
     {id:"activity",label:"Activity",icon:"◷"},
     ...(isSuperAdmin?[{id:"settings",label:"Settings",icon:"⊙"},{id:"audit",label:"Audit Log",icon:"◑"}]:[]),
   ];
-
-  if (loading) return (
-    <div style={{ minHeight:"100vh", background:t.bg, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"-apple-system,sans-serif" }}>
-      <div style={{ textAlign:"center" }}>
-        <div style={{ width:48, height:48, borderRadius:14, background:t.heroGrad, margin:"0 auto 16px", animation:"pulse 1.5s ease-in-out infinite", boxShadow:"0 8px 32px rgba(0,113,227,0.4)" }}/>
-        <p style={{ color:t.textSub, fontSize:14 }}>Loading {orgName}...</p>
-      </div>
-    </div>
-  );
-
 
   return {
     data, loading, activeTab, setActiveTab, isDark, toggleTheme, t,
