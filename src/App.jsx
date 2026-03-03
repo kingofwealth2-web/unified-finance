@@ -128,13 +128,15 @@ export default function App({ session }) {
   const [newExpense, setNewExpense] = useState({ category_id: "", amount: "", label: "" });
   const [newPaymentType, setNewPaymentType] = useState({ name: "", description: "", goal: "", color: "#0071E3" });
   const [newExpenseCategory, setNewExpenseCategory] = useState({ name: "", description: "", budget: "", color: "#0071E3" });
+  const [editingPaymentType, setEditingPaymentType] = useState(null);
+  const [editingExpenseCategory, setEditingExpenseCategory] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState(null);
 
   useEffect(() => { fetchAllData(); }, []);
 
   const openModal = (name) => { setFormError(null); setModal(name); };
-  const closeModal = () => setModal(null);
+  const closeModal = () => { setModal(null); setEditingPaymentType(null); setEditingExpenseCategory(null); };
 
   async function fetchAllData() {
     setLoading(true);
@@ -276,6 +278,48 @@ export default function App({ session }) {
     finally { setFormLoading(false); }
   }
 
+
+  async function handleEditPaymentType(e) {
+    e.preventDefault(); setFormLoading(true); setFormError(null);
+    try {
+      const { error } = await supabase.from("payment_types").update({
+        name: editingPaymentType.name,
+        description: editingPaymentType.description || null,
+        goal: editingPaymentType.goal ? Number(editingPaymentType.goal) : null,
+        color: editingPaymentType.color,
+      }).eq("id", editingPaymentType.id);
+      if (error) throw error;
+      closeModal(); fetchAllData();
+    } catch (err) { setFormError(err.message); }
+    finally { setFormLoading(false); }
+  }
+
+  async function handleDeletePaymentType(id) {
+    if (!confirm("Delete this payment type? This cannot be undone.")) return;
+    await supabase.from("payment_types").delete().eq("id", id);
+    fetchAllData();
+  }
+
+  async function handleEditExpenseCategory(e) {
+    e.preventDefault(); setFormLoading(true); setFormError(null);
+    try {
+      const { error } = await supabase.from("expense_categories").update({
+        name: editingExpenseCategory.name,
+        description: editingExpenseCategory.description || null,
+        budget: editingExpenseCategory.budget ? Number(editingExpenseCategory.budget) : 0,
+        color: editingExpenseCategory.color,
+      }).eq("id", editingExpenseCategory.id);
+      if (error) throw error;
+      closeModal(); fetchAllData();
+    } catch (err) { setFormError(err.message); }
+    finally { setFormLoading(false); }
+  }
+
+  async function handleDeleteExpenseCategory(id) {
+    if (!confirm("Delete this category? This cannot be undone.")) return;
+    await supabase.from("expense_categories").delete().eq("id", id);
+    fetchAllData();
+  }
   const isSuperAdmin = userRole === "super_admin";
 
   const navItems = [
@@ -654,11 +698,13 @@ export default function App({ session }) {
                             {pt.description && <p style={{ fontSize: 12, color: "#8E8E93", margin: 0 }}>{pt.description}</p>}
                           </div>
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                          <div style={{ textAlign: "right" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <div style={{ textAlign: "right", marginRight: 8 }}>
                             <p style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>{fmt(pt.total)}</p>
                             {pt.goal > 0 && <p style={{ fontSize: 11, color: "#8E8E93", margin: 0 }}>Goal: {fmt(pt.goal)}</p>}
                           </div>
+                          <Btn size="sm" variant="secondary" onClick={() => { setEditingPaymentType({ ...pt, goal: pt.goal || "" }); openModal("editPaymentType"); }}>Edit</Btn>
+                          <Btn size="sm" variant="danger" onClick={() => handleDeletePaymentType(pt.id)}>Delete</Btn>
                         </div>
                       </div>
                     ))}
@@ -687,9 +733,13 @@ export default function App({ session }) {
                             {exp.description && <p style={{ fontSize: 12, color: "#8E8E93", margin: 0 }}>{exp.description}</p>}
                           </div>
                         </div>
-                        <div style={{ textAlign: "right" }}>
-                          <p style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>{fmt(exp.amount)} spent</p>
-                          {exp.budget > 0 && <p style={{ fontSize: 11, color: "#8E8E93", margin: 0 }}>Budget: {fmt(exp.budget)}</p>}
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <div style={{ textAlign: "right", marginRight: 8 }}>
+                            <p style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>{fmt(exp.amount)} spent</p>
+                            {exp.budget > 0 && <p style={{ fontSize: 11, color: "#8E8E93", margin: 0 }}>Budget: {fmt(exp.budget)}</p>}
+                          </div>
+                          <Btn size="sm" variant="secondary" onClick={() => { setEditingExpenseCategory({ ...exp, budget: exp.budget || "", name: exp.label }); openModal("editExpenseCategory"); }}>Edit</Btn>
+                          <Btn size="sm" variant="danger" onClick={() => handleDeleteExpenseCategory(exp.id)}>Delete</Btn>
                         </div>
                       </div>
                     ))}
@@ -829,6 +879,40 @@ export default function App({ session }) {
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 24 }}>
               <Btn variant="secondary" type="button" onClick={closeModal}>Cancel</Btn>
               <Btn type="submit" disabled={formLoading}>{formLoading ? "Creating..." : "Create"}</Btn>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* MODAL: Edit Payment Type */}
+      {modal === "editPaymentType" && editingPaymentType && (
+        <Modal title="Edit Payment Type" onClose={closeModal}>
+          <form onSubmit={handleEditPaymentType}>
+            <Field label="Name"><Input value={editingPaymentType.name} onChange={e => setEditingPaymentType({ ...editingPaymentType, name: e.target.value })} required /></Field>
+            <Field label="Description (optional)"><Textarea value={editingPaymentType.description || ""} onChange={e => setEditingPaymentType({ ...editingPaymentType, description: e.target.value })} placeholder="Brief description..." /></Field>
+            <Field label="Goal Amount (optional)"><Input type="number" min="0" step="0.01" value={editingPaymentType.goal || ""} onChange={e => setEditingPaymentType({ ...editingPaymentType, goal: e.target.value })} placeholder="e.g. 10000" /></Field>
+            <Field label="Color"><ColorPicker value={editingPaymentType.color} onChange={color => setEditingPaymentType({ ...editingPaymentType, color })} /></Field>
+            {formError && <p style={{ fontSize: 13, color: "#FF375F", marginBottom: 16 }}>{formError}</p>}
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 24 }}>
+              <Btn variant="secondary" type="button" onClick={closeModal}>Cancel</Btn>
+              <Btn type="submit" disabled={formLoading}>{formLoading ? "Saving..." : "Save Changes"}</Btn>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* MODAL: Edit Expense Category */}
+      {modal === "editExpenseCategory" && editingExpenseCategory && (
+        <Modal title="Edit Expense Category" onClose={closeModal}>
+          <form onSubmit={handleEditExpenseCategory}>
+            <Field label="Name"><Input value={editingExpenseCategory.name} onChange={e => setEditingExpenseCategory({ ...editingExpenseCategory, name: e.target.value })} required /></Field>
+            <Field label="Description (optional)"><Textarea value={editingExpenseCategory.description || ""} onChange={e => setEditingExpenseCategory({ ...editingExpenseCategory, description: e.target.value })} placeholder="Brief description..." /></Field>
+            <Field label="Budget (optional)"><Input type="number" min="0" step="0.01" value={editingExpenseCategory.budget || ""} onChange={e => setEditingExpenseCategory({ ...editingExpenseCategory, budget: e.target.value })} placeholder="e.g. 50000" /></Field>
+            <Field label="Color"><ColorPicker value={editingExpenseCategory.color} onChange={color => setEditingExpenseCategory({ ...editingExpenseCategory, color })} /></Field>
+            {formError && <p style={{ fontSize: 13, color: "#FF375F", marginBottom: 16 }}>{formError}</p>}
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 24 }}>
+              <Btn variant="secondary" type="button" onClick={closeModal}>Cancel</Btn>
+              <Btn type="submit" disabled={formLoading}>{formLoading ? "Saving..." : "Save Changes"}</Btn>
             </div>
           </form>
         </Modal>
