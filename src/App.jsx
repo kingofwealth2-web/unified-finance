@@ -114,11 +114,11 @@ const EmptyState = ({ message, action, t }) => (
 );
 
 const Card = ({ children, t, style = {} }) => (
-  <div style={{ background: t.surface, borderRadius: 24, padding: "32px", border: `1px solid ${t.border}`, boxShadow: t.cardShadow, ...style }}>{children}</div>
+  <div style={{ background: t.surface, borderRadius: 24, padding: "32px", border: `1px solid ${t.border}`, boxShadow: t.cardShadow, overflow: "hidden", ...style }}>{children}</div>
 );
 
 const StatCard = ({ label, value, t, style = {} }) => (
-  <div style={{ background: t.surface, borderRadius: 20, padding: "24px", border: `1px solid ${t.border}`, flex: 1, boxShadow: t.cardShadow, ...style }}>
+  <div style={{ background: t.surface, borderRadius: 20, padding: "24px", border: `1px solid ${t.border}`, flex: 1, boxShadow: t.cardShadow, overflow: "hidden", ...style }}>
     <p style={{ fontSize: 12, color: t.textSub, fontWeight: 500, marginBottom: 8 }}>{label}</p>
     <p style={{ fontSize: 32, fontWeight: 700, letterSpacing: "-1px", margin: 0, color: t.text }}>{value}</p>
   </div>
@@ -507,7 +507,7 @@ export default function App({ session }) {
                 {data.paymentTypes.map((pt, i) => {
                   const pct = pt.goal > 0 ? Math.min(Math.round((pt.total / pt.goal) * 100), 100) : 0;
                   return (
-                    <div key={pt.id} className="card-hover" style={{ background: t.surface, borderRadius: 24, padding: "28px 32px", border: `1px solid ${t.border}`, boxShadow: t.cardShadow, animation: `slideUp 0.3s ease ${i * 0.06}s both` }}>
+                    <div key={pt.id} className="card-hover" style={{ background: t.surface, borderRadius: 24, padding: "28px 32px", border: `1px solid ${t.border}`, boxShadow: t.cardShadow, overflow: "hidden", animation: `slideUp 0.3s ease ${i * 0.06}s both` }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: pt.goal > 0 ? 20 : 0 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                           <div style={{ width: 48, height: 48, borderRadius: 14, background: `${pt.color}18`, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -549,7 +549,7 @@ export default function App({ session }) {
                 {data.expenses.map((exp, i) => {
                   const pct = exp.budget > 0 ? Math.min(Math.round((exp.amount / exp.budget) * 100), 100) : 0;
                   return (
-                    <div key={exp.id} className="card-hover" style={{ background: t.surface, borderRadius: 24, padding: "28px 32px", border: `1px solid ${t.border}`, boxShadow: t.cardShadow, animation: `slideUp 0.3s ease ${i * 0.06}s both` }}>
+                    <div key={exp.id} className="card-hover" style={{ background: t.surface, borderRadius: 24, padding: "28px 32px", border: `1px solid ${t.border}`, boxShadow: t.cardShadow, overflow: "hidden", animation: `slideUp 0.3s ease ${i * 0.06}s both` }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: exp.budget > 0 ? 20 : 0 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                           <div style={{ width: 48, height: 48, borderRadius: 14, background: `${exp.color}18`, display: "flex", alignItems: "center", justifyContent: "center" }}>
