@@ -443,13 +443,14 @@ export default function App({ session }) {
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState(null);
 
-  // Expanded payment type (for member rankings)
   const [expandedPaymentType, setExpandedPaymentType] = useState(null);
 
   // Search & filter
   const [peopleSearch, setPeopleSearch] = useState("");
   const [activitySearch, setActivitySearch] = useState("");
-  const [activityFilter, setActivityFilter] = useState("all"); // all | contributions | expenses
+  const [activityFilter, setActivityFilter] = useState("all");
+  const [activityPage, setActivityPage] = useState(1);
+  const ACTIVITY_PAGE_SIZE = 20; // all | contributions | expenses
   const [activityDateFrom, setActivityDateFrom] = useState("");
   const [activityDateTo, setActivityDateTo] = useState("");
   const [showPrintView, setShowPrintView] = useState(false);
@@ -513,14 +514,8 @@ export default function App({ session }) {
       const paymentTypeData=(paymentTypes||[]).map(pt=>{
         const ptContribs=(contributions||[]).filter(c=>c.payment_type_id===pt.id);
         const total=ptContribs.reduce((s,c)=>s+Number(c.amount),0);
-        // Build member rankings for this payment type
         const memberMap={};
-        ptContribs.forEach(c=>{
-          const mid=c.member_id;
-          const name=c.profiles?.full_name||"Unknown";
-          if(!memberMap[mid]) memberMap[mid]={id:mid,name,total:0};
-          memberMap[mid].total+=Number(c.amount);
-        });
+        ptContribs.forEach(c=>{ const mid=c.member_id; const name=c.profiles?.full_name||"Unknown"; if(!memberMap[mid]) memberMap[mid]={id:mid,name,total:0}; memberMap[mid].total+=Number(c.amount); });
         const members=Object.values(memberMap).sort((a,b)=>b.total-a.total);
         return {id:pt.id,name:pt.name,description:pt.description,total,goal:Number(pt.goal||0),color:pt.color||"#0071E3",members};
       });
@@ -1041,7 +1036,6 @@ export default function App({ session }) {
                   const pct=pt.goal>0?Math.min(Math.round((pt.total/pt.goal)*100),100):0;
                   return (
                     <div key={pt.id} style={{ background:t.surface, borderRadius:24, border:`1px solid ${t.border}`, boxShadow:t.cardShadow, overflow:"hidden", animation:`slideUp 0.3s ease ${i*0.06}s both` }}>
-                      {/* Card header — clickable to expand rankings */}
                       <div className="card-hover" onClick={()=>setExpandedPaymentType(expandedPaymentType===pt.id?null:pt.id)} style={{ padding:"28px 32px", cursor:"pointer" }}>
                         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:pt.goal>0?20:0 }}>
                           <div style={{ display:"flex", alignItems:"center", gap:14 }}>
@@ -1051,7 +1045,7 @@ export default function App({ session }) {
                             <div>
                               <h4 style={{ fontSize:17, fontWeight:600, margin:0, color:t.text }}>{pt.name}</h4>
                               {pt.description&&<p style={{ fontSize:12, color:t.textSub, margin:"2px 0 0" }}>{pt.description}</p>}
-                              <p style={{ fontSize:11, color:t.textMuted, margin:"4px 0 0" }}>{pt.members.length} contributor{pt.members.length!==1?"s":""} · click to {expandedPaymentType===pt.id?"hide":"view"} rankings</p>
+                              <p style={{ fontSize:11, color:t.textMuted, margin:"4px 0 0" }}>{pt.members.length} contributor{pt.members.length!==1?"s":""} clicked to {expandedPaymentType===pt.id?"hide":"view"} rankings</p>
                             </div>
                           </div>
                           <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:8 }}>
@@ -1063,9 +1057,8 @@ export default function App({ session }) {
                             </div>
                           </div>
                         </div>
-                        {pt.goal>0&&<><div style={{ height:8, background:t.surfaceAlt, borderRadius:99, overflow:"hidden", marginBottom:10 }}><div style={{ height:"100%", width:`${pct}%`, background:pt.color, borderRadius:99, transition:"width 0.8s cubic-bezier(0.4,0,0.2,1)", boxShadow:`0 0 8px ${pt.color}55` }}/></div><p style={{ fontSize:12, color:t.textSub, margin:0 }}><span style={{ color:"#34C759", fontWeight:600 }}>{fmt(pt.goal-pt.total)} remaining</span> · {pct}% reached</p></>}
+                        {pt.goal>0&&<><div style={{ height:8, background:t.surfaceAlt, borderRadius:99, overflow:"hidden", marginBottom:10 }}><div style={{ height:"100%", width:`${pct}%`, background:pt.color, borderRadius:99, transition:"width 0.8s cubic-bezier(0.4,0,0.2,1)", boxShadow:`0 0 8px ${pt.color}55` }}/></div><p style={{ fontSize:12, color:t.textSub, margin:0 }}><span style={{ color:"#34C759", fontWeight:600 }}>{fmt(pt.goal-pt.total)} remaining</span> . {pct}% reached</p></> }
                       </div>
-                      {/* Expandable member rankings */}
                       {expandedPaymentType===pt.id&&(
                         <div style={{ borderTop:`1px solid ${t.border}`, padding:"20px 32px", background:t.surfaceAlt, animation:"slideUp 0.2s ease" }}>
                           {pt.members.length===0?(
@@ -1076,15 +1069,12 @@ export default function App({ session }) {
                               <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                                 {pt.members.map((m,ri)=>{
                                   const pct2=Math.round((m.total/pt.total)*100);
-                                  const medal=ri===0?"🥇":ri===1?"🥈":ri===2?"🥉":null;
+                                  const medal=ri===0?"ð¥":ri===1?"ð¥":ri===2?"ð¥":null;
                                   return (
                                     <div key={m.id} style={{ animation:`slideIn 0.25s ease ${ri*0.04}s both` }}>
                                       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:5 }}>
                                         <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                                          {medal
-                                            ? <span style={{ fontSize:16, lineHeight:1 }}>{medal}</span>
-                                            : <span style={{ width:20, height:20, borderRadius:"50%", background:`${pt.color}22`, border:`1.5px solid ${pt.color}55`, display:"inline-flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:700, color:pt.color }}>{ri+1}</span>
-                                          }
+                                          {medal?<span style={{ fontSize:16, lineHeight:1 }}>{medal}</span>:<span style={{ width:20, height:20, borderRadius:"50%", background:`${pt.color}22`, border:`1.5px solid ${pt.color}55`, display:"inline-flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:700, color:pt.color }}>{ri+1}</span>}
                                           <span style={{ fontSize:13, fontWeight:600, color:t.text }}>{m.name}</span>
                                         </div>
                                         <div style={{ display:"flex", alignItems:"center", gap:8 }}>
@@ -1103,42 +1093,6 @@ export default function App({ session }) {
                           )}
                         </div>
                       )}
-                    </div>
-                  );
-                })}
-              </div>
-            }
-          </div>
-        )}
-
-        {/* ── EXPENSES ── */}
-        {activeTab==="expenses" && (
-          <div>
-            <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:20, gap:10 }}>
-              <Btn t={t} onClick={()=>openModal("addExpense")} variant="secondary">+ Record Expense</Btn>
-              {isSuperAdmin&&<Btn t={t} onClick={()=>openModal("addExpenseCategory")}>+ New Category</Btn>}
-            </div>
-            {data.expenses.length>0&&(
-              <ChartCard title="Expense Breakdown" subtitle="Distribution across categories" t={t} style={{ marginBottom:20, animation:"slideUp 0.3s ease" }}>
-                <DonutChart data={data.expenses.map(e=>({name:e.label,value:e.amount,color:e.color}))} fmt={fmt} t={t} size={200}/>
-              </ChartCard>
-            )}
-            {data.expenses.length===0?<Card t={t}><EmptyState message="No expense categories yet." action={isSuperAdmin?<Btn t={t} onClick={()=>openModal("addExpenseCategory")}>Create First Category</Btn>:null} t={t}/></Card>:
-              <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-                {data.expenses.map((exp,i)=>{
-                  const pct=exp.budget>0?Math.min(Math.round((exp.amount/exp.budget)*100),100):0;
-                  return (
-                    <div key={exp.id} className="card-hover" style={{ background:t.surface, borderRadius:24, padding:"28px 32px", border:`1px solid ${t.border}`, boxShadow:t.cardShadow, overflow:"hidden", animation:`slideUp 0.3s ease ${i*0.06}s both` }}>
-                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:exp.budget>0?20:0 }}>
-                        <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-                          <div style={{ width:48, height:48, borderRadius:14, background:`${exp.color}18`, display:"flex", alignItems:"center", justifyContent:"center" }}>
-                            <div style={{ width:16, height:16, borderRadius:"50%", background:exp.color, boxShadow:`0 0 8px ${exp.color}88` }}/>
-                          </div>
-                          <div><h4 style={{ fontSize:17, fontWeight:600, margin:0, color:t.text }}>{exp.label}</h4>{exp.description&&<p style={{ fontSize:12, color:t.textSub, margin:"2px 0 0" }}>{exp.description}</p>}{exp.budget>0&&<p style={{ fontSize:12, color:t.textSub, margin:"2px 0 0" }}>{pct}% of budget used</p>}</div>
-                        </div>
-                        <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:8 }}><p style={{ fontSize:28, fontWeight:700, letterSpacing:"-1px", margin:0, color:t.text }}>{fmt(exp.amount)}</p>{exp.budget>0&&<p style={{ fontSize:12, color:t.textSub, margin:0 }}>of {fmt(exp.budget)} budget</p>}<div style={{ display:"flex", gap:6 }}><Btn size="sm" variant="secondary" t={t} onClick={()=>{setEditingExpenseCategory({...exp,budget:exp.budget||"",name:exp.label});openModal("editExpenseCategory");}}>Edit</Btn><Btn size="sm" variant="danger" t={t} onClick={()=>handleDeleteExpenseCategory(exp.id)}>Delete</Btn></div></div>
-                      </div>
-                      {exp.budget>0&&<><div style={{ height:8, background:t.surfaceAlt, borderRadius:99, overflow:"hidden", marginBottom:10 }}><div style={{ height:"100%", width:`${pct}%`, background:exp.color, borderRadius:99, transition:"width 0.8s cubic-bezier(0.4,0,0.2,1)", boxShadow:`0 0 8px ${exp.color}55` }}/></div><p style={{ fontSize:12, color:t.textSub, margin:0 }}><span style={{ color:"#34C759", fontWeight:600 }}>{fmt(exp.budget-exp.amount)} remaining</span></p></>}
                     </div>
                   );
                 })}
@@ -1253,9 +1207,9 @@ export default function App({ session }) {
               {/* Date range */}
               <div style={{ display:"flex", gap:10, marginBottom:14, alignItems:"center", flexWrap:"wrap" }}>
                 <span style={{ fontSize:12, fontWeight:500, color:t.textSub, whiteSpace:"nowrap" }}>Date range:</span>
-                <input type="date" value={activityDateFrom} onChange={e=>setActivityDateFrom(e.target.value)} style={{ ...iStyle(t), width:"auto", fontSize:13, padding:"8px 12px" }}/>
+                <input type="date" value={activityDateFrom} onChange={e=>{setActivityDateFrom(e.target.value);setActivityPage(1);}} style={{ ...iStyle(t), width:"auto", fontSize:13, padding:"8px 12px" }}/>
                 <span style={{ fontSize:12, color:t.textSub }}>→</span>
-                <input type="date" value={activityDateTo} onChange={e=>setActivityDateTo(e.target.value)} style={{ ...iStyle(t), width:"auto", fontSize:13, padding:"8px 12px" }}/>
+                <input type="date" value={activityDateTo} onChange={e=>{setActivityDateTo(e.target.value);setActivityPage(1);}} style={{ ...iStyle(t), width:"auto", fontSize:13, padding:"8px 12px" }}/>
                 {hasDateFilter && (
                   <button onClick={()=>{setActivityDateFrom("");setActivityDateTo("");}} style={{ fontSize:12, color:t.accent, background:"none", border:"none", cursor:"pointer", fontWeight:500 }}>Clear</button>
                 )}
@@ -1265,10 +1219,10 @@ export default function App({ session }) {
               <div style={{ display:"flex", gap:10, marginBottom:20, flexWrap:"wrap" }}>
                 <div style={{ flex:1, minWidth:180, position:"relative" }}>
                   <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:t.textSub, fontSize:14, pointerEvents:"none" }}>🔍</span>
-                  <input value={activitySearch} onChange={e=>setActivitySearch(e.target.value)} placeholder="Search activity..." style={{ ...iStyle(t), paddingLeft:36 }}/>
+                  <input value={activitySearch} onChange={e=>{setActivitySearch(e.target.value);setActivityPage(1);}} placeholder="Search activity..." style={{ ...iStyle(t), paddingLeft:36 }}/>
                 </div>
                 {["all","contributions","expenses"].map(f=>(
-                  <button key={f} onClick={()=>setActivityFilter(f)} style={{ padding:"10px 16px", borderRadius:10, border:"none", cursor:"pointer", fontSize:13, fontWeight:600, background:activityFilter===f?t.accent:t.surfaceAlt, color:activityFilter===f?"white":t.textSub, transition:"all 0.15s" }}>
+                  <button key={f} onClick={()=>{setActivityFilter(f);setActivityPage(1);}} style={{ padding:"10px 16px", borderRadius:10, border:"none", cursor:"pointer", fontSize:13, fontWeight:600, background:activityFilter===f?t.accent:t.surfaceAlt, color:activityFilter===f?"white":t.textSub, transition:"all 0.15s" }}>
                     {f==="all"?"All":f==="contributions"?"Income":"Expenses"}
                   </button>
                 ))}
@@ -1287,15 +1241,34 @@ export default function App({ session }) {
 
               {filtered.length===0
                 ? <EmptyState message="No activity matches your filters." t={t}/>
-                : <div>{filtered.map((item,i)=>(
-                    <div key={item.id} className="row-hover" style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 8px", borderBottom:i<filtered.length-1?`1px solid ${t.border}`:"none", borderRadius:8, animation:`slideIn 0.3s ease ${Math.min(i,15)*0.03}s both` }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-                        <div style={{ width:36, height:36, borderRadius:10, background:item.positive?"rgba(52,199,89,0.12)":"rgba(255,55,95,0.1)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>{item.positive?"↑":"↓"}</div>
-                        <div><p style={{ fontSize:14, fontWeight:600, margin:0, color:t.text }}>{item.name}</p><p style={{ fontSize:12, color:t.textSub, margin:0 }}>{item.action} · {item.time}</p></div>
-                      </div>
-                      <span style={{ fontSize:15, fontWeight:700, color:item.positive?"#34C759":"#FF375F" }}>{item.amount}</span>
-                    </div>
-                  ))}</div>
+                : (() => {
+                    const totalPages = Math.ceil(filtered.length / ACTIVITY_PAGE_SIZE);
+                    const safePage = Math.min(activityPage, totalPages);
+                    const pageItems = filtered.slice((safePage-1)*ACTIVITY_PAGE_SIZE, safePage*ACTIVITY_PAGE_SIZE);
+                    return (
+                      <>
+                        <div>{pageItems.map((item,i)=>(
+                          <div key={item.id} className="row-hover" style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 8px", borderBottom:i<pageItems.length-1?`1px solid ${t.border}`:"none", borderRadius:8, animation:`slideIn 0.3s ease ${i*0.03}s both` }}>
+                            <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+                              <div style={{ width:36, height:36, borderRadius:10, background:item.positive?"rgba(52,199,89,0.12)":"rgba(255,55,95,0.1)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>{item.positive?"↑":"↓"}</div>
+                              <div><p style={{ fontSize:14, fontWeight:600, margin:0, color:t.text }}>{item.name}</p><p style={{ fontSize:12, color:t.textSub, margin:0 }}>{item.action} · {item.time}</p></div>
+                            </div>
+                            <span style={{ fontSize:15, fontWeight:700, color:item.positive?"#34C759":"#FF375F" }}>{item.amount}</span>
+                          </div>
+                        ))}</div>
+                        {totalPages > 1 && (
+                          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:20, paddingTop:16, borderTop:`1px solid ${t.border}` }}>
+                            <span style={{ fontSize:12, color:t.textSub }}>Showing {(safePage-1)*ACTIVITY_PAGE_SIZE+1}–{Math.min(safePage*ACTIVITY_PAGE_SIZE,filtered.length)} of {filtered.length}</span>
+                            <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+                              <button onClick={()=>setActivityPage(p=>Math.max(1,p-1))} disabled={safePage===1} style={{ padding:"6px 14px", borderRadius:8, border:`1px solid ${t.border}`, background:t.surfaceAlt, color:safePage===1?t.textMuted:t.text, cursor:safePage===1?"default":"pointer", fontSize:13, fontWeight:500 }}>← Prev</button>
+                              {Array.from({length:totalPages},(_,pi)=>pi+1).filter(pg=>pg===1||pg===totalPages||Math.abs(pg-safePage)<=1).reduce((acc,pg,idx,arr)=>{ if(idx>0&&pg-arr[idx-1]>1)acc.push("dot"); acc.push(pg); return acc; },[]).map((pg,idx)=> pg==="dot"?(<span key={"d"+idx} style={{ fontSize:13, color:t.textMuted, padding:"0 4px" }}>…</span>):(<button key={pg} onClick={()=>setActivityPage(pg)} style={{ width:32, height:32, borderRadius:8, border:`1px solid ${pg===safePage?t.accent:t.border}`, background:pg===safePage?t.accent:t.surfaceAlt, color:pg===safePage?"white":t.text, cursor:"pointer", fontSize:13, fontWeight:pg===safePage?700:500 }}>{pg}</button>))}
+                              <button onClick={()=>setActivityPage(p=>Math.min(totalPages,p+1))} disabled={safePage===totalPages} style={{ padding:"6px 14px", borderRadius:8, border:`1px solid ${t.border}`, background:t.surfaceAlt, color:safePage===totalPages?t.textMuted:t.text, cursor:safePage===totalPages?"default":"pointer", fontSize:13, fontWeight:500 }}>Next →</button>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()
               }
             </Card>
           );
@@ -1409,7 +1382,7 @@ export default function App({ session }) {
                   <div key={exp.id} className="row-hover" style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 8px", borderRadius:12, animation:`slideIn 0.3s ease ${i*0.05}s both` }}>
                     <div style={{ display:"flex", alignItems:"center", gap:12 }}>
                       <div style={{ width:10, height:10, borderRadius:3, background:exp.color, flexShrink:0, boxShadow:`0 0 6px ${exp.color}66` }}/>
-                      <div><p style={{ fontSize:14, fontWeight:600, margin:0, color:t.text }}>{exp.label}</p>{exp.description&&<p style={{ fontSize:12, color:t.textSub, margin:0 }}>{exp.description}</p>}</div>
+                      <div><div style={{ display:chr(34)+chr(102)+chr(108)+chr(101)+chr(120)+chr(34), alignItems:chr(34)+chr(99)+chr(101)+chr(110)+chr(116)+chr(101)+chr(114)+chr(34), gap:6 }}><p style={{ fontSize:14, fontWeight:600, margin:0, color:t.text }}>{exp.label}</p>{exp.budget>0&&Math.round((exp.amount/exp.budget)*100)>=100&&<span style={{ fontSize:10, fontWeight:700, padding:chr(34)+chr(50)+chr(112)+chr(120)+chr(32)+chr(54)+chr(112)+chr(120)+chr(34), borderRadius:5, background:chr(34)+chr(114)+chr(103)+chr(98)+chr(97)+chr(40)+chr(50)+chr(53)+chr(53)+chr(44)+chr(53)+chr(53)+chr(44)+chr(57)+chr(53)+chr(44)+chr(48)+chr(46)+chr(49)+chr(50)+chr(41)+chr(34), color:chr(34)+chr(35)+chr(70)+chr(70)+chr(51)+chr(55)+chr(53)+chr(70)+chr(34) }}>OVER BUDGET</span>}</div>{exp.description&&<p style={{ fontSize:12, color:t.textSub, margin:0 }}>{exp.description}</p>}</div>
                     </div>
                     <div style={{ display:"flex", alignItems:"center", gap:10 }}>
                       <div style={{ textAlign:"right", marginRight:4 }}><p style={{ fontSize:14, fontWeight:600, margin:0, color:t.text }}>{fmt(exp.amount)} spent</p>{exp.budget>0&&<p style={{ fontSize:11, color:t.textSub, margin:0 }}>Budget: {fmt(exp.budget)}</p>}</div>
