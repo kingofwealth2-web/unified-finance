@@ -1,8 +1,22 @@
 import { Card, Btn, EmptyState } from "../ui/index.jsx";
 
 export function ActivityTab({
+  data, t, fmt, isSuperAdmin, openModal,
+  activitySearch, setActivitySearch,
+  activityFilter, setActivityFilter,
+  activityDateFrom, setActivityDateFrom,
+  activityDateTo, setActivityDateTo,
+  activityPage, setActivityPage,
+  showPrintView, setShowPrintView,
+  exportFinancialReport, orgName,
+  handleDeleteContribution, handleDeleteExpenseEntry,
+  setEditingContribution, setEditingExpenseEntry,
+  ACTIVITY_PAGE_SIZE,
+}) {
+  const iStyle = (t) => ({ width:"100%", padding:"11px 14px", borderRadius:10, border:`1px solid ${t.borderStrong}`, fontSize:14, color:t.text, background:t.inputBg, outline:"none", boxSizing:"border-box", fontFamily:"inherit", transition:"border-color 0.15s" });
   return (
-    () => {
+    <div>
+      {(() => {
                 // Build full activity list from raw data (not capped at 10)
                 const fmtLocal = fmt;
                 const allActivity = [
@@ -172,7 +186,7 @@ export function ActivityTab({
                     }
                   </Card>
                 );
-              }
-  )
+      })()}
+    </div>
   );
 }

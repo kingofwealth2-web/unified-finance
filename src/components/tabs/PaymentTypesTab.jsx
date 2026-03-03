@@ -2,6 +2,10 @@ import { Card, ChartCard, Btn, EmptyState } from "../ui/index.jsx";
 import { DonutChart } from "../Charts.jsx";
 
 export function PaymentTypesTab({
+  data, t, fmt, isSuperAdmin, openModal,
+  expandedPaymentType, setExpandedPaymentType,
+  setEditingPaymentType, handleDeletePaymentType,
+}) {
   return (
     <div>
                   <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:20, gap:10 }}>
@@ -82,6 +86,5 @@ export function PaymentTypesTab({
                     </div>
                   }
                 </div>
-  )
   );
 }

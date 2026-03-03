@@ -1,7 +1,18 @@
-import { Card, StatCard, ChartCard, Btn, EmptyState } from "../ui/index.jsx";
+import { Card, StatCard, ChartCard, Btn, EmptyState, Avatar } from "../ui/index.jsx";
 import { DonutChart, BarChart, LineChart, ContributorBars } from "../Charts.jsx";
 
 export function OverviewTab({
+  data, t, fmt, monthlyData, timelineData, isSuperAdmin, openModal,
+  setActiveTab, setEditingContribution, handleDeleteContribution,
+  setEditingExpenseEntry, handleDeleteExpenseEntry,
+}) {
+  const currentMonth = new Date().toLocaleString("en-US",{month:"long"});
+  const membersWithTarget = data.people.filter(p=>p.target>0);
+  const onTrack = membersWithTarget.filter(p=>p.thisMonth>=p.target).length;
+  const behind = membersWithTarget.filter(p=>p.thisMonth>0&&p.thisMonth<p.target).length;
+  const missed = membersWithTarget.filter(p=>p.thisMonth===0&&p.target>0).length;
+  const totalTargetThisMonth = membersWithTarget.reduce((s,p)=>s+p.target,0);
+  const totalActualThisMonth = data.people.reduce((s,p)=>s+(p.thisMonth||0),0);
   return (
     <div>
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:16, marginBottom:24 }}>
@@ -105,6 +116,5 @@ export function OverviewTab({
                     }
                   </Card>
                 </div>
-  )
   );
 }

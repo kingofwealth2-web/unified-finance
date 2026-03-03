@@ -106,6 +106,11 @@ export default function App({ session }) {
               data={app.data} t={t} fmt={app.fmt}
               monthlyData={app.monthlyData} timelineData={app.timelineData}
               isSuperAdmin={isSuperAdmin} openModal={app.openModal}
+              setActiveTab={setActiveTab}
+              setEditingContribution={app.setEditingContribution}
+              handleDeleteContribution={app.handleDeleteContribution}
+              setEditingExpenseEntry={app.setEditingExpenseEntry}
+              handleDeleteExpenseEntry={app.handleDeleteExpenseEntry}
             />
           )}
 
@@ -116,6 +121,7 @@ export default function App({ session }) {
               setEditingPerson={app.setEditingPerson}
               handleDeletePerson={app.handleDeletePerson}
               handleDeleteContribution={app.handleDeleteContribution}
+              setEditingContribution={app.setEditingContribution}
             />
           )}
 

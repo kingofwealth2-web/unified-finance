@@ -3,6 +3,28 @@ import { Card, ChartCard, Btn, Avatar, EmptyState } from "../ui/index.jsx";
 import { ContributorBars } from "../Charts.jsx";
 
 export function PeopleTab({
+  data, t, fmt, isSuperAdmin, openModal,
+  setEditingPerson, handleDeletePerson, handleDeleteContribution,
+  setEditingContribution,
+}) {
+  const [peopleSearch, setPeopleSearch] = useState("");
+  const [selectedMember, setSelectedMember] = useState(null);
+  const iStyle = (t) => ({ width:"100%", padding:"11px 14px", borderRadius:10, border:`1px solid ${t.borderStrong}`, fontSize:14, color:t.text, background:t.inputBg, outline:"none", boxSizing:"border-box", fontFamily:"inherit", transition:"border-color 0.15s" });
+  const handleDeactivatePerson = async (id, currentStatus) => {
+    const { supabase } = await import("../../lib/supabaseClient.js");
+    const newStatus = currentStatus === "Active" ? "inactive" : "active";
+    await supabase.from("profiles").update({ status: newStatus }).eq("id", id);
+  };
+  const exportPeopleReport = () => {
+    const headers = ["Name","Status","Total Contributed","Last Activity"];
+    const rows = data.people.map(p=>[p.name,p.status,p.contributions,p.lastActivity]);
+    const escape = v=>`"${String(v??"").replace(/"/g,'""')}"`;
+    const csv=[headers.map(escape).join(","),...rows.map(r=>r.map(escape).join(","))].join("\n");
+    const blob=new Blob([csv],{type:"text/csv"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");a.href=url;a.download=`people-report-${new Date().toISOString().slice(0,10)}.csv`;a.click();
+    URL.revokeObjectURL(url);
+  };
   return (
     <div>
                   {data.people.length>0 && (
@@ -90,6 +112,5 @@ export function PeopleTab({
                     })()}
                   </Card>
                 </div>
-  )
   );
 }
