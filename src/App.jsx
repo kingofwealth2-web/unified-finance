@@ -1,29 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "./lib/supabaseClient";
 
-const data = {
-  user: { name: "Prince Kofi", role: "Administrator" },
-  totalBalance: 284500,
-  monthlyGrowth: 12.4,
-  people: [
-    { id: 1, name: "Ama Serwaa", type: "Member", contributions: 12400, status: "Active", lastActivity: "2 days ago" },
-    { id: 2, name: "Kweku Mensah", type: "Member", contributions: 8750, status: "Active", lastActivity: "Today" },
-    { id: 3, name: "Abena Osei", type: "Member", contributions: 22100, status: "Active", lastActivity: "1 week ago" },
-    { id: 4, name: "Kofi Boateng", type: "Member", contributions: 5300, status: "Inactive", lastActivity: "3 weeks ago" },
-    { id: 5, name: "Akosua Darko", type: "Member", contributions: 17800, status: "Active", lastActivity: "Yesterday" },
-  ],
-  expenses: [
-    { id: 1, label: "Infrastructure", amount: 42000, budget: 60000, color: "#0071E3" },
-    { id: 2, label: "Operations", amount: 28500, budget: 40000, color: "#34C759" },
-    { id: 3, label: "Education Fund", amount: 61200, budget: 80000, color: "#FF9F0A" },
-    { id: 4, label: "Welfare", amount: 19400, budget: 30000, color: "#FF375F" },
-  ],
-  recentActivity: [
-    { id: 1, name: "Kweku Mensah", action: "Contribution received", amount: "+$1,200", time: "10:42 AM", positive: true },
-    { id: 2, name: "Operations", action: "Expense recorded", amount: "-$3,400", time: "9:15 AM", positive: false },
-    { id: 3, name: "Abena Osei", action: "Contribution received", amount: "+$2,800", time: "Yesterday", positive: true },
-    { id: 4, name: "Education Fund", action: "Disbursement", amount: "-$5,000", time: "Yesterday", positive: false },
-    { id: 5, name: "Akosua Darko", action: "Contribution received", amount: "+$900", time: "2 days ago", positive: true },
-  ]
+const emptyData = {
+  user: { name: "Admin", role: "Administrator" },
+  totalBalance: 0,
+  monthlyGrowth: 0,
+  people: [],
+  expenses: [],
+  recentActivity: [],
 };
 
 const fmt = (n) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
@@ -45,6 +29,129 @@ const Avatar = ({ name, size = 36 }) => {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("overview");
+  const [data, setData] = useState(emptyData);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchAllData();
+  }, []);
+
+  async function fetchAllData() {
+    setLoading(true);
+    try {
+      // Fetch members/profiles
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      // Fetch contributions
+      const { data: contributions } = await supabase
+        .from("contributions")
+        .select("*, profiles(full_name)")
+        .order("created_at", { ascending: false });
+
+      // Fetch expense categories
+      const { data: categories } = await supabase
+        .from("expense_categories")
+        .select("*");
+
+      // Fetch expenses
+      const { data: expenses } = await supabase
+        .from("expenses")
+        .select("*, expense_categories(name, color)")
+        .order("created_at", { ascending: false });
+
+      // Build people list with total contributions per member
+      const people = (profiles || []).map(p => {
+        const total = (contributions || [])
+          .filter(c => c.member_id === p.id)
+          .reduce((sum, c) => sum + Number(c.amount), 0);
+        const last = (contributions || []).find(c => c.member_id === p.id);
+        return {
+          id: p.id,
+          name: p.full_name,
+          status: p.status === "active" ? "Active" : "Inactive",
+          contributions: total,
+          lastActivity: last
+            ? new Date(last.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+            : "No activity",
+        };
+      });
+
+      // Build expense categories with spent amounts
+      const expenseData = (categories || []).map(cat => {
+        const spent = (expenses || [])
+          .filter(e => e.category_id === cat.id)
+          .reduce((sum, e) => sum + Number(e.amount), 0);
+        return {
+          id: cat.id,
+          label: cat.name,
+          amount: spent,
+          budget: Number(cat.budget),
+          color: cat.color || "#0071E3",
+        };
+      });
+
+      // Build recent activity from both contributions and expenses
+      const contribActivity = (contributions || []).slice(0, 5).map(c => ({
+        id: c.id,
+        name: c.profiles?.full_name || "Member",
+        action: "Contribution received",
+        amount: `+$${Number(c.amount).toLocaleString()}`,
+        time: new Date(c.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        positive: true,
+      }));
+
+      const expenseActivity = (expenses || []).slice(0, 5).map(e => ({
+        id: e.id,
+        name: e.expense_categories?.name || "Expense",
+        action: e.label,
+        amount: `-$${Number(e.amount).toLocaleString()}`,
+        time: new Date(e.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        positive: false,
+      }));
+
+      const recentActivity = [...contribActivity, ...expenseActivity]
+        .sort((a, b) => new Date(b.time) - new Date(a.time))
+        .slice(0, 8);
+
+      // Total balance = total contributions - total expenses
+      const totalContributions = (contributions || []).reduce((sum, c) => sum + Number(c.amount), 0);
+      const totalExpenses = (expenses || []).reduce((sum, e) => sum + Number(e.amount), 0);
+      const totalBalance = totalContributions - totalExpenses;
+
+      setData({
+        user: { name: "Admin", role: "Administrator" },
+        totalBalance,
+        monthlyGrowth: 0,
+        people,
+        expenses: expenseData,
+        recentActivity,
+      });
+    } catch (err) {
+      console.error("Error fetching data:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) return (
+    <div style={{
+      minHeight: "100vh", background: "#F2F2F7",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
+    }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{
+          width: 40, height: 40, borderRadius: 12,
+          background: "linear-gradient(135deg, #0071E3, #34AADC)",
+          margin: "0 auto 16px",
+        }} />
+        <p style={{ color: "#8E8E93", fontSize: 14 }}>Loading Unified...</p>
+      </div>
+    </div>
+  );
 
   return (
     <div style={{
