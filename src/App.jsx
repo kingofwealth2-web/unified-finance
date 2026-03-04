@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./lib/supabaseClient.js";
 import { useAppData } from "./hooks/useAppData.js";
-import { OrgPicker } from "./components/OrgPicker.jsx";
+import { OrgPicker, CreateOrgModal } from "./components/OrgPicker.jsx";
 import { Avatar, SkeletonTab, ToastContainer, ConfirmDialog, toast } from "./components/ui/index.jsx";
 import { OverviewTab }     from "./components/tabs/OverviewTab.jsx";
 import { PeopleTab }       from "./components/tabs/PeopleTab.jsx";
@@ -21,12 +21,14 @@ export default function App({ session }) {
   });
   const [orgRole, setOrgRole] = useState(() => sessionStorage.getItem("uf_org_role") || null);
   const [exitingOrg, setExitingOrg] = useState(false);
+  const [manualSwitch, setManualSwitch] = useState(false);
 
   function handleOrgSelect(org, role) {
     sessionStorage.setItem("uf_current_org", JSON.stringify(org));
     sessionStorage.setItem("uf_org_role", role);
     setCurrentOrg(org);
     setOrgRole(role);
+    setManualSwitch(false);
   }
 
   function handleSwitchOrg() {
@@ -37,11 +39,12 @@ export default function App({ session }) {
       setCurrentOrg(null);
       setOrgRole(null);
       setExitingOrg(false);
+      setManualSwitch(true);
     }, 400);
   }
 
   if (!currentOrg) {
-    return <OrgPicker session={session} onSelect={handleOrgSelect} />;
+    return <OrgPicker session={session} onSelect={handleOrgSelect} allowAutoEnter={!manualSwitch} />;
   }
 
   return (
@@ -64,6 +67,7 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [showNewOrg, setShowNewOrg] = useState(false);
 
   useEffect(() => {
     const handler = () => {
@@ -118,10 +122,7 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
         .grid-3  { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
         .grid-2  { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
         .col-span-2 { grid-column:span 2; }
-        .sidebar-nav::-webkit-scrollbar { width:3px; }
-        .sidebar-nav::-webkit-scrollbar-track { background:transparent; }
-        .sidebar-nav::-webkit-scrollbar-thumb { background:rgba(128,128,128,0.2); border-radius:99px; }
-        .sidebar-nav::-webkit-scrollbar-thumb:hover { background:rgba(128,128,128,0.4); }
+        .sidebar-logo-area .switch-btn { opacity:0; transition:opacity 0.2s; }
         .sidebar-logo-area:hover .switch-btn { opacity:1; }
         @media (max-width:767px) {
           .main-content  { margin-left:0 !important; padding:72px 16px 24px !important; }
@@ -158,7 +159,6 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
       <div style={{
         position:"fixed", left:0, top:0, bottom:0,
         width: isMobile ? 260 : SW,
-        height:"100vh",
         background:t.sidebar, backdropFilter:"blur(40px)",
         borderRight:`1px solid ${t.border}`,
         display:"flex", flexDirection:"column", padding:"28px 0",
@@ -168,7 +168,6 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
           : "width 0.3s cubic-bezier(0.4,0,0.2,1), background 0.3s",
         transform: isMobile ? (mobileOpen ? "translateX(0)" : "translateX(-100%)") : "translateX(0)",
         overflow:"hidden",
-        boxSizing:"border-box",
       }}>
 
         {/* ── Org identity header ── */}
@@ -214,7 +213,7 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
         </div>
 
         {/* ── Nav ── */}
-        <nav className="sidebar-nav" style={{ flex:1, padding:"0 8px", display:"flex", flexDirection:"column", gap:2, overflowY:"auto", overflowX:"hidden" }}>
+        <nav style={{ flex:1, padding:"0 8px", display:"flex", flexDirection:"column", gap:2 }}>
           {navItems.map((item,i)=>(
             <button key={item.id} className="nav-btn"
               onClick={()=>{ setActiveTab(item.id); if(isMobile) setMobileOpen(false); }}
@@ -233,6 +232,17 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
           <button onClick={toggleTheme} title={isDark?"Light mode":"Dark mode"} style={{ background:"none", border:"none", cursor:"pointer", color:t.textSub, fontSize:18, padding:"8px 12px", textAlign:collapsed&&!isMobile?"center":"left", borderRadius:8, width:"100%" }}>
             {isDark?"☀️":"🌙"}
           </button>
+          {isSuperAdmin && (!collapsed || isMobile) && (
+            <button
+              onClick={() => setShowNewOrg(true)}
+              style={{ display:"flex", alignItems:"center", gap:8, width:"100%", padding:"9px 12px", borderRadius:10, border:`1px dashed ${t.border}`, background:"none", cursor:"pointer", color:t.textSub, fontSize:12, fontWeight:600, fontFamily:"inherit", transition:"all 0.15s" }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = orgColor; e.currentTarget.style.color = orgColor; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textSub; }}
+            >
+              <span style={{ fontSize:16, lineHeight:1 }}>+</span>
+              New Organisation
+            </button>
+          )}
           <div style={{ display:"flex", alignItems:"center", gap:collapsed&&!isMobile?0:10, padding:"10px 12px", borderRadius:12, background:t.surfaceAlt, border:`1px solid ${t.border}`, justifyContent:collapsed&&!isMobile?"center":"flex-start" }}>
             <Avatar name={session?.user?.email||"A"} size={30}/>
             {(!collapsed || isMobile) && (
@@ -358,6 +368,13 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
       />
       <ToastContainer/>
       <ConfirmDialog confirm={confirm} onConfirm={handleConfirm} onCancel={handleCancelConfirm} t={t}/>
+      {showNewOrg && (
+        <CreateOrgModal
+          session={session}
+          onCreated={(newOrg) => { setShowNewOrg(false); onSwitchOrg(); toast("Organisation created! Switching…"); setTimeout(() => {}, 100); }}
+          onClose={() => setShowNewOrg(false)}
+        />
+      )}
     </div>
   );
 }

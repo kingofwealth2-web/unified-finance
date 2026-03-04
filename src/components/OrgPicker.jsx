@@ -182,7 +182,7 @@ function NewOrgCard({ onClick, delay = 0 }) {
 }
 
 // ── Create org modal ───────────────────────────────────────────
-function CreateOrgModal({ session, onCreated, onClose }) {
+export function CreateOrgModal({ session, onCreated, onClose }) {
   const [form, setForm] = useState({ name:"", currency:"USD", color:"#0071E3" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
