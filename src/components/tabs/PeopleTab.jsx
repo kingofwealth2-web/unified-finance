@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Card, ChartCard, Btn, Avatar, EmptyState } from "../ui/index.jsx";
 import { ContributorBars } from "../Charts.jsx";
 
@@ -9,6 +10,8 @@ export function PeopleTab({
 }) {
   const [peopleSearch, setPeopleSearch] = useState("");
   const [selectedMember, setSelectedMember] = useState(null);
+  const [memberReport, setMemberReport] = useState(null); // full report view
+  const [reportFilters, setReportFilters] = useState({ from:"", to:"", payment_type_id:"", search:"" });
   const iStyle = (t) => ({ width:"100%", padding:"11px 14px", borderRadius:10, border:`1px solid ${t.borderStrong}`, fontSize:14, color:t.text, background:t.inputBg, outline:"none", boxSizing:"border-box", fontFamily:"inherit", transition:"border-color 0.15s" });
   const handleDeactivatePerson = async (id, currentStatus) => {
     const { supabase } = await import("../../lib/supabaseClient.js");
@@ -26,6 +29,7 @@ export function PeopleTab({
     URL.revokeObjectURL(url);
   };
   return (
+    <div>
     <div>
                   {/* ── Status Summary ── */}
                   {(() => {
@@ -88,7 +92,10 @@ export function PeopleTab({
                             <div style={{ display:"flex", alignItems:"center", gap:14, flex:1, minWidth:0 }}>
                               <Avatar name={p.name} size={42}/>
                               <div style={{ minWidth:0 }}>
-                                <p style={{ fontSize:15, fontWeight:600, margin:0, color:t.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{p.name}</p>
+                                <p
+                                  style={{ fontSize:15, fontWeight:600, margin:0, color:t.accent, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", cursor:"pointer", textDecoration:"underline", textUnderlineOffset:3 }}
+                                  onClick={e=>{ e.stopPropagation(); setMemberReport(p); setReportFilters({ from:"", to:"", payment_type_id:"", search:"" }); }}
+                                >{p.name}</p>
                                 <p style={{ fontSize:12, color:t.textSub, margin:0 }}>Last active {p.lastActivity} · tap to view history</p>
                               </div>
                             </div>
@@ -148,5 +155,155 @@ export function PeopleTab({
                     })()}
                   </Card>
                 </div>
+      {/* ── Member Report Portal ── */}
+      {memberReport && createPortal(
+        (() => {
+          const allContribs = (data.rawContributions||[]).filter(c=>c.member_id===memberReport.id);
+          const filtered = allContribs.filter(c => {
+            if (reportFilters.from && new Date(c.created_at) < new Date(reportFilters.from)) return false;
+            if (reportFilters.to && new Date(c.created_at) > new Date(reportFilters.to+"T23:59:59")) return false;
+            if (reportFilters.payment_type_id && c.payment_type_id !== reportFilters.payment_type_id) return false;
+            if (reportFilters.search && !(c.note||"").toLowerCase().includes(reportFilters.search.toLowerCase()) && !(c.payment_types?.name||"").toLowerCase().includes(reportFilters.search.toLowerCase())) return false;
+            return true;
+          });
+          const filteredTotal = filtered.reduce((s,c)=>s+Number(c.amount),0);
+          const allTime = allContribs.reduce((s,c)=>s+Number(c.amount),0);
+          const printStyle = `
+            @media print {
+              body > *:not(#member-report-root) { display:none !important; }
+              #member-report-root { display:block !important; }
+              .no-print { display:none !important; }
+              @page { margin:20mm; }
+            }
+            #member-report-root { display:none; }
+          `;
+          return (
+            <>
+              <style>{printStyle}</style>
+              <div style={{ position:"fixed", inset:0, zIndex:9998, display:"flex", alignItems:"center", justifyContent:"center", padding:24, animation:"fadeIn 0.2s ease" }}>
+                {/* Backdrop */}
+                <div onClick={()=>setMemberReport(null)} style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.6)", backdropFilter:"blur(8px)" }}/>
+                {/* Panel */}
+                <div style={{ position:"relative", width:"100%", maxWidth:680, maxHeight:"92vh", background:t.surface, borderRadius:24, border:`1px solid ${t.border}`, display:"flex", flexDirection:"column", animation:"bulkIn 0.25s cubic-bezier(0.34,1.2,0.64,1)", boxShadow:"0 32px 80px rgba(0,0,0,0.5)" }}>
+
+                  {/* Header */}
+                  <div style={{ padding:"28px 28px 20px", borderBottom:`1px solid ${t.border}`, flexShrink:0 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:16 }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+                        <Avatar name={memberReport.name} size={48}/>
+                        <div>
+                          <h2 style={{ fontSize:20, fontWeight:700, margin:0, color:t.text, letterSpacing:"-0.4px" }}>{memberReport.name}</h2>
+                          <div style={{ display:"flex", alignItems:"center", gap:8, marginTop:4 }}>
+                            <span style={{ fontSize:11, fontWeight:600, padding:"3px 9px", borderRadius:20, background:memberReport.status==="Active"?"rgba(52,199,89,0.12)":"rgba(142,142,147,0.12)", color:memberReport.status==="Active"?"#34C759":"#8E8E93" }}>{memberReport.status}</span>
+                            {memberReport.created_at && <span style={{ fontSize:12, color:t.textSub }}>Member since {new Date(memberReport.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}</span>}
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+                        <Btn variant="secondary" t={t} onClick={()=>{ window.print(); }} style={{ fontSize:12 }}>🖨 Print</Btn>
+                        <button onClick={()=>setMemberReport(null)} style={{ background:"none", border:"none", color:t.textSub, fontSize:22, cursor:"pointer", padding:4 }}>×</button>
+                      </div>
+                    </div>
+                    {/* All-time stat */}
+                    <div style={{ display:"flex", gap:10 }}>
+                      <div style={{ flex:1, background:t.surfaceAlt, borderRadius:12, padding:"12px 16px" }}>
+                        <p style={{ fontSize:11, color:t.textSub, margin:"0 0 2px", textTransform:"uppercase", letterSpacing:"0.06em", fontWeight:600 }}>All-time Total</p>
+                        <p style={{ fontSize:22, fontWeight:700, margin:0, color:t.accent, letterSpacing:"-0.5px" }}>{fmt(allTime)}</p>
+                      </div>
+                      <div style={{ flex:1, background:t.surfaceAlt, borderRadius:12, padding:"12px 16px" }}>
+                        <p style={{ fontSize:11, color:t.textSub, margin:"0 0 2px", textTransform:"uppercase", letterSpacing:"0.06em", fontWeight:600 }}>Total Records</p>
+                        <p style={{ fontSize:22, fontWeight:700, margin:0, color:t.text, letterSpacing:"-0.5px" }}>{allContribs.length}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Filters */}
+                  <div style={{ padding:"16px 28px", borderBottom:`1px solid ${t.border}`, flexShrink:0, display:"flex", gap:10, flexWrap:"wrap" }}>
+                    <input type="date" value={reportFilters.from} onChange={e=>setReportFilters(f=>({...f,from:e.target.value}))} style={{ flex:1, minWidth:120, padding:"8px 12px", borderRadius:10, border:`1px solid ${t.borderStrong}`, background:t.surfaceAlt, color:t.text, fontSize:13, outline:"none", fontFamily:"inherit" }}/>
+                    <input type="date" value={reportFilters.to} onChange={e=>setReportFilters(f=>({...f,to:e.target.value}))} style={{ flex:1, minWidth:120, padding:"8px 12px", borderRadius:10, border:`1px solid ${t.borderStrong}`, background:t.surfaceAlt, color:t.text, fontSize:13, outline:"none", fontFamily:"inherit" }}/>
+                    <select value={reportFilters.payment_type_id} onChange={e=>setReportFilters(f=>({...f,payment_type_id:e.target.value}))} style={{ flex:1, minWidth:130, padding:"8px 12px", borderRadius:10, border:`1px solid ${t.borderStrong}`, background:t.surfaceAlt, color:t.text, fontSize:13, outline:"none", fontFamily:"inherit" }}>
+                      <option value="">All types</option>
+                      {(data.paymentTypes||[]).map(pt=><option key={pt.id} value={pt.id}>{pt.name}</option>)}
+                    </select>
+                    <input value={reportFilters.search} onChange={e=>setReportFilters(f=>({...f,search:e.target.value}))} placeholder="Search notes..." style={{ flex:1, minWidth:130, padding:"8px 12px", borderRadius:10, border:`1px solid ${t.borderStrong}`, background:t.surfaceAlt, color:t.text, fontSize:13, outline:"none", fontFamily:"inherit" }}/>
+                    {(reportFilters.from||reportFilters.to||reportFilters.payment_type_id||reportFilters.search) &&
+                      <button onClick={()=>setReportFilters({from:"",to:"",payment_type_id:"",search:""})} style={{ padding:"8px 14px", borderRadius:10, border:`1px solid ${t.borderStrong}`, background:"none", color:t.textSub, fontSize:12, cursor:"pointer", fontFamily:"inherit" }}>Clear</button>
+                    }
+                  </div>
+
+                  {/* List */}
+                  <div className="subtle-scroll" style={{ flex:1, overflowY:"auto", padding:"12px 28px" }}>
+                    {filtered.length===0
+                      ? <p style={{ fontSize:13, color:t.textSub, textAlign:"center", padding:"32px 0" }}>No contributions match your filters.</p>
+                      : filtered.map((c,ci) => (
+                        <div key={c.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"12px 14px", background: ci%2===0?t.surfaceAlt:"transparent", borderRadius:10, marginBottom:4, gap:10, flexWrap:"wrap" }}>
+                          <div style={{ display:"flex", alignItems:"center", gap:10, flex:1, minWidth:0 }}>
+                            <div style={{ width:8, height:8, borderRadius:"50%", background:c.payment_types?.color||t.accent, flexShrink:0 }}/>
+                            <div>
+                              <p style={{ fontSize:13, fontWeight:600, margin:0, color:t.text }}>{c.payment_types?.name||"General"}</p>
+                              {c.note && <p style={{ fontSize:11, color:t.textSub, margin:"2px 0 0" }}>{c.note}</p>}
+                            </div>
+                          </div>
+                          <div style={{ textAlign:"right", flexShrink:0 }}>
+                            <p style={{ fontSize:13, fontWeight:700, color:"#34C759", margin:0 }}>{fmt(c.amount)}</p>
+                            <p style={{ fontSize:11, color:t.textSub, margin:"2px 0 0" }}>{new Date(c.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</p>
+                          </div>
+                        </div>
+                      ))
+                    }
+                  </div>
+
+                  {/* Footer summary */}
+                  <div style={{ padding:"16px 28px 24px", borderTop:`1px solid ${t.border}`, flexShrink:0, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                    <span style={{ fontSize:13, color:t.textSub }}>{filtered.length} record{filtered.length!==1?"s":""}{(reportFilters.from||reportFilters.to||reportFilters.payment_type_id||reportFilters.search)?" (filtered)":""}</span>
+                    <span style={{ fontSize:16, fontWeight:700, color:t.accent }}>{fmt(filteredTotal)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Print view — hidden on screen, visible on print */}
+              <div id="member-report-root">
+                <div style={{ borderBottom:"2px solid #1C1C1E", paddingBottom:12, marginBottom:24 }}>
+                  <p style={{ fontSize:12, color:"#666", margin:"0 0 4px" }}>{data.org?.name}</p>
+                  <h1 style={{ fontSize:22, fontWeight:700, margin:"0 0 4px" }}>{memberReport.name} — Contribution Statement</h1>
+                  <p style={{ fontSize:12, color:"#666", margin:0 }}>
+                    {memberReport.created_at && `Member since ${new Date(memberReport.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})} · `}
+                    Printed {new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}
+                    {(reportFilters.from||reportFilters.to) && ` · ${reportFilters.from||"Start"} to ${reportFilters.to||"Today"}`}
+                  </p>
+                </div>
+                <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
+                  <thead>
+                    <tr style={{ background:"#F5F5F7" }}>
+                      <th style={{ padding:"8px 12px", textAlign:"left", fontWeight:600, color:"#666", fontSize:11, textTransform:"uppercase" }}>Date</th>
+                      <th style={{ padding:"8px 12px", textAlign:"left", fontWeight:600, color:"#666", fontSize:11, textTransform:"uppercase" }}>Payment Type</th>
+                      <th style={{ padding:"8px 12px", textAlign:"left", fontWeight:600, color:"#666", fontSize:11, textTransform:"uppercase" }}>Note</th>
+                      <th style={{ padding:"8px 12px", textAlign:"right", fontWeight:600, color:"#666", fontSize:11, textTransform:"uppercase" }}>Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((c,ci) => (
+                      <tr key={c.id} style={{ borderBottom:"1px solid #F0F0F5", background: ci%2===0?"#FAFAFA":"white" }}>
+                        <td style={{ padding:"9px 12px" }}>{new Date(c.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</td>
+                        <td style={{ padding:"9px 12px", fontWeight:500 }}>{c.payment_types?.name||"General"}</td>
+                        <td style={{ padding:"9px 12px", color:"#666" }}>{c.note||"—"}</td>
+                        <td style={{ padding:"9px 12px", textAlign:"right", fontWeight:600 }}>{data.org?.currency||""} {Number(c.amount).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ background:"#F5F5F7", fontWeight:700 }}>
+                      <td colSpan={3} style={{ padding:"9px 12px" }}>Total ({filtered.length} records)</td>
+                      <td style={{ padding:"9px 12px", textAlign:"right" }}>{data.org?.currency||""} {filteredTotal.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </>
+          );
+        })(),
+        document.body
+      )}
+  </div>
   );
 }
