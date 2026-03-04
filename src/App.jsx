@@ -74,10 +74,10 @@ export default function App({ session }) {
           .mobile-topbar { display:none !important; }
         }
         @media print {
-          .no-print { display:none !important; }
-          body { background:white !important; }
-          #print-area { border:none !important; border-radius:0 !important; box-shadow:none !important; padding:0 !important; }
-          .main-content { margin-left:0 !important; padding:0 !important; }
+          body * { visibility: hidden; }
+          #print-area, #print-area * { visibility: visible; }
+          #print-area { position: fixed !important; inset: 0 !important; border: none !important; border-radius: 0 !important; box-shadow: none !important; padding: 32px 40px !important; margin: 0 !important; overflow: visible !important; }
+          .print-stats { display: grid !important; grid-template-columns: 1fr 1fr 1fr !important; gap: 16px !important; }
         }
       `}</style>
 

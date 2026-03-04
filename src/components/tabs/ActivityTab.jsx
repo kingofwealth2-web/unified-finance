@@ -62,7 +62,7 @@ export function ActivityTab({
                           {" · "}{filtered.length} transactions
                         </p>
                       </div>
-                      <div className="grid-3" style={{ marginBottom:28 }}>
+                      <div className="grid-3 print-stats" style={{ marginBottom:28 }}>
                         {[
                           {label:"Total Income", value:fmt(filteredIncome), color:"#34C759"},
                           {label:"Total Expenses", value:fmt(filteredExpense), color:"#FF375F"},
