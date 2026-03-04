@@ -33,9 +33,9 @@ export function PeopleTab({
                     </ChartCard>
                   )}
                   <Card t={t} style={{ animation:"slideUp 0.3s ease 0.08s both" }}>
-                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20, flexWrap:"wrap", gap:10 }}>
                       <h3 style={{ fontSize:15, fontWeight:700, margin:0, color:t.text }}>{data.people.length} People</h3>
-                      <div style={{ display:"flex", gap:10 }}>
+                      <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
                         <Btn t={t} onClick={exportPeopleReport} variant="secondary" style={{ fontSize:12 }}>↓ Export</Btn>
                         <Btn t={t} onClick={()=>openModal("addContribution")} variant="secondary">+ Contribution</Btn>
                         <Btn t={t} onClick={()=>openModal("addPerson")}>+ Add Person</Btn>
@@ -51,21 +51,21 @@ export function PeopleTab({
                       return filtered.length===0?<EmptyState message="No people match your search." t={t}/>:
                       <div>{filtered.map((p,i)=>(
                         <div key={p.id} style={{ borderRadius:12, background:i%2===0?t.surfaceAlt:"transparent", animation:`slideIn 0.3s ease ${i*0.04}s both`, marginBottom:2 }}>
-                          <div className="row-hover" onClick={()=>setSelectedMember(selectedMember?.id===p.id?null:p)} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px", borderRadius:12, cursor:"pointer" }}>
-                            <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+                          <div className="row-hover" onClick={()=>setSelectedMember(selectedMember?.id===p.id?null:p)} style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", padding:"14px", borderRadius:12, cursor:"pointer", flexWrap:"wrap", gap:10 }}>
+                            <div style={{ display:"flex", alignItems:"center", gap:14, flex:1, minWidth:0 }}>
                               <Avatar name={p.name} size={42}/>
-                              <div>
-                                <p style={{ fontSize:15, fontWeight:600, margin:0, color:t.text }}>{p.name}</p>
-                                <p style={{ fontSize:12, color:t.textSub, margin:0 }}>Last active {p.lastActivity} · click to view history</p>
+                              <div style={{ minWidth:0 }}>
+                                <p style={{ fontSize:15, fontWeight:600, margin:0, color:t.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{p.name}</p>
+                                <p style={{ fontSize:12, color:t.textSub, margin:0 }}>Last active {p.lastActivity} · tap to view history</p>
                               </div>
                             </div>
-                            <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                            <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
                               <div style={{ textAlign:"right" }}>
                                 <p style={{ fontSize:15, fontWeight:700, margin:0, color:t.text }}>{fmt(p.contributions)}</p>
                                 <p style={{ fontSize:11, color:t.textSub, margin:0 }}>Total contributed</p>
                               </div>
                               <span style={{ fontSize:11, fontWeight:600, padding:"4px 10px", borderRadius:20, background:p.status==="Active"?"rgba(52,199,89,0.12)":"rgba(142,142,147,0.12)", color:p.status==="Active"?"#34C759":"#8E8E93" }}>{p.status}</span>
-                              <div style={{ display:"flex", gap:6 }}>
+                              <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
                                 <Btn size="sm" variant="secondary" t={t} onClick={e=>{e.stopPropagation();setEditingPerson({id:p.id,full_name:p.name,status:p.status==="Active"?"active":"inactive",monthly_target:p.target||""});openModal("editPerson");}}>Edit</Btn>
                                 <Btn size="sm" variant="secondary" t={t} onClick={e=>{e.stopPropagation();handleDeactivatePerson(p.id,p.status);}}>{p.status==="Active"?"Deactivate":"Activate"}</Btn>
                                 <Btn size="sm" variant="danger" t={t} onClick={e=>{e.stopPropagation();handleDeletePerson(p.id);}}>Delete</Btn>
@@ -84,15 +84,15 @@ export function PeopleTab({
                                 {memberContribs.length===0?<p style={{ fontSize:13, color:t.textSub, margin:0, textAlign:"center", padding:"16px 0" }}>No contributions yet.</p>:
                                   <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                                     {memberContribs.map((c,ci)=>(
-                                      <div key={c.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", background:t.surface, borderRadius:10, border:`1px solid ${t.border}`, animation:`slideIn 0.2s ease ${ci*0.04}s both` }}>
-                                        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                                      <div key={c.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", background:t.surface, borderRadius:10, border:`1px solid ${t.border}`, animation:`slideIn 0.2s ease ${ci*0.04}s both`, flexWrap:"wrap", gap:8 }}>
+                                        <div style={{ display:"flex", alignItems:"center", gap:10, flex:1, minWidth:0 }}>
                                           <div style={{ width:8, height:8, borderRadius:"50%", background:c.payment_types?.color||t.accent, flexShrink:0 }}/>
-                                          <div>
+                                          <div style={{ minWidth:0 }}>
                                             <p style={{ fontSize:13, fontWeight:600, margin:0, color:t.text }}>{c.payment_types?.name||"General"}</p>
                                             {c.note&&<p style={{ fontSize:11, color:t.textSub, margin:0 }}>{c.note}</p>}
                                           </div>
                                         </div>
-                                        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                                        <div style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
                                           <div style={{ textAlign:"right" }}>
                                             <p style={{ fontSize:13, fontWeight:700, color:"#34C759", margin:0 }}>{fmt(c.amount)}</p>
                                             <p style={{ fontSize:11, color:t.textSub, margin:0 }}>{new Date(c.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</p>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { EmptyState } from "./ui/index.jsx";
 
 function DonutChart({ data, fmt, t, size = 220 }) {
@@ -30,7 +30,7 @@ function DonutChart({ data, fmt, t, size = 220 }) {
   const active = hovered !== null ? slices[hovered] : null;
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 28, flexWrap: "wrap", justifyContent: "center" }}>
       <div style={{ position: "relative", flexShrink: 0 }}>
         <svg width={size} height={size} style={{ overflow: "visible" }}>
           <defs>
@@ -99,7 +99,7 @@ function BarChart({ data, fmt, t, height = 220 }) {
   const gridN = 4;
 
   return (
-    <svg width="100%" viewBox={`0 0 ${svgW} ${height}`} preserveAspectRatio="xMidYMid meet" style={{ overflow: "visible", minWidth: 280 }}>
+    <svg width="100%" viewBox={`0 0 ${svgW} ${height}`} preserveAspectRatio="xMidYMid meet" style={{ overflow: "visible", display: "block" }}>
       <defs>
         <linearGradient id="ig" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#34C759" stopOpacity="1"/>
@@ -200,7 +200,7 @@ function LineChart({ data, fmt, t, height = 220 }) {
   const clipW = chartW * prog;
 
   return (
-    <svg width="100%" viewBox={`0 0 ${svgW} ${height}`} preserveAspectRatio="xMidYMid meet" style={{ overflow: "visible", minWidth: 280 }}>
+    <svg width="100%" viewBox={`0 0 ${svgW} ${height}`} preserveAspectRatio="xMidYMid meet" style={{ overflow: "visible", display: "block" }}>
       <defs>
         <linearGradient id="lag" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={t.accent} stopOpacity="0.28"/>
