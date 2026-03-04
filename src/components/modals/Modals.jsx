@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Modal, Field, Input, Textarea, Select, Btn, ColorPicker } from "../ui/index.jsx";
 import { CURRENCIES } from "../../constants.js";
 
@@ -20,6 +21,7 @@ export function Modals({
   fmt,
 }) {
   const [memberSearch, setMemberSearch] = useState("");
+  const [bulkSearch, setBulkSearch] = useState("");
   const iStyle = (t) => ({ width:"100%", padding:"11px 14px", borderRadius:10, border:`1px solid ${t.borderStrong}`, fontSize:14, color:t.text, background:t.inputBg, outline:"none", boxSizing:"border-box", fontFamily:"inherit", transition:"border-color 0.15s" });
   const filteredMembers = (data.allPeople||[]).filter(p =>
     p.role === "member" &&
@@ -132,59 +134,102 @@ export function Modals({
                   </form>
                 </Modal>
               )}
-              {modal==="bulkContribution"&&bulkContributions&&(
-                <Modal title="Bulk Add Contributions" onClose={closeModal} t={t}>
-                  <form onSubmit={handleBulkAddContributions}>
-                    <div style={{ display:"flex", gap:12, marginBottom:4 }}>
-                      <Field label="Payment Type" t={t} style={{ flex:1 }}>
-                        <Select t={t} value={bulkContributions.payment_type_id} onChange={e=>setBulkContributions({...bulkContributions,payment_type_id:e.target.value})}>
-                          <option value="">Select type...</option>
-                          {data.paymentTypes.map(pt=><option key={pt.id} value={pt.id}>{pt.name}</option>)}
-                        </Select>
-                      </Field>
-                      <Field label="Note (optional)" t={t} style={{ flex:1 }}>
-                        <Input t={t} value={bulkContributions.note} onChange={e=>setBulkContributions({...bulkContributions,note:e.target.value})} placeholder="e.g. March offering"/>
-                      </Field>
-                    </div>
-                    <p style={{ fontSize:11, fontWeight:600, color:t.textSub, textTransform:"uppercase", letterSpacing:"0.06em", margin:"16px 0 10px" }}>Members — enter amount or leave blank</p>
-                    <div style={{ display:"flex", flexDirection:"column", gap:6, maxHeight:340, overflowY:"auto", paddingRight:4 }}>
-                      {(data.allPeople||[]).filter(p=>p.status==="active"&&p.role==="member").map((p,i) => {
-                        const val = bulkContributions.amounts[p.id] ?? "";
-                        const hasVal = val !== "" && Number(val) > 0;
-                        return (
-                          <div key={p.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 10px", borderRadius:10, background: hasVal ? `${t.accent}10` : t.surfaceAlt, border:`1px solid ${hasVal ? t.accent+"40" : "transparent"}`, transition:"all 0.15s" }}>
-                            <div style={{ width:32, height:32, borderRadius:"50%", background:`${t.accent}22`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700, color:t.accent, flexShrink:0 }}>
-                              {p.full_name?.charAt(0).toUpperCase()}
-                            </div>
-                            <span style={{ flex:1, fontSize:14, fontWeight:500, color:t.text }}>{p.full_name}</span>
-                            <input
-                              type="number" min="0" step="0.01"
-                              value={val}
-                              onChange={e => setBulkContributions(prev => ({ ...prev, amounts:{ ...prev.amounts, [p.id]: e.target.value } }))}
-                              placeholder="0.00"
-                              style={{ width:100, padding:"7px 10px", borderRadius:8, border:`1px solid ${hasVal ? t.accent+"60" : t.borderStrong}`, background:t.surface, color:t.text, fontSize:14, outline:"none", textAlign:"right", fontFamily:"inherit", transition:"border-color 0.15s" }}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {(() => {
-                      const total = Object.values(bulkContributions.amounts).filter(v=>v!==""&&Number(v)>0).reduce((s,v)=>s+Number(v),0);
-                      const count = Object.values(bulkContributions.amounts).filter(v=>v!==""&&Number(v)>0).length;
-                      return count > 0 ? (
-                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", borderRadius:10, background:t.surfaceAlt, margin:"14px 0 4px" }}>
-                          <span style={{ fontSize:13, color:t.textSub }}>{count} member{count>1?"s":""} · ready to record</span>
-                          <span style={{ fontSize:15, fontWeight:700, color:t.accent }}>{data.org?.currency||""} {total.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
+              {modal==="bulkContribution"&&bulkContributions&&createPortal(
+                <div style={{ position:"fixed", inset:0, zIndex:9997, display:"flex", justifyContent:"flex-end", animation:"fadeIn 0.2s ease" }}>
+                  {/* Backdrop */}
+                  <div onClick={closeModal} style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.5)", backdropFilter:"blur(6px)" }}/>
+                  {/* Drawer */}
+                  <div style={{ position:"relative", width:"min(520px,100vw)", height:"100vh", background:t.surface, borderLeft:`1px solid ${t.border}`, display:"flex", flexDirection:"column", animation:"slideInDrawer 0.35s cubic-bezier(0.34,1.2,0.64,1)", boxShadow:"-24px 0 80px rgba(0,0,0,0.4)" }}>
+                    <style>{`
+                      @keyframes slideInDrawer { from { transform:translateX(100%) } to { transform:translateX(0) } }
+                      .bulk-scroll::-webkit-scrollbar { width:3px; }
+                      .bulk-scroll::-webkit-scrollbar-track { background:transparent; }
+                      .bulk-scroll::-webkit-scrollbar-thumb { background:rgba(128,128,128,0.2); border-radius:99px; }
+                      .bulk-scroll::-webkit-scrollbar-thumb:hover { background:rgba(128,128,128,0.4); }
+                    `}</style>
+
+                    {/* Header */}
+                    <div style={{ padding:"28px 28px 20px", borderBottom:`1px solid ${t.border}`, flexShrink:0 }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20 }}>
+                        <div>
+                          <h2 style={{ fontSize:20, fontWeight:700, margin:0, color:t.text, letterSpacing:"-0.4px" }}>Bulk Add Contributions</h2>
+                          <p style={{ fontSize:13, color:t.textSub, margin:"4px 0 0" }}>Enter amounts for each member, leave blank to skip</p>
                         </div>
-                      ) : null;
-                    })()}
-                    {formError&&<p style={{ fontSize:13, color:"#FF375F", margin:"10px 0 0" }}>{formError}</p>}
-                    <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:16 }}>
-                      <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
-                      <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Saving...":"Record All"}</Btn>
+                        <button onClick={closeModal} style={{ background:"none", border:"none", color:t.textSub, fontSize:22, cursor:"pointer", lineHeight:1, padding:4, marginTop:-4 }}>×</button>
+                      </div>
+                      {/* Payment type + note */}
+                      <div style={{ display:"flex", gap:12 }}>
+                        <div style={{ flex:1 }}>
+                          <p style={{ fontSize:11, fontWeight:600, color:t.textSub, textTransform:"uppercase", letterSpacing:"0.06em", margin:"0 0 6px" }}>Payment Type</p>
+                          <Select t={t} value={bulkContributions.payment_type_id} onChange={e=>setBulkContributions({...bulkContributions,payment_type_id:e.target.value})}>
+                            <option value="">Select type...</option>
+                            {data.paymentTypes.map(pt=><option key={pt.id} value={pt.id}>{pt.name}</option>)}
+                          </Select>
+                        </div>
+                        <div style={{ flex:1 }}>
+                          <p style={{ fontSize:11, fontWeight:600, color:t.textSub, textTransform:"uppercase", letterSpacing:"0.06em", margin:"0 0 6px" }}>Note (optional)</p>
+                          <Input t={t} value={bulkContributions.note} onChange={e=>setBulkContributions({...bulkContributions,note:e.target.value})} placeholder="e.g. March offering"/>
+                        </div>
+                      </div>
+                      {/* Search */}
+                      <div style={{ position:"relative", marginTop:14 }}>
+                        <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", fontSize:13, color:t.textSub, pointerEvents:"none" }}>🔍</span>
+                        <input
+                          value={bulkSearch}
+                          onChange={e=>setBulkSearch(e.target.value)}
+                          placeholder="Search members..."
+                          style={{ width:"100%", padding:"10px 14px 10px 34px", borderRadius:10, border:`1px solid ${t.borderStrong}`, background:t.surfaceAlt, color:t.text, fontSize:14, outline:"none", boxSizing:"border-box", fontFamily:"inherit" }}
+                        />
+                      </div>
                     </div>
-                  </form>
-                </Modal>
+
+                    {/* Member list */}
+                    <div className="bulk-scroll" style={{ flex:1, overflowY:"auto", padding:"12px 28px" }}>
+                      {(data.allPeople||[])
+                        .filter(p => p.status==="active" && p.role==="member" && (!bulkSearch || p.full_name?.toLowerCase().includes(bulkSearch.toLowerCase())))
+                        .map((p,i) => {
+                          const val = bulkContributions.amounts[p.id] ?? "";
+                          const hasVal = val !== "" && Number(val) > 0;
+                          return (
+                            <div key={p.id} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 12px", borderRadius:12, marginBottom:6, background: hasVal ? `${t.accent}10` : t.surfaceAlt, border:`1px solid ${hasVal ? t.accent+"40" : "transparent"}`, transition:"all 0.15s", animation:`slideIn 0.2s ease ${i*0.03}s both` }}>
+                              <div style={{ width:36, height:36, borderRadius:"50%", background:`${t.accent}22`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:t.accent, flexShrink:0 }}>
+                                {p.full_name?.charAt(0).toUpperCase()}
+                              </div>
+                              <span style={{ flex:1, fontSize:14, fontWeight:500, color:t.text }}>{p.full_name}</span>
+                              <input
+                                type="number" min="0" step="0.01"
+                                value={val}
+                                onChange={e => setBulkContributions(prev => ({ ...prev, amounts:{ ...prev.amounts, [p.id]: e.target.value } }))}
+                                placeholder="0.00"
+                                style={{ width:110, padding:"8px 12px", borderRadius:8, border:`1px solid ${hasVal ? t.accent+"60" : t.borderStrong}`, background:t.surface, color:t.text, fontSize:14, outline:"none", textAlign:"right", fontFamily:"inherit", transition:"border-color 0.15s" }}
+                              />
+                            </div>
+                          );
+                        })
+                      }
+                    </div>
+
+                    {/* Footer */}
+                    <div style={{ padding:"16px 28px 28px", borderTop:`1px solid ${t.border}`, flexShrink:0 }}>
+                      {(() => {
+                        const total = Object.values(bulkContributions.amounts).filter(v=>v!==""&&Number(v)>0).reduce((s,v)=>s+Number(v),0);
+                        const count = Object.values(bulkContributions.amounts).filter(v=>v!==""&&Number(v)>0).length;
+                        return count > 0 ? (
+                          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", borderRadius:10, background:t.surfaceAlt, marginBottom:14 }}>
+                            <span style={{ fontSize:13, color:t.textSub }}>{count} member{count>1?"s":""} · ready to record</span>
+                            <span style={{ fontSize:15, fontWeight:700, color:t.accent }}>{data.org?.currency||""} {total.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
+                          </div>
+                        ) : null;
+                      })()}
+                      {formError&&<p style={{ fontSize:13, color:"#FF375F", margin:"0 0 12px" }}>{formError}</p>}
+                      <form onSubmit={handleBulkAddContributions} style={{ display:"flex", gap:10 }}>
+                        <Btn variant="secondary" t={t} type="button" onClick={closeModal} style={{ flex:1 }}>Cancel</Btn>
+                        <Btn t={t} type="submit" disabled={formLoading} style={{ flex:2 }}>{formLoading?"Saving...":"Record All"}</Btn>
+                      </form>
+                    </div>
+                  </div>
+                </div>,
+                document.body
               )}
               {modal==="addExpense"&&(
                 <Modal title="Record Expense" onClose={closeModal} t={t}>
