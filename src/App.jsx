@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { supabase } from "./lib/supabaseClient.js";
 import { useAppData } from "./hooks/useAppData.js";
 import { Avatar } from "./components/ui/index.jsx";
@@ -16,6 +17,8 @@ export default function App({ session }) {
   const app = useAppData({ session });
   const { t, isDark, toggleTheme, activeTab, setActiveTab, navItems,
           orgName, loading, isSuperAdmin, visible } = app;
+  const [collapsed, setCollapsed] = useState(false);
+  const SW = collapsed ? 64 : 240;
 
   const fyText = app.data.org?.financial_year_start
     ? `FY ${app.data.org.financial_year_start}`
@@ -49,47 +52,59 @@ export default function App({ session }) {
       `}</style>
 
       {/* ── Sidebar ── */}
-      <div style={{ position:"fixed", left:0, top:0, bottom:0, width:240, background:t.sidebar, backdropFilter:"blur(40px)", borderRight:`1px solid ${t.border}`, display:"flex", flexDirection:"column", padding:"28px 0", zIndex:100, transition:"background 0.3s" }}>
-        <div style={{ padding:"0 20px 32px" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <div style={{ width:34, height:34, borderRadius:10, background:t.heroGrad, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 12px rgba(0,113,227,0.35)", flexShrink:0 }}>
+      <div style={{ position:"fixed", left:0, top:0, bottom:0, width:SW, background:t.sidebar, backdropFilter:"blur(40px)", borderRight:`1px solid ${t.border}`, display:"flex", flexDirection:"column", padding:"28px 0", zIndex:100, transition:"width 0.3s cubic-bezier(0.4,0,0.2,1), background 0.3s", overflow:"hidden" }}>
+        
+        {/* Logo + collapse toggle */}
+        <div style={{ padding:"0 12px 32px", display:"flex", alignItems:"center", justifyContent:collapsed?"center":"space-between", minWidth:0 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0, overflow:"hidden" }}>
+            <div onClick={collapsed?()=>setCollapsed(false):undefined} style={{ width:34, height:34, borderRadius:10, background:t.heroGrad, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 12px rgba(0,113,227,0.35)", flexShrink:0, cursor:collapsed?"pointer":"default" }} title={collapsed?"Expand sidebar":""}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8h5M9 8h5M8 2v5M8 9v5" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
             </div>
-            <div style={{ minWidth:0 }}>
-              <div style={{ fontSize:15, fontWeight:700, letterSpacing:"-0.3px", color:t.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{orgName}</div>
-              {fyText && <div style={{ fontSize:10, color:t.textSub, fontWeight:500 }}>FY {fyText}</div>}
-            </div>
+            {!collapsed && (
+              <div style={{ minWidth:0 }}>
+                <div style={{ fontSize:15, fontWeight:700, letterSpacing:"-0.3px", color:t.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{orgName}</div>
+                {fyText && <div style={{ fontSize:10, color:t.textSub, fontWeight:500 }}>FY {fyText}</div>}
+              </div>
+            )}
           </div>
+          {!collapsed && (
+            <button onClick={()=>setCollapsed(true)} style={{ background:"none", border:"none", cursor:"pointer", color:t.textSub, fontSize:16, padding:4, borderRadius:6, flexShrink:0, lineHeight:1, display:"flex", alignItems:"center", justifyContent:"center" }} title="Collapse">←</button>
+          )}
         </div>
 
-        <nav style={{ flex:1, padding:"0 10px", display:"flex", flexDirection:"column", gap:2 }}>
+        <nav style={{ flex:1, padding:"0 8px", display:"flex", flexDirection:"column", gap:2 }}>
           {navItems.map((item,i)=>(
             <button key={item.id} className="nav-btn" onClick={()=>setActiveTab(item.id)}
-              style={{ display:"flex", alignItems:"center", gap:10, width:"100%", padding:"10px 12px", borderRadius:10, border:"none", cursor:"pointer", fontSize:13, fontWeight:activeTab===item.id?600:500, background:activeTab===item.id?`${t.accent}12`:"transparent", color:activeTab===item.id?t.accent:t.textSub, textAlign:"left", transition:"all 0.15s", animation:`slideIn 0.3s ease ${i*0.04}s both` }}>
-              <span style={{ fontSize:15 }}>{item.icon}</span>
-              {item.label}
-              {activeTab===item.id && <div style={{ marginLeft:"auto", width:6, height:6, borderRadius:"50%", background:t.accent }}/>}
+              title={collapsed?item.label:""}
+              style={{ display:"flex", alignItems:"center", gap:10, width:"100%", padding:"10px 12px", borderRadius:10, border:"none", cursor:"pointer", fontSize:13, fontWeight:activeTab===item.id?600:500, background:activeTab===item.id?`${t.accent}12`:"transparent", color:activeTab===item.id?t.accent:t.textSub, textAlign:"left", transition:"all 0.15s", animation:`slideIn 0.3s ease ${i*0.04}s both`, justifyContent:collapsed?"center":"flex-start" }}>
+              <span style={{ fontSize:17, flexShrink:0 }}>{item.icon}</span>
+              {!collapsed && <span>{item.label}</span>}
+              {!collapsed && activeTab===item.id && <div style={{ marginLeft:"auto", width:6, height:6, borderRadius:"50%", background:t.accent }}/>}
             </button>
           ))}
         </nav>
 
-        <div style={{ padding:"0 12px", display:"flex", flexDirection:"column", gap:8 }}>
-          <button onClick={toggleTheme} style={{ background:"none", border:"none", cursor:"pointer", color:t.textSub, fontSize:18, padding:"8px 12px", textAlign:"left", borderRadius:8 }}>
+        <div style={{ padding:"0 8px", display:"flex", flexDirection:"column", gap:8 }}>
+          <button onClick={toggleTheme} title={isDark?"Light mode":"Dark mode"} style={{ background:"none", border:"none", cursor:"pointer", color:t.textSub, fontSize:18, padding:"8px 12px", textAlign:collapsed?"center":"left", borderRadius:8, width:"100%" }}>
             {isDark?"☀️":"🌙"}
           </button>
-          <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderRadius:12, background:t.surfaceAlt, border:`1px solid ${t.border}` }}>
+          <div style={{ display:"flex", alignItems:"center", gap:collapsed?0:10, padding:"10px 12px", borderRadius:12, background:t.surfaceAlt, border:`1px solid ${t.border}`, justifyContent:collapsed?"center":"flex-start" }}>
             <Avatar name={session?.user?.email||"A"} size={30}/>
-            <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontSize:10, fontWeight:700, color:t.accent, textTransform:"uppercase", letterSpacing:"0.06em" }}>{isSuperAdmin?"Super Admin":"Admin"}</div>
-              <div style={{ fontSize:11, color:t.textSub, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{session?.user?.email}</div>
-            </div>
-            <button onClick={()=>supabase.auth.signOut()} style={{ background:"none", border:"none", cursor:"pointer", color:t.textMuted, fontSize:16, padding:2 }} title="Sign out">⎋</button>
+            {!collapsed && (
+              <>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:10, fontWeight:700, color:t.accent, textTransform:"uppercase", letterSpacing:"0.06em" }}>{isSuperAdmin?"Super Admin":"Admin"}</div>
+                  <div style={{ fontSize:11, color:t.textSub, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{session?.user?.email}</div>
+                </div>
+                <button onClick={()=>supabase.auth.signOut()} style={{ background:"none", border:"none", cursor:"pointer", color:t.textMuted, fontSize:16, padding:2 }} title="Sign out">⎋</button>
+              </>
+            )}
           </div>
         </div>
       </div>
 
       {/* ── Main content ── */}
-      <div style={{ marginLeft:240, padding:"40px 48px", maxWidth:1100 }}>
+      <div style={{ marginLeft:SW, padding:"40px 48px", maxWidth:1100, transition:"margin-left 0.3s cubic-bezier(0.4,0,0.2,1)" }}>
         <div style={{ marginBottom:40, animation:"slideUp 0.3s ease" }}>
           <p style={{ fontSize:13, color:t.textSub, fontWeight:500, marginBottom:4, letterSpacing:"0.02em", textTransform:"uppercase" }}>
             {new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}
