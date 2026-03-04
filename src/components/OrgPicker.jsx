@@ -298,8 +298,8 @@ export function OrgPicker({ session, onSelect }) {
   const [selectedOrg, setSelectedOrg] = useState(null);
   const [userMemberships, setUserMemberships] = useState([]);
 
-  // Derive if user is super_admin in ANY org (can create new ones)
-  const canCreateOrg = userMemberships.some(m => m.role === "super_admin");
+  // Any user can create an org (first org = no memberships yet, or they're super_admin somewhere)
+  const canCreateOrg = true;
 
   useEffect(() => {
     async function loadOrgs() {
