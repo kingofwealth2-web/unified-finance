@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Modal, Field, Input, Textarea, Select, Btn, ColorPicker } from "../ui/index.jsx";
 import { CURRENCIES } from "../../constants.js";
 
@@ -17,6 +18,13 @@ export function Modals({
   editingPerson, setEditingPerson, handleEditPerson,
   fmt,
 }) {
+  const [memberSearch, setMemberSearch] = useState("");
+  const iStyle = (t) => ({ width:"100%", padding:"11px 14px", borderRadius:10, border:`1px solid ${t.borderStrong}`, fontSize:14, color:t.text, background:t.inputBg, outline:"none", boxSizing:"border-box", fontFamily:"inherit", transition:"border-color 0.15s" });
+  const filteredMembers = (data.allPeople||[]).filter(p =>
+    p.role === "member" &&
+    (memberSearch === "" || p.full_name?.toLowerCase().includes(memberSearch.toLowerCase()))
+  );
+
   return (
     <>
       {/* ── MODALS ── */}
@@ -72,9 +80,26 @@ export function Modals({
                 </Modal>
               )}
               {modal==="addContribution"&&(
-                <Modal title="Record Contribution" onClose={closeModal} t={t}>
+                <Modal title="Record Contribution" onClose={()=>{closeModal();setMemberSearch("");}} t={t}>
                   <form onSubmit={handleAddContribution}>
-                    <Field label="Person" t={t}><Select t={t} value={newContribution.member_id} onChange={e=>setNewContribution({...newContribution,member_id:e.target.value})} required><option value="">Select person...</option>{(data.allPeople||[]).filter(p=>p.role==="member").map(p=><option key={p.id} value={p.id}>{p.full_name}</option>)}</Select></Field>
+                    <Field label="Person" t={t}>
+                      <div style={{ position:"relative", marginBottom:6 }}>
+                        <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:t.textSub, fontSize:13, pointerEvents:"none" }}>🔍</span>
+                        <input
+                          value={memberSearch}
+                          onChange={e=>setMemberSearch(e.target.value)}
+                          placeholder="Search members..."
+                          style={{ ...iStyle(t), paddingLeft:34 }}
+                        />
+                      </div>
+                      <Select t={t} value={newContribution.member_id} onChange={e=>setNewContribution({...newContribution,member_id:e.target.value})} required size={Math.min(filteredMembers.length+1, 6)} style={{ borderRadius:10 }}>
+                        <option value="">Select person...</option>
+                        {filteredMembers.map(p=><option key={p.id} value={p.id}>{p.full_name}</option>)}
+                      </Select>
+                      {filteredMembers.length === 0 && memberSearch && (
+                        <p style={{ fontSize:12, color:t.textSub, margin:"4px 0 0", paddingLeft:4 }}>No members match "{memberSearch}"</p>
+                      )}
+                    </Field>
                     <Field label="Payment Type" t={t}><Select t={t} value={newContribution.payment_type_id} onChange={e=>setNewContribution({...newContribution,payment_type_id:e.target.value})}><option value="">Select type...</option>{data.paymentTypes.map(pt=><option key={pt.id} value={pt.id}>{pt.name}</option>)}</Select></Field>
                     <Field label="Amount" t={t}><Input t={t} type="number" min="1" step="0.01" value={newContribution.amount} onChange={e=>setNewContribution({...newContribution,amount:e.target.value})} placeholder="0.00" required/></Field>
                     <Field label="Note (optional)" t={t}><Textarea t={t} value={newContribution.note} onChange={e=>setNewContribution({...newContribution,note:e.target.value})} placeholder="Any notes..."/></Field>

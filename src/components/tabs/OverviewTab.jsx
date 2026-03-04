@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Card, StatCard, ChartCard, Btn, EmptyState, Avatar } from "../ui/index.jsx";
 import { BarChart, LineChart } from "../Charts.jsx";
+import { fyLabel } from "../../constants.js";
 
 export function OverviewTab({
   data, t, fmt, monthlyData, timelineData, isSuperAdmin, openModal,
@@ -52,6 +53,127 @@ export function OverviewTab({
 
   const currentMonth = new Date().toLocaleString("en-US",{month:"long"});
   const membersWithTarget = data.people.filter(p=>p.target>0);
+
+  // ── Year-to-date calculations ──────────────────────────────
+  const fyStart = data.org?.financial_year_start || now.getFullYear();
+  const fyFormat = data.org?.financial_year_format || "single";
+  // Determine FY start date: Jan 1 of fyStart year (or April 1 etc if you ever add month)
+  const fyStartDate = new Date(fyStart, 0, 1); // Jan 1
+  const fyEndDate = new Date(fyStart + 1, 0, 1); // Jan 1 next year
+
+  const ytdContribs = (data.rawContributions||[]).filter(c => {
+    const d = new Date(c.created_at);
+    return d >= fyStartDate && d < fyEndDate;
+  });
+  const ytdExpenses = (data.rawExpenses||[]).filter(e => {
+    const d = new Date(e.created_at);
+    return d >= fyStartDate && d < fyEndDate;
+  });
+  const ytdIncome   = ytdContribs.reduce((s,c) => s + Number(c.amount), 0);
+  const ytdExpTotal = ytdExpenses.reduce((s,e) => s + Number(e.amount), 0);
+  const ytdNet      = ytdIncome - ytdExpTotal;
+  const fyLabelText = fyLabel(fyStart, fyFormat);
+
+  // ── Monthly report export ──────────────────────────────────
+  const exportMonthlyCSV = () => {
+    const rows = [
+      ["Monthly Breakdown Report", monthLabel],
+      [],
+      ["Type", "Name/Category", "Payment Type / Note", "Amount", "Date"],
+      ...monthContribs.map(c => [
+        "Income",
+        c.profiles?.full_name || "Member",
+        c.payment_types?.name || "",
+        c.amount,
+        new Date(c.created_at).toLocaleDateString("en-US"),
+      ]),
+      ...monthExpenses.map(e => [
+        "Expense",
+        e.label || e.expense_categories?.name || "Expense",
+        e.note || "",
+        e.amount,
+        new Date(e.created_at).toLocaleDateString("en-US"),
+      ]),
+      [],
+      ["", "", "Total Income",  monthIncome,   ""],
+      ["", "", "Total Expenses", monthExpTotal, ""],
+      ["", "", "Net",           monthNet,       ""],
+    ];
+    const escape = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const csv = rows.map(r => r.map(escape).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = `monthly-report-${viewYear}-${String(viewMonth+1).padStart(2,"0")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportMonthlyPDF = () => {
+    const win = window.open("", "_blank");
+    if (!win) return;
+    const rows = [
+      ...monthContribs.map(c => `
+        <tr>
+          <td style="color:#34C759;font-weight:600">Income</td>
+          <td>${c.profiles?.full_name || "Member"}</td>
+          <td>${c.payment_types?.name || "—"}</td>
+          <td style="text-align:right;font-weight:700;color:#34C759">+${fmt(c.amount)}</td>
+          <td style="color:#888">${new Date(c.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</td>
+        </tr>`),
+      ...monthExpenses.map(e => `
+        <tr>
+          <td style="color:#FF375F;font-weight:600">Expense</td>
+          <td>${e.label || e.expense_categories?.name || "Expense"}</td>
+          <td>${e.note || "—"}</td>
+          <td style="text-align:right;font-weight:700;color:#FF375F">-${fmt(e.amount)}</td>
+          <td style="color:#888">${new Date(e.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</td>
+        </tr>`),
+    ].join("");
+
+    win.document.write(`<!DOCTYPE html><html><head><title>${monthLabel} Report</title>
+      <style>
+        body { font-family: -apple-system, sans-serif; padding: 40px; color: #1C1C1E; }
+        h1 { font-size: 24px; font-weight: 700; margin: 0 0 4px; }
+        p.sub { color: #8E8E93; font-size: 13px; margin: 0 0 32px; }
+        .stats { display: flex; gap: 20px; margin-bottom: 32px; }
+        .stat { flex: 1; padding: 16px 20px; border-radius: 12px; }
+        .stat .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; margin: 0 0 4px; }
+        .stat .value { font-size: 22px; font-weight: 700; margin: 0; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #8E8E93; padding: 8px 12px; border-bottom: 2px solid #E5E5EA; }
+        td { padding: 10px 12px; border-bottom: 1px solid #F2F2F7; }
+        tr:last-child td { border-bottom: none; }
+        @media print { body { padding: 20px; } }
+      </style></head><body>
+      <h1>${data.org?.name || "Organisation"}</h1>
+      <p class="sub">Monthly Report · ${monthLabel}</p>
+      <div class="stats">
+        <div class="stat" style="background:rgba(52,199,89,0.1)">
+          <p class="label" style="color:#34C759">Income</p>
+          <p class="value" style="color:#34C759">${fmt(monthIncome)}</p>
+          <p style="font-size:11px;color:#34C759;margin:2px 0 0;opacity:.7">${monthContribs.length} transactions</p>
+        </div>
+        <div class="stat" style="background:rgba(255,55,95,0.1)">
+          <p class="label" style="color:#FF375F">Expenses</p>
+          <p class="value" style="color:#FF375F">${fmt(monthExpTotal)}</p>
+          <p style="font-size:11px;color:#FF375F;margin:2px 0 0;opacity:.7">${monthExpenses.length} transactions</p>
+        </div>
+        <div class="stat" style="background:${ytdNet>=0?"rgba(0,113,227,0.1)":"rgba(255,55,95,0.08)"}">
+          <p class="label" style="color:${monthNet>=0?"#0071E3":"#FF375F"}">Net</p>
+          <p class="value" style="color:${monthNet>=0?"#0071E3":"#FF375F"}">${fmt(monthNet)}</p>
+          <p style="font-size:11px;color:${monthNet>=0?"#0071E3":"#FF375F"};margin:2px 0 0;opacity:.7">${monthNet>=0?"surplus":"deficit"}</p>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Type</th><th>Name</th><th>Category / Note</th><th style="text-align:right">Amount</th><th>Date</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <script>window.onload=()=>{window.print();}</script>
+      </body></html>`);
+    win.document.close();
+  };
   const onTrack = membersWithTarget.filter(p=>p.thisMonth>=p.target).length;
   const behind = membersWithTarget.filter(p=>p.thisMonth>0&&p.thisMonth<p.target).length;
   const missed = membersWithTarget.filter(p=>p.thisMonth===0&&p.target>0).length;
@@ -105,6 +227,39 @@ export function OverviewTab({
                     </ChartCard>
                   </div>
 
+                  {/* ── Year-to-Date Summary ── */}
+                  <Card t={t} style={{ marginBottom:20, animation:"slideUp 0.35s ease 0.12s both" }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20, flexWrap:"wrap", gap:10 }}>
+                      <div>
+                        <h3 style={{ fontSize:15, fontWeight:700, margin:0, color:t.text }}>Year-to-Date Summary</h3>
+                        <p style={{ fontSize:12, color:t.textSub, margin:"3px 0 0" }}>FY {fyLabelText} · {ytdContribs.length + ytdExpenses.length} transactions</p>
+                      </div>
+                    </div>
+                    <div className="grid-3" style={{ marginBottom: ytdIncome > 0 || ytdExpTotal > 0 ? 20 : 0 }}>
+                      {[
+                        { label:"YTD Income",   value:ytdIncome,   color:"#34C759", bg:"rgba(52,199,89,0.1)" },
+                        { label:"YTD Expenses", value:ytdExpTotal, color:"#FF375F", bg:"rgba(255,55,95,0.1)" },
+                        { label:"YTD Net",      value:ytdNet,      color:ytdNet>=0?"#0071E3":"#FF375F", bg:ytdNet>=0?"rgba(0,113,227,0.1)":"rgba(255,55,95,0.08)" },
+                      ].map((s,i) => (
+                        <div key={s.label} style={{ padding:"16px 18px", borderRadius:14, background:s.bg }}>
+                          <p style={{ fontSize:11, fontWeight:600, color:s.color, margin:"0 0 4px", textTransform:"uppercase", letterSpacing:"0.06em" }}>{s.label}</p>
+                          <p style={{ fontSize:22, fontWeight:700, color:s.color, margin:0, letterSpacing:"-0.5px" }}>{fmt(s.value)}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {(ytdIncome > 0 || ytdExpTotal > 0) && (
+                      <div>
+                        <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+                          <span style={{ fontSize:12, color:t.textSub }}>Income vs Expenses</span>
+                          <span style={{ fontSize:12, fontWeight:600, color:ytdNet>=0?"#34C759":"#FF375F" }}>{ytdNet>=0?"+":""}{fmt(ytdNet)} {ytdNet>=0?"surplus":"deficit"}</span>
+                        </div>
+                        <div style={{ height:8, background:t.surfaceAlt, borderRadius:99, overflow:"hidden", display:"flex" }}>
+                          <div style={{ height:"100%", width:`${Math.round((ytdIncome/(ytdIncome+ytdExpTotal))*100)}%`, background:"linear-gradient(90deg,#34C759,#30D158)", borderRadius:99, transition:"width 0.9s cubic-bezier(0.34,1.1,0.64,1)", boxShadow:"0 0 8px rgba(52,199,89,0.4)" }}/>
+                        </div>
+                      </div>
+                    )}
+                  </Card>
+
                   {/* Monthly Breakdown Card */}
                   <Card t={t} style={{ marginBottom:20, animation:"slideUp 0.35s ease 0.18s both", overflow:"hidden" }}>
                     {/* Header with month navigation */}
@@ -114,6 +269,8 @@ export function OverviewTab({
                         <p style={{ fontSize:12, color:t.textSub, margin:"3px 0 0", opacity:monthVisible?1:0, transform:monthVisible?"translateY(0)":"translateY(4px)", transition:"opacity 0.18s, transform 0.18s" }}>{monthLabel}</p>
                       </div>
                       <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                        <Btn size="sm" variant="secondary" t={t} onClick={exportMonthlyCSV} title="Export as CSV">↓ CSV</Btn>
+                        <Btn size="sm" variant="secondary" t={t} onClick={exportMonthlyPDF} title="Export as PDF">↓ PDF</Btn>
                         <button onClick={()=>navigateMonth(-1)} style={{ width:32, height:32, borderRadius:10, border:`1px solid ${t.border}`, background:t.surfaceAlt, cursor:"pointer", color:t.text, fontSize:16, display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.15s" }}>‹</button>
                         <span style={{ fontSize:13, fontWeight:600, color:t.text, minWidth:120, textAlign:"center", opacity:monthVisible?1:0, transform:monthVisible?"translateX(0)":`translateX(${monthAnimDir===1?"-":"+"}12px)`, transition:"opacity 0.18s, transform 0.18s", display:"inline-block" }}>{monthLabel}</span>
                         <button onClick={()=>navigateMonth(1)} disabled={isCurrentMonth} style={{ width:32, height:32, borderRadius:10, border:`1px solid ${t.border}`, background:t.surfaceAlt, cursor:isCurrentMonth?"default":"pointer", color:isCurrentMonth?t.textSub:t.text, fontSize:16, display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.15s", opacity:isCurrentMonth?0.4:1 }}>›</button>
