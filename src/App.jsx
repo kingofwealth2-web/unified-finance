@@ -77,6 +77,7 @@ export default function App({ session }) {
           .no-print { display:none !important; }
           body { background:white !important; }
           #print-area { border:none !important; border-radius:0 !important; box-shadow:none !important; padding:0 !important; }
+          .main-content { margin-left:0 !important; padding:0 !important; }
         }
       `}</style>
 
