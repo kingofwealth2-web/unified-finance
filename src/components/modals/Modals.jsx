@@ -22,7 +22,8 @@ export function Modals({
   const iStyle = (t) => ({ width:"100%", padding:"11px 14px", borderRadius:10, border:`1px solid ${t.borderStrong}`, fontSize:14, color:t.text, background:t.inputBg, outline:"none", boxSizing:"border-box", fontFamily:"inherit", transition:"border-color 0.15s" });
   const filteredMembers = (data.allPeople||[]).filter(p =>
     p.role === "member" &&
-    (memberSearch === "" || p.full_name?.toLowerCase().includes(memberSearch.toLowerCase()))
+    memberSearch !== "" &&
+    p.full_name?.toLowerCase().includes(memberSearch.toLowerCase())
   );
 
   return (
@@ -83,22 +84,37 @@ export function Modals({
                 <Modal title="Record Contribution" onClose={()=>{closeModal();setMemberSearch("");}} t={t}>
                   <form onSubmit={handleAddContribution}>
                     <Field label="Person" t={t}>
-                      <div style={{ position:"relative", marginBottom:6 }}>
+                      <div style={{ position:"relative" }}>
                         <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:t.textSub, fontSize:13, pointerEvents:"none" }}>🔍</span>
                         <input
                           value={memberSearch}
                           onChange={e=>setMemberSearch(e.target.value)}
                           placeholder="Search members..."
                           style={{ ...iStyle(t), paddingLeft:34 }}
+                          autoComplete="off"
                         />
                       </div>
-                      <Select t={t} value={newContribution.member_id} onChange={e=>setNewContribution({...newContribution,member_id:e.target.value})} required size={Math.min(filteredMembers.length+1, 6)} style={{ borderRadius:10 }}>
-                        <option value="">Select person...</option>
-                        {filteredMembers.map(p=><option key={p.id} value={p.id}>{p.full_name}</option>)}
-                      </Select>
-                      {filteredMembers.length === 0 && memberSearch && (
-                        <p style={{ fontSize:12, color:t.textSub, margin:"4px 0 0", paddingLeft:4 }}>No members match "{memberSearch}"</p>
+                      {memberSearch && (
+                        <div style={{ border:`1px solid ${t.borderStrong}`, borderRadius:10, marginTop:4, overflow:"hidden", maxHeight:200, overflowY:"auto" }}>
+                          {filteredMembers.length === 0
+                            ? <p style={{ fontSize:13, color:t.textSub, margin:0, padding:"10px 14px" }}>No members match "{memberSearch}"</p>
+                            : filteredMembers.map(p => (
+                                <div key={p.id}
+                                  onClick={()=>{ setNewContribution({...newContribution,member_id:p.id}); setMemberSearch(p.full_name); }}
+                                  style={{ padding:"10px 14px", cursor:"pointer", fontSize:14, color:newContribution.member_id===p.id?t.accent:t.text, background:newContribution.member_id===p.id?`${t.accent}12`:t.surface, fontWeight:newContribution.member_id===p.id?600:400, transition:"background 0.12s" }}
+                                  onMouseEnter={e=>{ if(newContribution.member_id!==p.id) e.currentTarget.style.background=t.surfaceAlt; }}
+                                  onMouseLeave={e=>{ if(newContribution.member_id!==p.id) e.currentTarget.style.background=t.surface; }}
+                                >{p.full_name}</div>
+                              ))
+                          }
+                        </div>
                       )}
+                      {!memberSearch && newContribution.member_id && (
+                        <p style={{ fontSize:12, color:t.accent, margin:"4px 0 0", paddingLeft:4 }}>
+                          ✓ {(data.allPeople||[]).find(p=>p.id===newContribution.member_id)?.full_name}
+                        </p>
+                      )}
+                      <input type="hidden" value={newContribution.member_id} required/>
                     </Field>
                     <Field label="Payment Type" t={t}><Select t={t} value={newContribution.payment_type_id} onChange={e=>setNewContribution({...newContribution,payment_type_id:e.target.value})}><option value="">Select type...</option>{data.paymentTypes.map(pt=><option key={pt.id} value={pt.id}>{pt.name}</option>)}</Select></Field>
                     <Field label="Amount" t={t}><Input t={t} type="number" min="1" step="0.01" value={newContribution.amount} onChange={e=>setNewContribution({...newContribution,amount:e.target.value})} placeholder="0.00" required/></Field>
