@@ -21,6 +21,7 @@ export function SettingsTab({ data, t, fmt, isSuperAdmin, openModal, orgName, se
             {[
               { label:"Name",           value:data.org.name },
               { label:"Currency",       value:data.org.currency },
+              { label:"Opening Balance",value:fmt(data.org.opening_balance||0) },
               { label:"Contact Email",  value:data.org.contact_email  || "—" },
               { label:"Contact Phone",  value:data.org.contact_phone  || "—" },
               { label:"Address",        value:data.org.address        || "—" },

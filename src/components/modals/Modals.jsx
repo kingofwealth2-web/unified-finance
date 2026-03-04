@@ -43,6 +43,10 @@ export function Modals({
                       <Field label="Financial Year Start" t={t}><Input t={t} type="number" value={orgForm.financial_year_start} onChange={e=>setOrgForm({...orgForm,financial_year_start:e.target.value})} placeholder="2026"/></Field>
                       <Field label="Year Format" t={t}><Select t={t} value={orgForm.financial_year_format} onChange={e=>setOrgForm({...orgForm,financial_year_format:e.target.value})}><option value="single">Single (2026)</option><option value="split">Split (2026/2027)</option></Select></Field>
                     </div>
+                    <Field label="Opening Balance" t={t}>
+                      <Input t={t} type="number" min="0" step="0.01" value={orgForm.opening_balance||""} onChange={e=>setOrgForm({...orgForm,opening_balance:e.target.value})} placeholder="0.00"/>
+                      <p style={{ fontSize:12, color:t.textSub, margin:"5px 0 0" }}>Any funds your organisation held before using this app.</p>
+                    </Field>
                     {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
                     <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
                       <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>

@@ -80,7 +80,7 @@ export function useAppData({ session, currentOrg, orgRole }) {
       const org = orgRows?.[0] || currentOrg;
       if (org) {
         setFmt(() => makeFmt(org.currency || "USD"));
-        setOrgForm({ name:org.name, address:org.address||"", contact_email:org.contact_email||"", contact_phone:org.contact_phone||"", currency:org.currency||"USD", financial_year_format:org.financial_year_format||"single", financial_year_start:org.financial_year_start||new Date().getFullYear() });
+        setOrgForm({ name:org.name, address:org.address||"", contact_email:org.contact_email||"", contact_phone:org.contact_phone||"", currency:org.currency||"USD", financial_year_format:org.financial_year_format||"single", financial_year_start:org.financial_year_start||new Date().getFullYear(), opening_balance:org.opening_balance||0 });
       }
 
       const fmtLocal = makeFmt(org?.currency || "USD");
@@ -113,6 +113,7 @@ export function useAppData({ session, currentOrg, orgRole }) {
       const eA=(expenses||[]).slice(0,6).map(e=>({id:`e-${e.id}`,name:e.expense_categories?.name||"Expense",action:e.label,amount:`-${fmtLocal(e.amount)}`,time:new Date(e.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"}),positive:false}));
       const totalC=(contributions||[]).reduce((s,c)=>s+Number(c.amount),0);
       const totalE=(expenses||[]).reduce((s,e)=>s+Number(e.amount),0);
+      const openingBalance=Number(org?.opening_balance||0);
 
       // Build users list: match org_members to the admin/super_admin profiles already fetched
       // profiles in this org that have an admin role (stored in profiles.role for display purposes)
@@ -127,7 +128,7 @@ export function useAppData({ session, currentOrg, orgRole }) {
           role: memberRoleMap[p.id] || p.role,
         }));
 
-      setData({ totalBalance:totalC-totalE, totalContributions:totalC, totalExpenses:totalE, people, expenses:expenseData, recentActivity:[...cA,...eA].slice(0,10), users, paymentTypes:paymentTypeData, allPeople:profiles||[], org, categories:categories||[], rawContributions:contributions||[], rawExpenses:expenses||[] });
+      setData({ totalBalance:openingBalance+totalC-totalE, totalContributions:totalC, totalExpenses:totalE, people, expenses:expenseData, recentActivity:[...cA,...eA].slice(0,10), users, paymentTypes:paymentTypeData, allPeople:profiles||[], org, categories:categories||[], rawContributions:contributions||[], rawExpenses:expenses||[] });
       setAuditLog(auditRows || []);
     } catch(err) { console.error(err); } finally { setLoading(false); }
   }
@@ -305,6 +306,7 @@ export function useAppData({ session, currentOrg, orgRole }) {
       const { error } = await supabase.from("org_settings").update({
         ...orgForm,
         financial_year_start: Number(orgForm.financial_year_start),
+        opening_balance: Number(orgForm.opening_balance||0),
         updated_by: session?.user?.id,
         updated_at: new Date().toISOString(),
       }).eq("id", orgId);
