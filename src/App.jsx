@@ -118,7 +118,10 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
         .grid-3  { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
         .grid-2  { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
         .col-span-2 { grid-column:span 2; }
-        .sidebar-logo-area .switch-btn { opacity:0; transition:opacity 0.2s; }
+        .sidebar-nav::-webkit-scrollbar { width:3px; }
+        .sidebar-nav::-webkit-scrollbar-track { background:transparent; }
+        .sidebar-nav::-webkit-scrollbar-thumb { background:rgba(128,128,128,0.2); border-radius:99px; }
+        .sidebar-nav::-webkit-scrollbar-thumb:hover { background:rgba(128,128,128,0.4); }
         .sidebar-logo-area:hover .switch-btn { opacity:1; }
         @media (max-width:767px) {
           .main-content  { margin-left:0 !important; padding:72px 16px 24px !important; }
@@ -211,7 +214,7 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
         </div>
 
         {/* ── Nav ── */}
-        <nav style={{ flex:1, padding:"0 8px", display:"flex", flexDirection:"column", gap:2, overflowY:"auto", overflowX:"hidden" }}>
+        <nav className="sidebar-nav" style={{ flex:1, padding:"0 8px", display:"flex", flexDirection:"column", gap:2, overflowY:"auto", overflowX:"hidden" }}>
           {navItems.map((item,i)=>(
             <button key={item.id} className="nav-btn"
               onClick={()=>{ setActiveTab(item.id); if(isMobile) setMobileOpen(false); }}
