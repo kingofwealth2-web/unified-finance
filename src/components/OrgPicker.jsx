@@ -290,7 +290,7 @@ function CreateOrgModal({ session, onCreated, onClose }) {
 }
 
 // ── Main OrgPicker ─────────────────────────────────────────────
-export function OrgPicker({ session, onSelect }) {
+export function OrgPicker({ session, onSelect, allowAutoEnter = true }) {
   const [orgs, setOrgs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -298,8 +298,8 @@ export function OrgPicker({ session, onSelect }) {
   const [selectedOrg, setSelectedOrg] = useState(null);
   const [userMemberships, setUserMemberships] = useState([]);
 
-  // Any user can create an org (first org = no memberships yet, or they're super_admin somewhere)
-  const canCreateOrg = true;
+  // Derive if user is super_admin in ANY org (can create new ones)
+  const canCreateOrg = userMemberships.some(m => m.role === "super_admin");
 
   useEffect(() => {
     async function loadOrgs() {
@@ -321,8 +321,8 @@ export function OrgPicker({ session, onSelect }) {
 
       setOrgs(orgRows || []);
 
-      // Auto-enter if only one org
-      if (orgRows?.length === 1) {
+      // Auto-enter only on first load (not when user explicitly switched)
+      if (allowAutoEnter && orgRows?.length === 1) {
         const role = memberships.find(m => m.org_id === orgRows[0].id)?.role || "admin";
         handleSelect(orgRows[0], role, true);
       }
