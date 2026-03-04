@@ -1,5 +1,5 @@
 import { Card, ChartCard, Btn, EmptyState } from "../ui/index.jsx";
-import { DonutChart } from "../ui/Charts.jsx";
+import { DonutChart } from "../Charts.jsx";
 
 export function PaymentTypesTab({
   data, t, fmt, isSuperAdmin, openModal,
