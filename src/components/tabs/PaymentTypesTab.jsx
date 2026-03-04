@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Card, ChartCard, Btn, EmptyState } from "../ui/index.jsx";
 import { DonutChart } from "../Charts.jsx";
 
@@ -6,9 +8,29 @@ export function PaymentTypesTab({
   expandedPaymentType, setExpandedPaymentType,
   setEditingPaymentType, handleDeletePaymentType,
 }) {
+  const [printTarget, setPrintTarget] = useState(null); // null | "all" | pt.id
+
+  function triggerPrint(target) {
+    setPrintTarget(target);
+    setTimeout(() => { window.print(); }, 100);
+  }
+
+  const currency = data.org?.currency || "";
+
+  // shared print styles
+  const printStyle = `
+    @media print {
+      body > *:not(#pt-print-root) { display:none !important; }
+      #pt-print-root { display:block !important; }
+      @page { margin:20mm; }
+    }
+    #pt-print-root { display:none; font-family:-apple-system,sans-serif; color:#1C1C1E; }
+  `;
+
   return (
     <div>
                   <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:20, gap:10 }}>
+                    <Btn t={t} onClick={()=>triggerPrint("all")} variant="secondary">🖨 Print All</Btn>
                     <Btn t={t} onClick={()=>openModal("addContribution")} variant="secondary">+ Record Payment</Btn>
                     <Btn t={t} onClick={()=>openModal("bulkContribution")} variant="secondary">+ Bulk Add</Btn>
                     {isSuperAdmin&&<Btn t={t} onClick={()=>openModal("addPaymentType")}>+ New Payment Type</Btn>}
@@ -53,7 +75,10 @@ export function PaymentTypesTab({
                                   <p style={{ fontSize:13, color:t.textSub, margin:0, textAlign:"center", padding:"8px 0" }}>No contributions recorded yet.</p>
                                 ):(
                                   <>
-                                    <p style={{ fontSize:12, fontWeight:700, color:t.textSub, textTransform:"uppercase", letterSpacing:"0.06em", margin:"0 0 14px" }}>Member Rankings</p>
+                                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", margin:"0 0 14px" }}>
+                                      <p style={{ fontSize:12, fontWeight:700, color:t.textSub, textTransform:"uppercase", letterSpacing:"0.06em", margin:0 }}>Member Rankings</p>
+                                      <Btn size="sm" variant="secondary" t={t} onClick={e=>{e.stopPropagation();triggerPrint(pt.id);}}>🖨 Print Rankings</Btn>
+                                    </div>
                                     <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                                       {pt.members.map((m,ri)=>{
                                         const pct2=Math.round((m.total/pt.total)*100);
@@ -86,6 +111,93 @@ export function PaymentTypesTab({
                       })}
                     </div>
                   }
+
+      {/* ── Print Portal ── */}
+      {printTarget && createPortal(
+        <>
+          <style>{printStyle}</style>
+          <div id="pt-print-root">
+            {/* Header */}
+            <div style={{ borderBottom:"2px solid #1C1C1E", paddingBottom:12, marginBottom:24 }}>
+              <h1 style={{ fontSize:22, fontWeight:700, margin:"0 0 4px" }}>{data.org?.name}</h1>
+              <p style={{ fontSize:13, color:"#666", margin:0 }}>
+                {printTarget==="all" ? "All Payment Categories — Full Report" : `Rankings: ${data.paymentTypes.find(p=>p.id===printTarget)?.name}`}
+                {" · "}{new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}
+              </p>
+            </div>
+
+            {/* Content */}
+            {(printTarget==="all" ? data.paymentTypes : data.paymentTypes.filter(p=>p.id===printTarget)).map(pt => (
+              <div key={pt.id} style={{ marginBottom:32, pageBreakInside:"avoid" }}>
+                {/* Category header */}
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", borderBottom:"1px solid #E5E5EA", paddingBottom:8, marginBottom:12 }}>
+                  <div>
+                    <span style={{ display:"inline-block", width:10, height:10, borderRadius:3, background:pt.color, marginRight:8 }}/>
+                    <strong style={{ fontSize:16 }}>{pt.name}</strong>
+                    {pt.description && <span style={{ fontSize:12, color:"#666", marginLeft:8 }}>{pt.description}</span>}
+                  </div>
+                  <strong style={{ fontSize:16 }}>{currency} {Number(pt.total).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</strong>
                 </div>
+                {/* Goal bar */}
+                {pt.goal>0 && (
+                  <div style={{ marginBottom:12 }}>
+                    <div style={{ height:6, background:"#E5E5EA", borderRadius:99, overflow:"hidden" }}>
+                      <div style={{ height:"100%", width:`${Math.min(100,Math.round((pt.total/pt.goal)*100))}%`, background:pt.color, borderRadius:99 }}/>
+                    </div>
+                    <p style={{ fontSize:11, color:"#666", margin:"4px 0 0" }}>Goal: {currency} {Number(pt.goal).toLocaleString()} · {Math.round((pt.total/pt.goal)*100)}% reached</p>
+                  </div>
+                )}
+                {/* Member rankings table */}
+                {pt.members.length>0 && (
+                  <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
+                    <thead>
+                      <tr style={{ background:"#F5F5F7" }}>
+                        <th style={{ padding:"8px 12px", textAlign:"left", fontWeight:600, color:"#666", fontSize:11, textTransform:"uppercase", letterSpacing:"0.05em" }}>Rank</th>
+                        <th style={{ padding:"8px 12px", textAlign:"left", fontWeight:600, color:"#666", fontSize:11, textTransform:"uppercase", letterSpacing:"0.05em" }}>Member</th>
+                        <th style={{ padding:"8px 12px", textAlign:"right", fontWeight:600, color:"#666", fontSize:11, textTransform:"uppercase", letterSpacing:"0.05em" }}>Amount</th>
+                        <th style={{ padding:"8px 12px", textAlign:"right", fontWeight:600, color:"#666", fontSize:11, textTransform:"uppercase", letterSpacing:"0.05em" }}>Share</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pt.members.map((m,ri) => (
+                        <tr key={m.id} style={{ borderBottom:"1px solid #F0F0F5" }}>
+                          <td style={{ padding:"9px 12px", color: ri===0?"#B8860B":ri===1?"#666":ri===2?"#8B4513":"#999", fontWeight:700 }}>
+                            {ri===0?"🥇 1st":ri===1?"🥈 2nd":ri===2?"🥉 3rd":`${ri+1}th`}
+                          </td>
+                          <td style={{ padding:"9px 12px", fontWeight:500 }}>{m.name}</td>
+                          <td style={{ padding:"9px 12px", textAlign:"right", fontWeight:600 }}>{currency} {Number(m.total).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+                          <td style={{ padding:"9px 12px", textAlign:"right", color:"#666" }}>{Math.round((m.total/pt.total)*100)}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr style={{ background:"#F5F5F7", fontWeight:700 }}>
+                        <td colSpan={2} style={{ padding:"9px 12px" }}>Total</td>
+                        <td style={{ padding:"9px 12px", textAlign:"right" }}>{currency} {Number(pt.total).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+                        <td style={{ padding:"9px 12px", textAlign:"right" }}>100%</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                )}
+              </div>
+            ))}
+
+            {/* Footer */}
+            {printTarget==="all" && (
+              <div style={{ borderTop:"2px solid #1C1C1E", paddingTop:12, display:"flex", justifyContent:"space-between", fontSize:13 }}>
+                <span>Total across all categories: <strong>{currency} {data.paymentTypes.reduce((s,p)=>s+Number(p.total),0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</strong></span>
+                <span style={{ color:"#666" }}>Printed {new Date().toLocaleString()}</span>
+              </div>
+            )}
+
+            {/* Close button — hidden on print */}
+            <button onClick={()=>setPrintTarget(null)} style={{ marginTop:24, padding:"10px 20px", borderRadius:10, border:"1px solid #E5E5EA", background:"white", cursor:"pointer", fontSize:14 }} className="no-print">
+              ← Close Print View
+            </button>
+          </div>
+        </>,
+        document.body
+      )}
+    </div>
   );
 }
