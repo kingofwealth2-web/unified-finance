@@ -122,6 +122,10 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
         .grid-3  { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
         .grid-2  { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
         .col-span-2 { grid-column:span 2; }
+        .sidebar-nav::-webkit-scrollbar { width:3px; }
+        .sidebar-nav::-webkit-scrollbar-track { background:transparent; }
+        .sidebar-nav::-webkit-scrollbar-thumb { background:rgba(128,128,128,0.2); border-radius:99px; }
+        .sidebar-nav::-webkit-scrollbar-thumb:hover { background:rgba(128,128,128,0.4); }
         .sidebar-logo-area .switch-btn { opacity:0; transition:opacity 0.2s; }
         .sidebar-logo-area:hover .switch-btn { opacity:1; }
         @media (max-width:767px) {
@@ -159,6 +163,7 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
       <div style={{
         position:"fixed", left:0, top:0, bottom:0,
         width: isMobile ? 260 : SW,
+        height:"100vh",
         background:t.sidebar, backdropFilter:"blur(40px)",
         borderRight:`1px solid ${t.border}`,
         display:"flex", flexDirection:"column", padding:"28px 0",
@@ -168,6 +173,7 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
           : "width 0.3s cubic-bezier(0.4,0,0.2,1), background 0.3s",
         transform: isMobile ? (mobileOpen ? "translateX(0)" : "translateX(-100%)") : "translateX(0)",
         overflow:"hidden",
+        boxSizing:"border-box",
       }}>
 
         {/* ── Org identity header ── */}
@@ -213,7 +219,7 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
         </div>
 
         {/* ── Nav ── */}
-        <nav style={{ flex:1, padding:"0 8px", display:"flex", flexDirection:"column", gap:2 }}>
+        <nav className="sidebar-nav" style={{ flex:1, padding:"0 8px", display:"flex", flexDirection:"column", gap:2, overflowY:"auto", overflowX:"hidden" }}>
           {navItems.map((item,i)=>(
             <button key={item.id} className="nav-btn"
               onClick={()=>{ setActiveTab(item.id); if(isMobile) setMobileOpen(false); }}
