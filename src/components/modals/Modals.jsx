@@ -135,22 +135,18 @@ export function Modals({
                 </Modal>
               )}
               {modal==="bulkContribution"&&bulkContributions&&createPortal(
-                <div style={{ position:"fixed", inset:0, zIndex:9997, display:"flex", justifyContent:"flex-end", animation:"fadeIn 0.2s ease" }}>
+                <div style={{ position:"fixed", inset:0, zIndex:9997, display:"flex", alignItems:"center", justifyContent:"center", padding:24, animation:"fadeIn 0.2s ease" }}>
+                  <style>{`
+                    @keyframes bulkIn { from { opacity:0; transform:scale(0.97) } to { opacity:1; transform:scale(1) } }
+                    .bulk-scroll::-webkit-scrollbar { width:3px; }
+                    .bulk-scroll::-webkit-scrollbar-track { background:transparent; }
+                    .bulk-scroll::-webkit-scrollbar-thumb { background:rgba(128,128,128,0.2); border-radius:99px; }
+                    .bulk-scroll::-webkit-scrollbar-thumb:hover { background:rgba(128,128,128,0.4); }
+                  `}</style>
                   {/* Backdrop */}
-                  <div onClick={closeModal} style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.5)", backdropFilter:"blur(6px)" }}/>
-                  {/* Drawer */}
-                  <div style={{ position:"relative", width:"min(520px,100vw)", height:"100vh", background:t.surface, borderLeft:`1px solid ${t.border}`, display:"flex", flexDirection:"column", animation:"slideInDrawer 0.35s cubic-bezier(0.34,1.2,0.64,1)", boxShadow:"-24px 0 80px rgba(0,0,0,0.4)" }}>
-                    <style>{`
-                      @keyframes slideInDrawer { from { transform:translateX(100%) } to { transform:translateX(0) } }
-                      .bulk-scroll::-webkit-scrollbar { width:3px; }
-                      .bulk-scroll::-webkit-scrollbar-track { background:transparent; }
-                      .bulk-scroll::-webkit-scrollbar-thumb { background:rgba(128,128,128,0.2); border-radius:99px; }
-                      .bulk-scroll::-webkit-scrollbar-thumb:hover { background:rgba(128,128,128,0.4); }
-                      .subtle-scroll::-webkit-scrollbar { width:3px; }
-                      .subtle-scroll::-webkit-scrollbar-track { background:transparent; }
-                      .subtle-scroll::-webkit-scrollbar-thumb { background:rgba(128,128,128,0.2); border-radius:99px; }
-                      .subtle-scroll::-webkit-scrollbar-thumb:hover { background:rgba(128,128,128,0.4); }
-                    `}</style>
+                  <div onClick={closeModal} style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.6)", backdropFilter:"blur(8px)" }}/>
+                  {/* Panel */}
+                  <div style={{ position:"relative", width:"100%", maxWidth:560, maxHeight:"90vh", background:t.surface, borderRadius:24, border:`1px solid ${t.border}`, display:"flex", flexDirection:"column", animation:"bulkIn 0.25s cubic-bezier(0.34,1.2,0.64,1)", boxShadow:"0 32px 80px rgba(0,0,0,0.5)" }}>
 
                     {/* Header */}
                     <div style={{ padding:"28px 28px 20px", borderBottom:`1px solid ${t.border}`, flexShrink:0 }}>
