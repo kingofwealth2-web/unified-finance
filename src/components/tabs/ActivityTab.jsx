@@ -46,12 +46,12 @@ export function ActivityTab({
                 const hasDateFilter = activityDateFrom || activityDateTo;
       
                 if (showPrintView) return (
-                  <div>
+                  <div style={{ position:"fixed", inset:0, background:"white", zIndex:300, overflowY:"auto", padding:"24px" }}>
                     <div className="no-print" style={{ marginBottom:20, display:"flex", gap:10 }}>
                       <Btn t={t} onClick={()=>{ window.print(); }} variant="secondary">🖨 Print</Btn>
                       <Btn t={t} onClick={()=>setShowPrintView(false)} variant="secondary">← Back</Btn>
                     </div>
-                    <div id="print-area" style={{ background:"white", color:"#1C1C1E", padding:"24px 20px", borderRadius:16, border:`1px solid ${t.border}` }}>
+                    <div id="print-area" style={{ background:"white", color:"#1C1C1E", padding:"24px 20px", borderRadius:16, border:"1px solid #E5E5EA", maxWidth:900, margin:"0 auto" }}>
                       <div style={{ borderBottom:"2px solid #1C1C1E", paddingBottom:16, marginBottom:28 }}>
                         <h1 style={{ fontSize:22, fontWeight:700, margin:"0 0 4px" }}>{orgName} — Financial Report</h1>
                         <p style={{ fontSize:13, color:"#636366", margin:0 }}>
