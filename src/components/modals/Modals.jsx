@@ -8,6 +8,7 @@ export function Modals({
   newUser, setNewUser, handleAddUser,
   newPerson, setNewPerson, handleAddPerson,
   newContribution, setNewContribution, handleAddContribution,
+  bulkContributions, setBulkContributions, handleBulkAddContributions,
   newExpense, setNewExpense, handleAddExpense,
   newPaymentType, setNewPaymentType, handleAddPaymentType,
   newExpenseCategory, setNewExpenseCategory, handleAddExpenseCategory,
@@ -127,6 +128,60 @@ export function Modals({
                     <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
                       <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
                       <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Saving...":"Record"}</Btn>
+                    </div>
+                  </form>
+                </Modal>
+              )}
+              {modal==="bulkContribution"&&bulkContributions&&(
+                <Modal title="Bulk Add Contributions" onClose={closeModal} t={t}>
+                  <form onSubmit={handleBulkAddContributions}>
+                    <div style={{ display:"flex", gap:12, marginBottom:4 }}>
+                      <Field label="Payment Type" t={t} style={{ flex:1 }}>
+                        <Select t={t} value={bulkContributions.payment_type_id} onChange={e=>setBulkContributions({...bulkContributions,payment_type_id:e.target.value})}>
+                          <option value="">Select type...</option>
+                          {data.paymentTypes.map(pt=><option key={pt.id} value={pt.id}>{pt.name}</option>)}
+                        </Select>
+                      </Field>
+                      <Field label="Note (optional)" t={t} style={{ flex:1 }}>
+                        <Input t={t} value={bulkContributions.note} onChange={e=>setBulkContributions({...bulkContributions,note:e.target.value})} placeholder="e.g. March offering"/>
+                      </Field>
+                    </div>
+                    <p style={{ fontSize:11, fontWeight:600, color:t.textSub, textTransform:"uppercase", letterSpacing:"0.06em", margin:"16px 0 10px" }}>Members — enter amount or leave blank</p>
+                    <div style={{ display:"flex", flexDirection:"column", gap:6, maxHeight:340, overflowY:"auto", paddingRight:4 }}>
+                      {(data.allPeople||[]).filter(p=>p.status==="active"&&p.role==="member").map((p,i) => {
+                        const val = bulkContributions.amounts[p.id] ?? "";
+                        const hasVal = val !== "" && Number(val) > 0;
+                        return (
+                          <div key={p.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 10px", borderRadius:10, background: hasVal ? `${t.accent}10` : t.surfaceAlt, border:`1px solid ${hasVal ? t.accent+"40" : "transparent"}`, transition:"all 0.15s" }}>
+                            <div style={{ width:32, height:32, borderRadius:"50%", background:`${t.accent}22`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700, color:t.accent, flexShrink:0 }}>
+                              {p.full_name?.charAt(0).toUpperCase()}
+                            </div>
+                            <span style={{ flex:1, fontSize:14, fontWeight:500, color:t.text }}>{p.full_name}</span>
+                            <input
+                              type="number" min="0" step="0.01"
+                              value={val}
+                              onChange={e => setBulkContributions(prev => ({ ...prev, amounts:{ ...prev.amounts, [p.id]: e.target.value } }))}
+                              placeholder="0.00"
+                              style={{ width:100, padding:"7px 10px", borderRadius:8, border:`1px solid ${hasVal ? t.accent+"60" : t.borderStrong}`, background:t.surface, color:t.text, fontSize:14, outline:"none", textAlign:"right", fontFamily:"inherit", transition:"border-color 0.15s" }}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {(() => {
+                      const total = Object.values(bulkContributions.amounts).filter(v=>v!==""&&Number(v)>0).reduce((s,v)=>s+Number(v),0);
+                      const count = Object.values(bulkContributions.amounts).filter(v=>v!==""&&Number(v)>0).length;
+                      return count > 0 ? (
+                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", borderRadius:10, background:t.surfaceAlt, margin:"14px 0 4px" }}>
+                          <span style={{ fontSize:13, color:t.textSub }}>{count} member{count>1?"s":""} · ready to record</span>
+                          <span style={{ fontSize:15, fontWeight:700, color:t.accent }}>{data.org?.currency||""} {total.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
+                        </div>
+                      ) : null;
+                    })()}
+                    {formError&&<p style={{ fontSize:13, color:"#FF375F", margin:"10px 0 0" }}>{formError}</p>}
+                    <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:16 }}>
+                      <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
+                      <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Saving...":"Record All"}</Btn>
                     </div>
                   </form>
                 </Modal>

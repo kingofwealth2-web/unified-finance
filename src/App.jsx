@@ -363,6 +363,7 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
         newUser={app.newUser} setNewUser={app.setNewUser} handleAddUser={app.handleAddUser}
         newPerson={app.newPerson} setNewPerson={app.setNewPerson} handleAddPerson={app.handleAddPerson}
         newContribution={app.newContribution} setNewContribution={app.setNewContribution} handleAddContribution={app.handleAddContribution}
+        bulkContributions={app.bulkContributions} setBulkContributions={app.setBulkContributions} handleBulkAddContributions={app.handleBulkAddContributions}
         newExpense={app.newExpense} setNewExpense={app.setNewExpense} handleAddExpense={app.handleAddExpense}
         newPaymentType={app.newPaymentType} setNewPaymentType={app.setNewPaymentType} handleAddPaymentType={app.handleAddPaymentType}
         newExpenseCategory={app.newExpenseCategory} setNewExpenseCategory={app.setNewExpenseCategory} handleAddExpenseCategory={app.handleAddExpenseCategory}

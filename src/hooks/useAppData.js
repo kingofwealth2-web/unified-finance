@@ -19,6 +19,7 @@ export function useAppData({ session, currentOrg, orgRole }) {
   const [newUser, setNewUser] = useState({ full_name:"", email:"", password:"", role:"admin" });
   const [newPerson, setNewPerson] = useState({ full_name:"", status:"active", monthly_target:"" });
   const [newContribution, setNewContribution] = useState({ member_id:"", amount:"", payment_type_id:"", note:"" });
+  const [bulkContributions, setBulkContributions] = useState({ payment_type_id:"", note:"", amounts:{} });
   const [newExpense, setNewExpense] = useState({ category_id:"", amount:"", label:"" });
   const [newPaymentType, setNewPaymentType] = useState({ name:"", description:"", goal:"", color:"#0071E3" });
   const [newExpenseCategory, setNewExpenseCategory] = useState({ name:"", description:"", budget:"", color:"#0071E3" });
@@ -200,6 +201,25 @@ export function useAppData({ session, currentOrg, orgRole }) {
       const memberName = data.allPeople.find(p=>p.id===newContribution.member_id)?.full_name||"Member";
       await logAudit("create","contribution",null,memberName,`Recorded contribution of ${newContribution.amount} for ${memberName}`,null,{amount:newContribution.amount,note:newContribution.note});
       closeModal(); setNewContribution({member_id:"",amount:"",payment_type_id:"",note:""}); fetchAllData();
+    } catch(err) { setFormError(err.message); } finally { setFormLoading(false); }
+  }
+
+  async function handleBulkAddContributions(e) {
+    e.preventDefault(); setFormLoading(true); setFormError(null);
+    try {
+      const entries = Object.entries(bulkContributions.amounts)
+        .filter(([_, amt]) => amt !== "" && Number(amt) > 0);
+      if (entries.length === 0) { setFormError("Enter at least one amount."); setFormLoading(false); return; }
+      const rows = entries.map(([member_id, amt]) => ({
+        member_id, amount: Number(amt),
+        payment_type_id: bulkContributions.payment_type_id || null,
+        note: bulkContributions.note, type: "other", org_id: orgId,
+      }));
+      const { error } = await supabase.from("contributions").insert(rows);
+      if (error) throw error;
+      await logAudit("create","contribution",null,"Bulk","Bulk contribution entry",null,{ count: rows.length, total: rows.reduce((s,r)=>s+r.amount,0) });
+      toast(`✓ ${rows.length} contribution${rows.length>1?"s":""} recorded`, "success");
+      closeModal(); setBulkContributions({ payment_type_id:"", note:"", amounts:{} }); fetchAllData();
     } catch(err) { setFormError(err.message); } finally { setFormLoading(false); }
   }
 
@@ -445,6 +465,7 @@ export function useAppData({ session, currentOrg, orgRole }) {
     fmt: makeFmt(data.org?.currency || currentOrg?.currency || "USD"),
     newUser, setNewUser, newPerson, setNewPerson,
     newContribution, setNewContribution, newExpense, setNewExpense,
+    bulkContributions, setBulkContributions,
     newPaymentType, setNewPaymentType, newExpenseCategory, setNewExpenseCategory,
     orgForm, setOrgForm,
     editingContribution, setEditingContribution,
@@ -457,7 +478,7 @@ export function useAppData({ session, currentOrg, orgRole }) {
     activityDateFrom, setActivityDateFrom, activityDateTo, setActivityDateTo,
     activityPage, setActivityPage, showPrintView, setShowPrintView,
     exportDateFrom, setExportDateFrom, exportDateTo, setExportDateTo,
-    handleAddUser, handleAddPerson, handleAddContribution, handleAddExpense,
+    handleAddUser, handleAddPerson, handleAddContribution, handleBulkAddContributions, handleAddExpense,
     handleAddPaymentType, handleAddExpenseCategory,
     handleEditPaymentType, handleDeletePaymentType,
     handleEditExpenseCategory, handleDeleteExpenseCategory,
