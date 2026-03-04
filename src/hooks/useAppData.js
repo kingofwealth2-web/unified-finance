@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient.js";
-import { makeFmt, light, dark, buildMonthly, buildTimeline } from "../constants.js";
+import { makeFmt, light, dark, buildMonthly, buildTimeline, fyLabel } from "../constants.js";
 
 export function useAppData({ session }) {
   const [activeTab, setActiveTab] = useState("overview");
