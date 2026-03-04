@@ -117,74 +117,134 @@ export function useAppData({ session }) {
 
   async function handleAddUser(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
-    try { const {error}=await supabase.auth.signUp({email:newUser.email,password:newUser.password,options:{data:{full_name:newUser.full_name,role:newUser.role}}}); if(error)throw error; closeModal(); setNewUser({full_name:"",email:"",password:"",role:"admin"}); fetchAllData(); } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
+    try {
+      const {error}=await supabase.auth.signUp({email:newUser.email,password:newUser.password,options:{data:{full_name:newUser.full_name,role:newUser.role}}});
+      if(error)throw error;
+      await logAudit("create","user",null,newUser.full_name,`Created user ${newUser.full_name} (${newUser.email})`,null,{email:newUser.email,role:newUser.role});
+      closeModal(); setNewUser({full_name:"",email:"",password:"",role:"admin"}); fetchAllData();
+    } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleAddPerson(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
-    try { const {error}=await supabase.from("profiles").insert({id:crypto.randomUUID(),full_name:newPerson.full_name,role:"member",status:newPerson.status,monthly_target:newPerson.monthly_target?Number(newPerson.monthly_target):0}); if(error)throw error; closeModal(); setNewPerson({full_name:"",status:"active",monthly_target:""}); fetchAllData(); } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
+    try {
+      const {error}=await supabase.from("profiles").insert({id:crypto.randomUUID(),full_name:newPerson.full_name,role:"member",status:newPerson.status,monthly_target:newPerson.monthly_target?Number(newPerson.monthly_target):0});
+      if(error)throw error;
+      await logAudit("create","person",null,newPerson.full_name,`Added person ${newPerson.full_name}`,null,{full_name:newPerson.full_name,status:newPerson.status});
+      closeModal(); setNewPerson({full_name:"",status:"active",monthly_target:""}); fetchAllData();
+    } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleAddContribution(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
-    try { const {error}=await supabase.from("contributions").insert({member_id:newContribution.member_id,amount:Number(newContribution.amount),payment_type_id:newContribution.payment_type_id||null,note:newContribution.note,type:"other"}); if(error)throw error; closeModal(); setNewContribution({member_id:"",amount:"",payment_type_id:"",note:""}); fetchAllData(); } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
+    try {
+      const {error}=await supabase.from("contributions").insert({member_id:newContribution.member_id,amount:Number(newContribution.amount),payment_type_id:newContribution.payment_type_id||null,note:newContribution.note,type:"other"});
+      if(error)throw error;
+      const memberName = data.allPeople.find(p=>p.id===newContribution.member_id)?.full_name||"Member";
+      await logAudit("create","contribution",null,memberName,`Recorded contribution of ${newContribution.amount} for ${memberName}`,null,{amount:newContribution.amount,note:newContribution.note});
+      closeModal(); setNewContribution({member_id:"",amount:"",payment_type_id:"",note:""}); fetchAllData();
+    } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleAddExpense(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
-    try { const {error}=await supabase.from("expenses").insert({category_id:newExpense.category_id,amount:Number(newExpense.amount),label:newExpense.label,recorded_by:session?.user?.id}); if(error)throw error; closeModal(); setNewExpense({category_id:"",amount:"",label:""}); fetchAllData(); } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
+    try {
+      const {error}=await supabase.from("expenses").insert({category_id:newExpense.category_id,amount:Number(newExpense.amount),label:newExpense.label,recorded_by:session?.user?.id});
+      if(error)throw error;
+      const catName = data.categories?.find(c=>c.id===newExpense.category_id)?.name||"Expense";
+      await logAudit("create","expense",null,null,`Recorded expense: ${newExpense.label} (${newExpense.amount}) under ${catName}`,null,{amount:newExpense.amount,label:newExpense.label});
+      closeModal(); setNewExpense({category_id:"",amount:"",label:""}); fetchAllData();
+    } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleAddPaymentType(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
-    try { const {error}=await supabase.from("payment_types").insert({name:newPaymentType.name,description:newPaymentType.description||null,goal:newPaymentType.goal?Number(newPaymentType.goal):null,color:newPaymentType.color,created_by:session?.user?.id}); if(error)throw error; closeModal(); setNewPaymentType({name:"",description:"",goal:"",color:"#0071E3"}); fetchAllData(); } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
+    try {
+      const {error}=await supabase.from("payment_types").insert({name:newPaymentType.name,description:newPaymentType.description||null,goal:newPaymentType.goal?Number(newPaymentType.goal):null,color:newPaymentType.color,created_by:session?.user?.id});
+      if(error)throw error;
+      await logAudit("create","payment_type",null,null,`Created payment type: ${newPaymentType.name}`,null,{name:newPaymentType.name,goal:newPaymentType.goal});
+      closeModal(); setNewPaymentType({name:"",description:"",goal:"",color:"#0071E3"}); fetchAllData();
+    } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleAddExpenseCategory(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
-    try { const {error}=await supabase.from("expense_categories").insert({name:newExpenseCategory.name,description:newExpenseCategory.description||null,budget:newExpenseCategory.budget?Number(newExpenseCategory.budget):0,color:newExpenseCategory.color,created_by:session?.user?.id}); if(error)throw error; closeModal(); setNewExpenseCategory({name:"",description:"",budget:"",color:"#0071E3"}); fetchAllData(); } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
+    try {
+      const {error}=await supabase.from("expense_categories").insert({name:newExpenseCategory.name,description:newExpenseCategory.description||null,budget:newExpenseCategory.budget?Number(newExpenseCategory.budget):0,color:newExpenseCategory.color,created_by:session?.user?.id});
+      if(error)throw error;
+      await logAudit("create","expense_category",null,null,`Created expense category: ${newExpenseCategory.name}`,null,{name:newExpenseCategory.name,budget:newExpenseCategory.budget});
+      closeModal(); setNewExpenseCategory({name:"",description:"",budget:"",color:"#0071E3"}); fetchAllData();
+    } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleEditPaymentType(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
-    try { const {error}=await supabase.from("payment_types").update({name:editingPaymentType.name,description:editingPaymentType.description||null,goal:editingPaymentType.goal?Number(editingPaymentType.goal):null,color:editingPaymentType.color}).eq("id",editingPaymentType.id); if(error)throw error; closeModal(); fetchAllData(); } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
+    try {
+      const old = data.paymentTypes.find(p=>p.id===editingPaymentType.id);
+      const {error}=await supabase.from("payment_types").update({name:editingPaymentType.name,description:editingPaymentType.description||null,goal:editingPaymentType.goal?Number(editingPaymentType.goal):null,color:editingPaymentType.color}).eq("id",editingPaymentType.id);
+      if(error)throw error;
+      await logAudit("edit","payment_type",editingPaymentType.id,null,`Edited payment type: ${editingPaymentType.name}`,{name:old?.name,goal:old?.goal},{name:editingPaymentType.name,goal:editingPaymentType.goal});
+      closeModal(); fetchAllData();
+    } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleDeletePaymentType(id) {
     if(!confirm("Delete this payment type? This cannot be undone."))return;
-    await supabase.from("payment_types").delete().eq("id",id); fetchAllData();
+    const pt = data.paymentTypes.find(p=>p.id===id);
+    await supabase.from("payment_types").delete().eq("id",id);
+    await logAudit("delete","payment_type",id,null,`Deleted payment type: ${pt?.name||id}`,{name:pt?.name},null);
+    fetchAllData();
   }
   async function handleEditExpenseCategory(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
-    try { const {error}=await supabase.from("expense_categories").update({name:editingExpenseCategory.name,description:editingExpenseCategory.description||null,budget:editingExpenseCategory.budget?Number(editingExpenseCategory.budget):0,color:editingExpenseCategory.color}).eq("id",editingExpenseCategory.id); if(error)throw error; closeModal(); fetchAllData(); } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
+    try {
+      const old = data.expenses.find(c=>c.id===editingExpenseCategory.id);
+      const {error}=await supabase.from("expense_categories").update({name:editingExpenseCategory.name,description:editingExpenseCategory.description||null,budget:editingExpenseCategory.budget?Number(editingExpenseCategory.budget):0,color:editingExpenseCategory.color}).eq("id",editingExpenseCategory.id);
+      if(error)throw error;
+      await logAudit("edit","expense_category",editingExpenseCategory.id,null,`Edited expense category: ${editingExpenseCategory.name}`,{name:old?.label,budget:old?.budget},{name:editingExpenseCategory.name,budget:editingExpenseCategory.budget});
+      closeModal(); fetchAllData();
+    } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleDeleteExpenseCategory(id) {
     if(!confirm("Delete this category? This cannot be undone."))return;
+    const cat = data.expenses.find(c=>c.id===id);
     await supabase.from("expenses").delete().eq("category_id",id);
     await supabase.from("expense_categories").delete().eq("id",id);
+    await logAudit("delete","expense_category",id,null,`Deleted expense category: ${cat?.label||id}`,{name:cat?.label},null);
     fetchAllData();
   }
   async function handleSaveOrg(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
-    try { const {error}=await supabase.from("org_settings").update({...orgForm,financial_year_start:Number(orgForm.financial_year_start),updated_by:session?.user?.id,updated_at:new Date().toISOString()}).eq("id",data.org.id); if(error)throw error; closeModal(); fetchAllData(); } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
+    try {
+      const {error}=await supabase.from("org_settings").update({...orgForm,financial_year_start:Number(orgForm.financial_year_start),updated_by:session?.user?.id,updated_at:new Date().toISOString()}).eq("id",data.org.id);
+      if(error)throw error;
+      await logAudit("edit","org",data.org.id,null,`Updated organisation settings`,{name:data.org.name},{name:orgForm.name,currency:orgForm.currency});
+      closeModal(); fetchAllData();
+    } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
 
   async function handleEditPerson(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
     try {
+      const old = data.allPeople.find(p=>p.id===editingPerson.id);
       const {error} = await supabase.from("profiles").update({
         full_name: editingPerson.full_name,
         status: editingPerson.status,
         monthly_target: editingPerson.monthly_target ? Number(editingPerson.monthly_target) : 0,
       }).eq("id", editingPerson.id);
       if (error) throw error;
+      await logAudit("edit","person",editingPerson.id,editingPerson.full_name,`Edited person: ${editingPerson.full_name}`,{full_name:old?.full_name,status:old?.status},{full_name:editingPerson.full_name,status:editingPerson.status});
       closeModal(); fetchAllData();
     } catch(err) { setFormError(err.message); } finally { setFormLoading(false); }
   }
 
-    async function handleDeactivatePerson(id, currentStatus) {
+  async function handleDeactivatePerson(id, currentStatus) {
     const newStatus = currentStatus === "Active" ? "inactive" : "active";
+    const person = data.allPeople.find(p=>p.id===id);
     await supabase.from("profiles").update({ status: newStatus }).eq("id", id);
+    await logAudit("edit","person",id,person?.full_name,`${newStatus==="active"?"Activated":"Deactivated"} person: ${person?.full_name||id}`,{status:currentStatus},{status:newStatus});
     fetchAllData();
   }
 
   async function handleDeletePerson(id) {
     if (!confirm("Permanently delete this person and all their contribution records? This cannot be undone.")) return;
+    const person = data.allPeople.find(p=>p.id===id);
     await supabase.from("contributions").delete().eq("member_id", id);
     await supabase.from("profiles").delete().eq("id", id);
+    await logAudit("delete","person",id,person?.full_name,`Deleted person: ${person?.full_name||id}`,{full_name:person?.full_name},null);
     fetchAllData();
   }
 
