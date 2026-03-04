@@ -25,12 +25,12 @@ export function Modals({
                   <form onSubmit={handleSaveOrg}>
                     <Field label="Organisation Name" t={t}><Input t={t} value={orgForm.name} onChange={e=>setOrgForm({...orgForm,name:e.target.value})} required/></Field>
                     <Field label="Address" t={t}><Textarea t={t} value={orgForm.address} onChange={e=>setOrgForm({...orgForm,address:e.target.value})} placeholder="Street, City, Country"/></Field>
-                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+                    <div className="grid-2" style={{ gap:12 }}>
                       <Field label="Contact Email" t={t}><Input t={t} type="email" value={orgForm.contact_email} onChange={e=>setOrgForm({...orgForm,contact_email:e.target.value})} placeholder="info@org.com"/></Field>
                       <Field label="Contact Phone" t={t}><Input t={t} value={orgForm.contact_phone} onChange={e=>setOrgForm({...orgForm,contact_phone:e.target.value})} placeholder="+1 234 567 8900"/></Field>
                     </div>
                     <Field label="Currency" t={t}><Select t={t} value={orgForm.currency} onChange={e=>setOrgForm({...orgForm,currency:e.target.value})}>{CURRENCIES.map(c=><option key={c} value={c}>{c}</option>)}</Select></Field>
-                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+                    <div className="grid-2" style={{ gap:12 }}>
                       <Field label="Financial Year Start" t={t}><Input t={t} type="number" value={orgForm.financial_year_start} onChange={e=>setOrgForm({...orgForm,financial_year_start:e.target.value})} placeholder="2026"/></Field>
                       <Field label="Year Format" t={t}><Select t={t} value={orgForm.financial_year_format} onChange={e=>setOrgForm({...orgForm,financial_year_format:e.target.value})}><option value="single">Single (2026)</option><option value="split">Split (2026/2027)</option></Select></Field>
                     </div>

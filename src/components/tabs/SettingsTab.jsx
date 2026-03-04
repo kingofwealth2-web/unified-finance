@@ -1,6 +1,5 @@
 import { Card, Btn, Avatar, EmptyState } from "../ui/index.jsx";
-
-const fyLabel = (start, format) => format === "split" ? `${start}/${start+1}` : `${start}`;
+import { fyLabel } from "../../constants.js";
 
 export function SettingsTab({ data, t, fmt, isSuperAdmin, openModal, orgName, session,
   setEditingPaymentType, handleDeletePaymentType,
@@ -18,7 +17,7 @@ export function SettingsTab({ data, t, fmt, isSuperAdmin, openModal, orgName, se
           <Btn t={t} onClick={()=>openModal("editOrg")}>Edit</Btn>
         </div>
         {data.org && (
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 }}>
+          <div className="grid-2" style={{ gap:20 }}>
             {[
               { label:"Name",           value:data.org.name },
               { label:"Currency",       value:data.org.currency },

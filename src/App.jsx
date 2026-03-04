@@ -58,12 +58,17 @@ export default function App({ session }) {
         .row-hover:hover { background:rgba(0,113,227,0.04) !important; transition:background 0.15s; }
         .card-hover { transition:transform 0.2s ease, box-shadow 0.2s ease; }
         .card-hover:hover { transform:translateY(-2px); box-shadow:0 10px 36px rgba(0,0,0,0.13) !important; }
+        .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+        .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+        .col-span-2 { grid-column:span 2; }
         @media (max-width:767px) {
           .main-content { margin-left:0 !important; padding:72px 16px 24px !important; }
           .mobile-topbar { display:flex !important; }
-          .stat-grid { grid-template-columns:1fr 1fr !important; }
-          .chart-grid { grid-template-columns:1fr !important; }
-          .hero-card { grid-column:span 1 !important; }
+          .grid-3 { grid-template-columns:1fr !important; gap:12px !important; }
+          .grid-2 { grid-template-columns:1fr !important; gap:12px !important; }
+          .col-span-2 { grid-column:span 1 !important; }
+          .hero-amount { font-size:36px !important; }
+          .row-actions { flex-wrap:wrap; }
         }
         @media (min-width:768px) {
           .mobile-topbar { display:none !important; }

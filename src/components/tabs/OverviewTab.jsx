@@ -1,5 +1,5 @@
 import { Card, StatCard, ChartCard, Btn, EmptyState, Avatar } from "../ui/index.jsx";
-import { DonutChart, BarChart, LineChart, ContributorBars } from "../Charts.jsx";
+import { BarChart, LineChart } from "../Charts.jsx";
 
 export function OverviewTab({
   data, t, fmt, monthlyData, timelineData, isSuperAdmin, openModal,
@@ -15,12 +15,12 @@ export function OverviewTab({
   const totalActualThisMonth = data.people.reduce((s,p)=>s+(p.thisMonth||0),0);
   return (
     <div>
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:16, marginBottom:24 }}>
-                    <div className="card-hover" style={{ gridColumn:"span 2", background:t.heroGrad, borderRadius:24, padding:"36px 40px", position:"relative", overflow:"hidden", boxShadow:"0 8px 32px rgba(0,113,227,0.3)" }}>
+                  <div className="grid-3" style={{ marginBottom:24 }}>
+                    <div className="card-hover col-span-2" style={{ background:t.heroGrad, borderRadius:24, padding:"36px 40px", position:"relative", overflow:"hidden", boxShadow:"0 8px 32px rgba(0,113,227,0.3)" }}>
                       <div style={{ position:"absolute", top:-40, right:-40, width:200, height:200, borderRadius:"50%", background:"rgba(255,255,255,0.07)" }}/>
                       <div style={{ position:"absolute", bottom:-60, right:60, width:160, height:160, borderRadius:"50%", background:"rgba(255,255,255,0.05)" }}/>
                       <p style={{ fontSize:11, fontWeight:600, color:"rgba(255,255,255,0.7)", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:10 }}>Net Balance</p>
-                      <h2 style={{ fontSize:52, fontWeight:700, color:"white", letterSpacing:"-2px", margin:"0 0 20px" }}>{fmt(data.totalBalance)}</h2>
+                      <h2 className="hero-amount" style={{ fontSize:52, fontWeight:700, color:"white", letterSpacing:"-2px", margin:"0 0 20px" }}>{fmt(data.totalBalance)}</h2>
                       <div style={{ display:"flex", gap:20 }}>
                         <div><p style={{ fontSize:11, color:"rgba(255,255,255,0.6)", margin:"0 0 2px" }}>Total In</p><p style={{ fontSize:16, fontWeight:700, color:"white", margin:0 }}>{fmt(data.totalContributions)}</p></div>
                         <div style={{ width:1, background:"rgba(255,255,255,0.2)" }}/>
@@ -33,7 +33,7 @@ export function OverviewTab({
                     </div>
                   </div>
       
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20, marginBottom:20 }}>
+                  <div className="grid-2" style={{ marginBottom:20 }}>
                     <ChartCard title="Income vs Expenses" subtitle="Last 6 months" t={t} style={{ animation:"slideUp 0.35s ease 0.1s both" }}>
                       <BarChart data={monthlyData} fmt={fmt} t={t} height={210}/>
                     </ChartCard>
@@ -96,12 +96,12 @@ export function OverviewTab({
                     </div>
                     {data.recentActivity.length===0?<EmptyState message="No activity yet." t={t}/>:
                       <div>{data.recentActivity.slice(0,5).map((item,i)=>(
-                        <div key={item.id} className="row-hover" style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 8px", borderBottom:i<4?`1px solid ${t.border}`:"none", borderRadius:8, animation:`slideIn 0.3s ease ${i*0.05}s both` }}>
-                          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                        <div key={item.id} className="row-hover" style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 8px", borderBottom:i<4?`1px solid ${t.border}`:"none", borderRadius:8, animation:`slideIn 0.3s ease ${i*0.05}s both`, flexWrap:"wrap", gap:8 }}>
+                          <div style={{ display:"flex", alignItems:"center", gap:12, flex:1, minWidth:0 }}>
                             <Avatar name={item.name} size={36}/>
-                            <div><p style={{ fontSize:14, fontWeight:500, margin:0, color:t.text }}>{item.name}</p><p style={{ fontSize:12, color:t.textSub, margin:0 }}>{item.action}</p></div>
+                            <div style={{ minWidth:0 }}><p style={{ fontSize:14, fontWeight:500, margin:0, color:t.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.name}</p><p style={{ fontSize:12, color:t.textSub, margin:0 }}>{item.action}</p></div>
                           </div>
-                          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                          <div className="row-actions" style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
                             <span style={{ fontSize:15, fontWeight:700, color:item.positive?"#34C759":"#FF375F" }}>{item.amount}</span>
                             {item.positive?(
                               <><Btn size="sm" variant="secondary" t={t} onClick={()=>{const c=data.rawContributions.find(r=>`c-${r.id}`===item.id);if(c){setEditingContribution({id:c.id,member_name:c.profiles?.full_name||"",amount:c.amount,payment_type_id:c.payment_type_id||"",note:c.note||""});openModal("editContribution");}}}>Edit</Btn>

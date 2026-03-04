@@ -111,10 +111,15 @@ export default function Auth() {
         .feature-row:hover { background: ${isDark ? "rgba(255,255,255,0.04)" : "rgba(0,113,227,0.04)"} !important; }
         .feature-row { transition: background 0.2s; }
         .toggle-theme:hover { opacity: 0.8; }
+        @media (max-width: 767px) {
+          .auth-right { display: none !important; }
+          .auth-left { width: 100% !important; min-width: 0 !important; padding: 32px 24px !important; border-right: none !important; box-shadow: none !important; }
+          .auth-heading { font-size: 28px !important; letter-spacing: -1px !important; }
+        }
       `}</style>
 
       {/* ── LEFT PANEL — Login form ───────────────────────────── */}
-      <div style={{
+      <div className="auth-left" style={{
         width: "42%",
         minWidth: 420,
         background: surface,
@@ -164,7 +169,7 @@ export default function Auth() {
 
         {/* Heading */}
         <div style={{ marginBottom: 44, ...fadeUp(0.08) }}>
-          <h1 style={{ fontSize: 38, fontWeight: 800, letterSpacing: "-1.5px", color: text, margin: "0 0 10px", lineHeight: 1.1 }}>
+          <h1 className="auth-heading" style={{ fontSize: 38, fontWeight: 800, letterSpacing: "-1.5px", color: text, margin: "0 0 10px", lineHeight: 1.1 }}>
             Welcome<br/>back.
           </h1>
           <p style={{ fontSize: 15, color: textSub, margin: 0, lineHeight: 1.5 }}>
@@ -269,7 +274,7 @@ export default function Auth() {
       </div>
 
       {/* ── RIGHT PANEL — Brand story ────────────────────────── */}
-      <div style={{
+      <div className="auth-right" style={{
         flex: 1,
         background: panel,
         backdropFilter: "blur(20px)",
