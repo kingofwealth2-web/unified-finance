@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient.js";
 import { makeFmt, light, dark, buildMonthly, buildTimeline, fyLabel } from "../constants.js";
+import { toast } from "../components/ui/index.jsx";
 
 export function useAppData({ session }) {
   const [activeTab, setActiveTab] = useState("overview");
@@ -150,7 +151,21 @@ export function useAppData({ session }) {
       if(error)throw error;
       const catName = data.categories?.find(c=>c.id===newExpense.category_id)?.name||"Expense";
       await logAudit("create","expense",null,null,`Recorded expense: ${newExpense.label} (${newExpense.amount}) under ${catName}`,null,{amount:newExpense.amount,label:newExpense.label});
-      closeModal(); setNewExpense({category_id:"",amount:"",label:""}); fetchAllData();
+      closeModal(); setNewExpense({category_id:"",amount:"",label:""});
+
+      // ── Budget alert toast ──────────────────────────────────
+      const cat = data.expenses?.find(c=>c.id===newExpense.category_id);
+      if (cat && cat.budget > 0) {
+        const newSpent = cat.amount + Number(newExpense.amount);
+        const pct = Math.round((newSpent / cat.budget) * 100);
+        if (newSpent >= cat.budget) {
+          toast(`⚠️ ${cat.label} is over budget (${pct}% used)`, "error");
+        } else if (pct >= 80) {
+          toast(`${cat.label} is at ${pct}% of its budget`, "warning");
+        }
+      }
+
+      fetchAllData();
     } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleAddPaymentType(e) {

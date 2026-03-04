@@ -111,8 +111,8 @@ const ToastContainer = () => {
     };
     return () => { _toastFn = null; };
   }, []);
-  const icons = { success:"✓", error:"✕", info:"ℹ" };
-  const colors = { success:"#34C759", error:"#FF375F", info:"#0071E3" };
+  const icons  = { success:"✓", error:"✕", info:"ℹ", warning:"⚠" };
+  const colors = { success:"#34C759", error:"#FF375F", info:"#0071E3", warning:"#FF9F0A" };
   return (
     <div style={{ position:"fixed", bottom:24, right:24, zIndex:9999, display:"flex", flexDirection:"column", gap:10, pointerEvents:"none" }}>
       {toasts.map(t => (

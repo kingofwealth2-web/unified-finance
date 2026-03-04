@@ -54,6 +54,13 @@ export function OverviewTab({
   const currentMonth = new Date().toLocaleString("en-US",{month:"long"});
   const membersWithTarget = data.people.filter(p=>p.target>0);
 
+  // ── Budget alerts ─────────────────────────────────────────
+  const budgetAlerts = (data.expenses||[])
+    .filter(exp => exp.budget > 0)
+    .map(exp => ({ ...exp, pct: Math.round((exp.amount / exp.budget) * 100) }))
+    .filter(exp => exp.pct >= 80)
+    .sort((a,b) => b.pct - a.pct);
+
   // ── Year-to-date calculations ──────────────────────────────
   const fyStart = data.org?.financial_year_start || now.getFullYear();
   const fyFormat = data.org?.financial_year_format || "single";
@@ -226,6 +233,45 @@ export function OverviewTab({
                       <LineChart data={timelineData} fmt={fmt} t={t} height={210}/>
                     </ChartCard>
                   </div>
+
+                  {/* ── Budget Alerts ── */}
+                  {budgetAlerts.length > 0 && (
+                    <Card t={t} style={{ marginBottom:20, animation:"slideUp 0.3s ease", border:`1px solid rgba(255,159,10,0.3)`, background:t.surface }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16 }}>
+                        <div style={{ width:32, height:32, borderRadius:10, background:"rgba(255,159,10,0.12)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>⚠️</div>
+                        <div>
+                          <h3 style={{ fontSize:15, fontWeight:700, margin:0, color:t.text }}>Budget Alerts</h3>
+                          <p style={{ fontSize:12, color:t.textSub, margin:"2px 0 0" }}>{budgetAlerts.length} {budgetAlerts.length===1?"category":"categories"} need attention</p>
+                        </div>
+                      </div>
+                      <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                        {budgetAlerts.map((exp, i) => {
+                          const isOver = exp.pct >= 100;
+                          const color  = isOver ? "#FF375F" : "#FF9F0A";
+                          const bg     = isOver ? "rgba(255,55,95,0.08)" : "rgba(255,159,10,0.08)";
+                          return (
+                            <div key={exp.id} style={{ padding:"12px 16px", borderRadius:12, background:bg, border:`1px solid ${color}22`, animation:`slideIn 0.25s ease ${i*0.05}s both` }}>
+                              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                                  <div style={{ width:8, height:8, borderRadius:"50%", background:exp.color, flexShrink:0 }}/>
+                                  <span style={{ fontSize:13, fontWeight:600, color:t.text }}>{exp.label}</span>
+                                  <span style={{ fontSize:10, fontWeight:700, padding:"2px 7px", borderRadius:20, background:`${color}18`, color }}>{isOver ? "OVER BUDGET" : "WARNING"}</span>
+                                </div>
+                                <span style={{ fontSize:13, fontWeight:700, color }}>{exp.pct}%</span>
+                              </div>
+                              <div style={{ height:6, background:t.surfaceAlt, borderRadius:99, overflow:"hidden" }}>
+                                <div style={{ height:"100%", width:`${Math.min(exp.pct,100)}%`, background:color, borderRadius:99, transition:"width 0.8s cubic-bezier(0.34,1.1,0.64,1)", boxShadow:`0 0 6px ${color}55` }}/>
+                              </div>
+                              <div style={{ display:"flex", justifyContent:"space-between", marginTop:6 }}>
+                                <span style={{ fontSize:11, color:t.textSub }}>{fmt(exp.amount)} spent</span>
+                                <span style={{ fontSize:11, color:t.textSub }}>of {fmt(exp.budget)} budget</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </Card>
+                  )}
 
                   {/* ── Year-to-Date Summary ── */}
                   <Card t={t} style={{ marginBottom:20, animation:"slideUp 0.35s ease 0.12s both" }}>
