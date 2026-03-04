@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, StatCard, ChartCard, Btn, EmptyState, Avatar } from "../ui/index.jsx";
 import { BarChart, LineChart } from "../Charts.jsx";
 
@@ -6,6 +7,49 @@ export function OverviewTab({
   setActiveTab, setEditingContribution, handleDeleteContribution,
   setEditingExpenseEntry, handleDeleteExpenseEntry,
 }) {
+  const now = new Date();
+  const [viewYear, setViewYear] = useState(now.getFullYear());
+  const [viewMonth, setViewMonth] = useState(now.getMonth()); // 0-indexed
+  const [monthAnimDir, setMonthAnimDir] = useState(null); // 'left' | 'right'
+  const [monthVisible, setMonthVisible] = useState(true);
+
+  const navigateMonth = (dir) => {
+    setMonthAnimDir(dir);
+    setMonthVisible(false);
+    setTimeout(() => {
+      let nm = viewMonth + dir;
+      let ny = viewYear;
+      if (nm < 0) { nm = 11; ny = viewYear - 1; }
+      if (nm > 11) { nm = 0; ny = viewYear + 1; }
+      setViewMonth(nm);
+      setViewYear(ny);
+      setMonthVisible(true);
+      setMonthAnimDir(null);
+    }, 180);
+  };
+
+  // Filter transactions for selected month
+  const monthContribs = (data.rawContributions||[]).filter(c => {
+    const d = new Date(c.created_at);
+    return d.getFullYear() === viewYear && d.getMonth() === viewMonth;
+  });
+  const monthExpenses = (data.rawExpenses||[]).filter(e => {
+    const d = new Date(e.created_at);
+    return d.getFullYear() === viewYear && d.getMonth() === viewMonth;
+  });
+  const monthIncome = monthContribs.reduce((s,c) => s + Number(c.amount), 0);
+  const monthExpTotal = monthExpenses.reduce((s,e) => s + Number(e.amount), 0);
+  const monthNet = monthIncome - monthExpTotal;
+
+  const isCurrentMonth = viewYear === now.getFullYear() && viewMonth === now.getMonth();
+  const monthLabel = new Date(viewYear, viewMonth, 1).toLocaleString("en-US", { month: "long", year: "numeric" });
+
+  // Merge and sort month transactions
+  const monthTxns = [
+    ...monthContribs.map(c => ({ id:`c-${c.id}`, name:c.profiles?.full_name||"Member", action:c.payment_types?.name||"Contribution", amount:Number(c.amount), date:c.created_at, positive:true, raw:c })),
+    ...monthExpenses.map(e => ({ id:`e-${e.id}`, name:e.expense_categories?.name||"Expense", action:e.label, amount:Number(e.amount), date:e.created_at, positive:false, raw:e })),
+  ].sort((a,b) => new Date(b.date) - new Date(a.date));
+
   const currentMonth = new Date().toLocaleString("en-US",{month:"long"});
   const membersWithTarget = data.people.filter(p=>p.target>0);
   const onTrack = membersWithTarget.filter(p=>p.thisMonth>=p.target).length;
@@ -29,7 +73,26 @@ export function OverviewTab({
                     </div>
                     <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
                       <StatCard label="People Tracked" value={data.people.length} t={t} style={{ animation:"slideUp 0.35s ease 0.05s both" }}/>
-                      <StatCard label="This Month" value={fmt(totalActualThisMonth)} t={t} style={{ animation:"slideUp 0.35s ease 0.1s both" }}/>
+                      {/* Interactive month navigator card */}
+                      <div className="card-hover" style={{ background:t.surface, borderRadius:20, padding:"20px 24px", border:`1px solid ${t.border}`, flex:1, boxShadow:t.cardShadow, overflow:"hidden", animation:"slideUp 0.35s ease 0.1s both" }}>
+                        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
+                          <button onClick={()=>navigateMonth(-1)} style={{ background:"none", border:"none", cursor:"pointer", color:t.textSub, fontSize:16, padding:"2px 6px", borderRadius:6, lineHeight:1, transition:"color 0.15s" }}>‹</button>
+                          <p style={{ fontSize:11, fontWeight:600, color:t.textSub, margin:0, letterSpacing:"0.04em", textTransform:"uppercase", textAlign:"center" }}>
+                            {isCurrentMonth ? "This Month" : monthLabel}
+                          </p>
+                          <button onClick={()=>navigateMonth(1)} disabled={isCurrentMonth} style={{ background:"none", border:"none", cursor:isCurrentMonth?"default":"pointer", color:isCurrentMonth?t.surfaceAlt:t.textSub, fontSize:16, padding:"2px 6px", borderRadius:6, lineHeight:1, transition:"color 0.15s" }}>›</button>
+                        </div>
+                        <div style={{ overflow:"hidden" }}>
+                          <p style={{ fontSize:28, fontWeight:700, letterSpacing:"-1px", margin:0, color:t.text, opacity:monthVisible?1:0, transform:monthVisible?"translateX(0)":`translateX(${monthAnimDir===1?"-":"+"}20px)`, transition:"opacity 0.18s ease, transform 0.18s ease" }}>
+                            {fmt(monthIncome)}
+                          </p>
+                        </div>
+                        {!isCurrentMonth && (
+                          <p style={{ fontSize:11, color:t.textSub, margin:"4px 0 0", opacity:monthVisible?1:0, transition:"opacity 0.18s ease" }}>
+                            {new Date(viewYear, viewMonth, 1).toLocaleString("en-US",{month:"short"})} {viewYear}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
       
@@ -41,6 +104,79 @@ export function OverviewTab({
                       <LineChart data={timelineData} fmt={fmt} t={t} height={210}/>
                     </ChartCard>
                   </div>
+
+                  {/* Monthly Breakdown Card */}
+                  <Card t={t} style={{ marginBottom:20, animation:"slideUp 0.35s ease 0.18s both", overflow:"hidden" }}>
+                    {/* Header with month navigation */}
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20, flexWrap:"wrap", gap:10 }}>
+                      <div>
+                        <h3 style={{ fontSize:15, fontWeight:700, margin:0, color:t.text }}>Monthly Breakdown</h3>
+                        <p style={{ fontSize:12, color:t.textSub, margin:"3px 0 0", opacity:monthVisible?1:0, transform:monthVisible?"translateY(0)":"translateY(4px)", transition:"opacity 0.18s, transform 0.18s" }}>{monthLabel}</p>
+                      </div>
+                      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                        <button onClick={()=>navigateMonth(-1)} style={{ width:32, height:32, borderRadius:10, border:`1px solid ${t.border}`, background:t.surfaceAlt, cursor:"pointer", color:t.text, fontSize:16, display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.15s" }}>‹</button>
+                        <span style={{ fontSize:13, fontWeight:600, color:t.text, minWidth:120, textAlign:"center", opacity:monthVisible?1:0, transform:monthVisible?"translateX(0)":`translateX(${monthAnimDir===1?"-":"+"}12px)`, transition:"opacity 0.18s, transform 0.18s", display:"inline-block" }}>{monthLabel}</span>
+                        <button onClick={()=>navigateMonth(1)} disabled={isCurrentMonth} style={{ width:32, height:32, borderRadius:10, border:`1px solid ${t.border}`, background:t.surfaceAlt, cursor:isCurrentMonth?"default":"pointer", color:isCurrentMonth?t.textSub:t.text, fontSize:16, display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.15s", opacity:isCurrentMonth?0.4:1 }}>›</button>
+                      </div>
+                    </div>
+
+                    {/* 3 stat chips */}
+                    <div className="grid-3" style={{ marginBottom:20 }}>
+                      {[
+                        { label:"Income", value:monthIncome, color:"#34C759", bg:"rgba(52,199,89,0.1)" },
+                        { label:"Expenses", value:monthExpTotal, color:"#FF375F", bg:"rgba(255,55,95,0.1)" },
+                        { label:"Net", value:monthNet, color:monthNet>=0?"#0071E3":"#FF375F", bg:monthNet>=0?"rgba(0,113,227,0.1)":"rgba(255,55,95,0.08)" },
+                      ].map((s,i) => (
+                        <div key={s.label} style={{ padding:"14px 16px", borderRadius:14, background:s.bg, opacity:monthVisible?1:0, transform:monthVisible?"translateY(0)":"translateY(8px)", transition:`opacity 0.2s ease ${i*0.05}s, transform 0.2s ease ${i*0.05}s` }}>
+                          <p style={{ fontSize:11, fontWeight:600, color:s.color, margin:"0 0 4px", textTransform:"uppercase", letterSpacing:"0.06em" }}>{s.label}</p>
+                          <p style={{ fontSize:20, fontWeight:700, color:s.color, margin:0, letterSpacing:"-0.5px" }}>{fmt(s.value)}</p>
+                          <p style={{ fontSize:11, color:s.color, margin:"2px 0 0", opacity:0.7 }}>{s.label==="Net"?(monthNet>=0?"surplus":"deficit"):s.label==="Income"?`${monthContribs.length} transactions`:`${monthExpenses.length} transactions`}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Visual income vs expense bar */}
+                    {(monthIncome > 0 || monthExpTotal > 0) && (
+                      <div style={{ marginBottom:20 }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+                          <span style={{ fontSize:12, color:t.textSub }}>Income vs Expenses</span>
+                          <span style={{ fontSize:12, fontWeight:600, color:monthNet>=0?"#34C759":"#FF375F" }}>{monthNet>=0?"+":""}{fmt(monthNet)}</span>
+                        </div>
+                        <div style={{ height:8, background:t.surfaceAlt, borderRadius:99, overflow:"hidden", display:"flex" }}>
+                          <div style={{ height:"100%", width:monthVisible?`${Math.round((monthIncome/(monthIncome+monthExpTotal))*100)}%`:"0%", background:"linear-gradient(90deg,#34C759,#30D158)", borderRadius:99, transition:"width 0.8s cubic-bezier(0.34,1.1,0.64,1)", boxShadow:"0 0 8px rgba(52,199,89,0.4)" }}/>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Transaction list */}
+                    {monthTxns.length === 0
+                      ? <EmptyState message={`No transactions in ${monthLabel}.`} t={t}/>
+                      : (
+                        <div>
+                          <p style={{ fontSize:12, fontWeight:600, color:t.textSub, margin:"0 0 10px", textTransform:"uppercase", letterSpacing:"0.06em" }}>{monthTxns.length} Transactions</p>
+                          <div style={{ maxHeight:280, overflowY:"auto", paddingRight:4 }}>
+                            {monthTxns.map((item,i) => (
+                              <div key={item.id} className="row-hover" style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 8px", borderBottom:i<monthTxns.length-1?`1px solid ${t.border}`:"none", borderRadius:8, flexWrap:"wrap", gap:6, opacity:monthVisible?1:0, transform:monthVisible?"translateX(0)":"translateX(-8px)", transition:`opacity 0.2s ease ${Math.min(i*0.03,0.3)}s, transform 0.2s ease ${Math.min(i*0.03,0.3)}s` }}>
+                                <div style={{ display:"flex", alignItems:"center", gap:10, flex:1, minWidth:0 }}>
+                                  <div style={{ width:32, height:32, borderRadius:9, background:item.positive?"rgba(52,199,89,0.12)":"rgba(255,55,95,0.1)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>{item.positive?"↑":"↓"}</div>
+                                  <div style={{ minWidth:0 }}>
+                                    <p style={{ fontSize:13, fontWeight:600, margin:0, color:t.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.name}</p>
+                                    <p style={{ fontSize:11, color:t.textSub, margin:0 }}>{item.action} · {new Date(item.date).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</p>
+                                  </div>
+                                </div>
+                                <span style={{ fontSize:14, fontWeight:700, color:item.positive?"#34C759":"#FF375F", flexShrink:0 }}>{item.positive?"+":"-"}{fmt(item.amount)}</span>
+                              </div>
+                            ))}
+                          </div>
+                          {monthTxns.length > 8 && (
+                            <button onClick={()=>setActiveTab("activity")} style={{ marginTop:12, background:"none", border:"none", color:t.accent, fontSize:13, fontWeight:500, cursor:"pointer", width:"100%", textAlign:"center", padding:"8px" }}>
+                              View all in Activity →
+                            </button>
+                          )}
+                        </div>
+                      )
+                    }
+                  </Card>
       
                   {membersWithTarget.length>0&&(
                     <Card t={t} style={{ marginBottom:20, animation:"slideUp 0.35s ease 0.18s both" }}>
