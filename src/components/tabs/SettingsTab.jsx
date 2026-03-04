@@ -1,5 +1,6 @@
 import { Card, Btn, Avatar, EmptyState } from "../ui/index.jsx";
-import { fyLabel } from "../../constants.js";
+
+const fyLabel = (start, format) => format === "split" ? `${start}/${start+1}` : `${start}`;
 
 export function SettingsTab({ data, t, fmt, isSuperAdmin, openModal, orgName, session,
   setEditingPaymentType, handleDeletePaymentType,
