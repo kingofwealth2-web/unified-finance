@@ -27,6 +27,40 @@ export function PeopleTab({
   };
   return (
     <div>
+                  {/* ── Status Summary ── */}
+                  {(() => {
+                    const total = data.people.length;
+                    const active = data.people.filter(p=>p.status==="Active").length;
+                    const inactive = total - active;
+                    const now = new Date();
+                    const thisMonth = (data.rawContributions||[]).filter(c => {
+                      const d = new Date(c.created_at);
+                      return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
+                    });
+                    const contributedThisMonth = new Set(thisMonth.map(c=>c.member_id)).size;
+                    const hitTarget = data.people.filter(p => {
+                      if (!p.target) return false;
+                      const memberTotal = thisMonth.filter(c=>c.member_id===p.id).reduce((s,c)=>s+Number(c.amount),0);
+                      return memberTotal >= p.target;
+                    }).length;
+                    const chips = [
+                      { label:"Total Members", value:total, color:t.accent },
+                      { label:"Active", value:active, color:"#34C759" },
+                      { label:"Inactive", value:inactive, color:"#8E8E93" },
+                      { label:"Contributed This Month", value:contributedThisMonth, color:t.accent },
+                      ...(hitTarget > 0 ? [{ label:"Hit Target", value:hitTarget, color:"#FFD700" }] : []),
+                    ];
+                    return total === 0 ? null : (
+                      <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:20, animation:"slideUp 0.3s ease" }}>
+                        {chips.map(chip => (
+                          <div key={chip.label} style={{ flex:1, minWidth:120, background:t.surface, border:`1px solid ${t.border}`, borderRadius:16, padding:"14px 18px", boxShadow:t.cardShadow }}>
+                            <p style={{ fontSize:22, fontWeight:700, margin:"0 0 2px", color:chip.color, letterSpacing:"-0.5px" }}>{chip.value}</p>
+                            <p style={{ fontSize:11, color:t.textSub, margin:0, fontWeight:500 }}>{chip.label}</p>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                   {data.people.length>0 && (
                     <ChartCard title="Top Contributors" subtitle="Ranked by total contributions" t={t} style={{ marginBottom:20, animation:"slideUp 0.3s ease" }}>
                       <ContributorBars people={data.people} fmt={fmt} t={t}/>
@@ -37,7 +71,6 @@ export function PeopleTab({
                       <h3 style={{ fontSize:15, fontWeight:700, margin:0, color:t.text }}>{data.people.length} People</h3>
                       <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
                         <Btn t={t} onClick={exportPeopleReport} variant="secondary" style={{ fontSize:12 }}>↓ Export</Btn>
-                        <Btn t={t} onClick={()=>openModal("addContribution")} variant="secondary">+ Contribution</Btn>
                         <Btn t={t} onClick={()=>openModal("addPerson")}>+ Add Person</Btn>
                       </div>
                     </div>
@@ -78,7 +111,10 @@ export function PeopleTab({
                             return (
                               <div style={{ margin:"0 14px 14px", background:t.bg, borderRadius:14, padding:"20px 24px", border:`1px solid ${t.border}`, animation:"slideUp 0.25s ease" }}>
                                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-                                  <p style={{ fontSize:13, fontWeight:700, color:t.text, margin:0 }}>Contribution History</p>
+                                  <div>
+                                    <p style={{ fontSize:13, fontWeight:700, color:t.text, margin:0 }}>Contribution History</p>
+                                    {p.created_at && <p style={{ fontSize:11, color:t.textSub, margin:"3px 0 0" }}>Member since {new Date(p.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}</p>}
+                                  </div>
                                   <p style={{ fontSize:12, color:t.textSub, margin:0 }}>{memberContribs.length} records · {fmt(p.contributions)} total</p>
                                 </div>
                                 {memberContribs.length===0?<p style={{ fontSize:13, color:t.textSub, margin:0, textAlign:"center", padding:"16px 0" }}>No contributions yet.</p>:

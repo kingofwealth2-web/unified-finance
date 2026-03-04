@@ -93,7 +93,7 @@ export function useAppData({ session, currentOrg, orgRole }) {
         const thisMonth=(contributions||[]).filter(c=>c.member_id===p.id&&new Date(c.created_at)>=monthStart).reduce((s,c)=>s+Number(c.amount),0);
         const last=(contributions||[]).find(c=>c.member_id===p.id);
         const target=Number(p.monthly_target||0);
-        return {id:p.id,name:p.full_name,status:p.status==="active"?"Active":"Inactive",contributions:total,thisMonth,target,lastActivity:last?new Date(last.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"}):"No activity"};
+        return {id:p.id,name:p.full_name,status:p.status==="active"?"Active":"Inactive",contributions:total,thisMonth,target,lastActivity:last?new Date(last.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"}):"No activity",created_at:p.created_at};
       });
 
       const expenseData=(categories||[]).map(cat=>{
