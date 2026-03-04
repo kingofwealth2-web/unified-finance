@@ -155,6 +155,7 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
       <div style={{
         position:"fixed", left:0, top:0, bottom:0,
         width: isMobile ? 260 : SW,
+        height:"100vh",
         background:t.sidebar, backdropFilter:"blur(40px)",
         borderRight:`1px solid ${t.border}`,
         display:"flex", flexDirection:"column", padding:"28px 0",
@@ -164,6 +165,7 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
           : "width 0.3s cubic-bezier(0.4,0,0.2,1), background 0.3s",
         transform: isMobile ? (mobileOpen ? "translateX(0)" : "translateX(-100%)") : "translateX(0)",
         overflow:"hidden",
+        boxSizing:"border-box",
       }}>
 
         {/* ── Org identity header ── */}
@@ -209,7 +211,7 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
         </div>
 
         {/* ── Nav ── */}
-        <nav style={{ flex:1, padding:"0 8px", display:"flex", flexDirection:"column", gap:2 }}>
+        <nav style={{ flex:1, padding:"0 8px", display:"flex", flexDirection:"column", gap:2, overflowY:"auto", overflowX:"hidden" }}>
           {navItems.map((item,i)=>(
             <button key={item.id} className="nav-btn"
               onClick={()=>{ setActiveTab(item.id); if(isMobile) setMobileOpen(false); }}
