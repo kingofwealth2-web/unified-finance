@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "./lib/supabaseClient.js";
 import { useAppData } from "./hooks/useAppData.js";
 import { Avatar } from "./components/ui/index.jsx";
@@ -18,7 +18,20 @@ export default function App({ session }) {
   const { t, isDark, toggleTheme, activeTab, setActiveTab, navItems,
           orgName, loading, isSuperAdmin, visible } = app;
   const [collapsed, setCollapsed] = useState(false);
-  const SW = collapsed ? 64 : 240;
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+
+  useEffect(() => {
+    const handler = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) setMobileOpen(false);
+    };
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+
+  const SW = isMobile ? 0 : collapsed ? 64 : 240;
 
   const fyText = app.data.org?.financial_year_start
     ? `FY ${app.data.org.financial_year_start}`
@@ -40,10 +53,21 @@ export default function App({ session }) {
         @keyframes slideUp { from{opacity:0;transform:translateY(24px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
         @keyframes slideIn { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:translateX(0)} }
         @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.7;transform:scale(0.95)} }
+        @keyframes slideInLeft { from{transform:translateX(-100%)} to{transform:translateX(0)} }
         .nav-btn:hover { background:rgba(0,113,227,0.07) !important; color:#0071E3 !important; }
         .row-hover:hover { background:rgba(0,113,227,0.04) !important; transition:background 0.15s; }
         .card-hover { transition:transform 0.2s ease, box-shadow 0.2s ease; }
         .card-hover:hover { transform:translateY(-2px); box-shadow:0 10px 36px rgba(0,0,0,0.13) !important; }
+        @media (max-width:767px) {
+          .main-content { margin-left:0 !important; padding:72px 16px 24px !important; }
+          .mobile-topbar { display:flex !important; }
+          .stat-grid { grid-template-columns:1fr 1fr !important; }
+          .chart-grid { grid-template-columns:1fr !important; }
+          .hero-card { grid-column:span 1 !important; }
+        }
+        @media (min-width:768px) {
+          .mobile-topbar { display:none !important; }
+        }
         @media print {
           .no-print { display:none !important; }
           body { background:white !important; }
@@ -51,46 +75,70 @@ export default function App({ session }) {
         }
       `}</style>
 
+      {/* ── Mobile top bar ── */}
+      <div className="mobile-topbar" style={{ display:"none", position:"fixed", top:0, left:0, right:0, height:56, background:t.sidebar, backdropFilter:"blur(40px)", borderBottom:`1px solid ${t.border}`, alignItems:"center", justifyContent:"space-between", padding:"0 16px", zIndex:200 }}>
+        <button onClick={()=>setMobileOpen(true)} style={{ background:"none", border:"none", cursor:"pointer", color:t.text, fontSize:22, padding:4, display:"flex", alignItems:"center", justifyContent:"center" }}>☰</button>
+        <div style={{ fontSize:15, fontWeight:700, color:t.text, letterSpacing:"-0.3px" }}>{orgName}</div>
+        <button onClick={toggleTheme} style={{ background:"none", border:"none", cursor:"pointer", fontSize:18, padding:4 }}>{isDark?"☀️":"🌙"}</button>
+      </div>
+
+      {/* ── Mobile overlay backdrop ── */}
+      {isMobile && mobileOpen && (
+        <div onClick={()=>setMobileOpen(false)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:150, animation:"fadeIn 0.2s ease" }}/>
+      )}
+
       {/* ── Sidebar ── */}
-      <div style={{ position:"fixed", left:0, top:0, bottom:0, width:SW, background:t.sidebar, backdropFilter:"blur(40px)", borderRight:`1px solid ${t.border}`, display:"flex", flexDirection:"column", padding:"28px 0", zIndex:100, transition:"width 0.3s cubic-bezier(0.4,0,0.2,1), background 0.3s", overflow:"hidden" }}>
+      <div style={{
+        position:"fixed", left:0, top:0, bottom:0,
+        width: isMobile ? 260 : SW,
+        background:t.sidebar, backdropFilter:"blur(40px)",
+        borderRight:`1px solid ${t.border}`,
+        display:"flex", flexDirection:"column", padding:"28px 0",
+        zIndex: isMobile ? 160 : 100,
+        transition: isMobile ? "transform 0.3s cubic-bezier(0.4,0,0.2,1)" : "width 0.3s cubic-bezier(0.4,0,0.2,1), background 0.3s",
+        transform: isMobile ? (mobileOpen ? "translateX(0)" : "translateX(-100%)") : "translateX(0)",
+        overflow:"hidden",
+      }}>
         
         {/* Logo + collapse toggle */}
-        <div style={{ padding:"0 12px 32px", display:"flex", alignItems:"center", justifyContent:collapsed?"center":"space-between", minWidth:0 }}>
+        <div style={{ padding:"0 12px 32px", display:"flex", alignItems:"center", justifyContent:collapsed&&!isMobile?"center":"space-between", minWidth:0 }}>
           <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0, overflow:"hidden" }}>
-            <div onClick={collapsed?()=>setCollapsed(false):undefined} style={{ width:34, height:34, borderRadius:10, background:t.heroGrad, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 12px rgba(0,113,227,0.35)", flexShrink:0, cursor:collapsed?"pointer":"default" }} title={collapsed?"Expand sidebar":""}>
+            <div onClick={collapsed&&!isMobile?()=>setCollapsed(false):undefined} style={{ width:34, height:34, borderRadius:10, background:t.heroGrad, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 12px rgba(0,113,227,0.35)", flexShrink:0, cursor:collapsed&&!isMobile?"pointer":"default" }} title={collapsed&&!isMobile?"Expand sidebar":""}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8h5M9 8h5M8 2v5M8 9v5" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
             </div>
-            {!collapsed && (
+            {(!collapsed || isMobile) && (
               <div style={{ minWidth:0 }}>
                 <div style={{ fontSize:15, fontWeight:700, letterSpacing:"-0.3px", color:t.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{orgName}</div>
                 {fyText && <div style={{ fontSize:10, color:t.textSub, fontWeight:500 }}>FY {fyText}</div>}
               </div>
             )}
           </div>
-          {!collapsed && (
+          {isMobile ? (
+            <button onClick={()=>setMobileOpen(false)} style={{ background:"none", border:"none", cursor:"pointer", color:t.textSub, fontSize:20, padding:4, borderRadius:6, lineHeight:1 }}>✕</button>
+          ) : !collapsed ? (
             <button onClick={()=>setCollapsed(true)} style={{ background:"none", border:"none", cursor:"pointer", color:t.textSub, fontSize:16, padding:4, borderRadius:6, flexShrink:0, lineHeight:1, display:"flex", alignItems:"center", justifyContent:"center" }} title="Collapse">←</button>
-          )}
+          ) : null}
         </div>
 
         <nav style={{ flex:1, padding:"0 8px", display:"flex", flexDirection:"column", gap:2 }}>
           {navItems.map((item,i)=>(
-            <button key={item.id} className="nav-btn" onClick={()=>setActiveTab(item.id)}
-              title={collapsed?item.label:""}
-              style={{ display:"flex", alignItems:"center", gap:10, width:"100%", padding:"10px 12px", borderRadius:10, border:"none", cursor:"pointer", fontSize:13, fontWeight:activeTab===item.id?600:500, background:activeTab===item.id?`${t.accent}12`:"transparent", color:activeTab===item.id?t.accent:t.textSub, textAlign:"left", transition:"all 0.15s", animation:`slideIn 0.3s ease ${i*0.04}s both`, justifyContent:collapsed?"center":"flex-start" }}>
+            <button key={item.id} className="nav-btn" onClick={()=>{ setActiveTab(item.id); if(isMobile) setMobileOpen(false); }}
+              title={collapsed&&!isMobile?item.label:""}
+              style={{ display:"flex", alignItems:"center", gap:10, width:"100%", padding:"10px 12px", borderRadius:10, border:"none", cursor:"pointer", fontSize:13, fontWeight:activeTab===item.id?600:500, background:activeTab===item.id?`${t.accent}12`:"transparent", color:activeTab===item.id?t.accent:t.textSub, textAlign:"left", transition:"all 0.15s", animation:`slideIn 0.3s ease ${i*0.04}s both`, justifyContent:collapsed&&!isMobile?"center":"flex-start" }}>
               <span style={{ fontSize:17, flexShrink:0 }}>{item.icon}</span>
-              {!collapsed && <span>{item.label}</span>}
-              {!collapsed && activeTab===item.id && <div style={{ marginLeft:"auto", width:6, height:6, borderRadius:"50%", background:t.accent }}/>}
+              {(!collapsed || isMobile) && <span>{item.label}</span>}
+              {(!collapsed || isMobile) && activeTab===item.id && <div style={{ marginLeft:"auto", width:6, height:6, borderRadius:"50%", background:t.accent }}/>}
             </button>
           ))}
         </nav>
 
         <div style={{ padding:"0 8px", display:"flex", flexDirection:"column", gap:8 }}>
-          <button onClick={toggleTheme} title={isDark?"Light mode":"Dark mode"} style={{ background:"none", border:"none", cursor:"pointer", color:t.textSub, fontSize:18, padding:"8px 12px", textAlign:collapsed?"center":"left", borderRadius:8, width:"100%" }}>
+          <button onClick={toggleTheme} title={isDark?"Light mode":"Dark mode"} style={{ background:"none", border:"none", cursor:"pointer", color:t.textSub, fontSize:18, padding:"8px 12px", textAlign:collapsed&&!isMobile?"center":"left", borderRadius:8, width:"100%" }}>
             {isDark?"☀️":"🌙"}
           </button>
-          <div style={{ display:"flex", alignItems:"center", gap:collapsed?0:10, padding:"10px 12px", borderRadius:12, background:t.surfaceAlt, border:`1px solid ${t.border}`, justifyContent:collapsed?"center":"flex-start" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:collapsed&&!isMobile?0:10, padding:"10px 12px", borderRadius:12, background:t.surfaceAlt, border:`1px solid ${t.border}`, justifyContent:collapsed&&!isMobile?"center":"flex-start" }}>
             <Avatar name={session?.user?.email||"A"} size={30}/>
-            {!collapsed && (
+            {(!collapsed || isMobile) && (
               <>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontSize:10, fontWeight:700, color:t.accent, textTransform:"uppercase", letterSpacing:"0.06em" }}>{isSuperAdmin?"Super Admin":"Admin"}</div>
@@ -104,12 +152,12 @@ export default function App({ session }) {
       </div>
 
       {/* ── Main content ── */}
-      <div style={{ marginLeft:SW, padding:"40px 48px", maxWidth:1100, transition:"margin-left 0.3s cubic-bezier(0.4,0,0.2,1)" }}>
+      <div className="main-content" style={{ marginLeft:SW, padding:"40px 48px", maxWidth:1100, transition:"margin-left 0.3s cubic-bezier(0.4,0,0.2,1)" }}>
         <div style={{ marginBottom:40, animation:"slideUp 0.3s ease" }}>
           <p style={{ fontSize:13, color:t.textSub, fontWeight:500, marginBottom:4, letterSpacing:"0.02em", textTransform:"uppercase" }}>
             {new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}
           </p>
-          <h1 style={{ fontSize:34, fontWeight:700, letterSpacing:"-0.8px", margin:0, color:t.text }}>
+          <h1 style={{ fontSize:isMobile?24:34, fontWeight:700, letterSpacing:"-0.8px", margin:0, color:t.text }}>
             {navItems.find(n=>n.id===activeTab)?.label}
           </h1>
         </div>
