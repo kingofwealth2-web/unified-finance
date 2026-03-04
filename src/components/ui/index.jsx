@@ -43,13 +43,107 @@ const ColorPicker = ({value,onChange}) => (
   </div>
 );
 
-const EmptyState = ({message,action,t}) => (
-  <div style={{ textAlign:"center", padding:"40px 32px" }}>
-    <div style={{ fontSize:36, marginBottom:10, opacity:0.25 }}>◎</div>
-    <p style={{ color:t.textSub, fontSize:14, margin:"0 0 14px" }}>{message}</p>
-    {action}
+// ── Empty state illustrations ─────────────────────────────────
+const illustrations = {
+  activity: (
+    <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+      <circle cx="36" cy="36" r="32" fill="rgba(0,113,227,0.08)"/>
+      <rect x="20" y="22" width="32" height="4" rx="2" fill="rgba(0,113,227,0.2)"/>
+      <rect x="20" y="30" width="24" height="4" rx="2" fill="rgba(0,113,227,0.15)"/>
+      <rect x="20" y="38" width="28" height="4" rx="2" fill="rgba(0,113,227,0.1)"/>
+      <circle cx="52" cy="50" r="10" fill="rgba(52,199,89,0.15)" stroke="rgba(52,199,89,0.4)" strokeWidth="1.5"/>
+      <path d="M48 50l3 3 5-5" stroke="#34C759" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  ),
+  people: (
+    <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+      <circle cx="36" cy="36" r="32" fill="rgba(191,90,242,0.08)"/>
+      <circle cx="36" cy="28" r="9" fill="rgba(191,90,242,0.2)" stroke="rgba(191,90,242,0.4)" strokeWidth="1.5"/>
+      <path d="M18 52c0-9.941 8.059-18 18-18s18 8.059 18 18" stroke="rgba(191,90,242,0.35)" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  ),
+  payments: (
+    <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+      <circle cx="36" cy="36" r="32" fill="rgba(255,159,10,0.08)"/>
+      <rect x="16" y="26" width="40" height="26" rx="6" fill="none" stroke="rgba(255,159,10,0.4)" strokeWidth="1.5"/>
+      <rect x="16" y="32" width="40" height="6" fill="rgba(255,159,10,0.15)"/>
+      <rect x="22" y="42" width="10" height="4" rx="2" fill="rgba(255,159,10,0.3)"/>
+    </svg>
+  ),
+  expenses: (
+    <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+      <circle cx="36" cy="36" r="32" fill="rgba(255,55,95,0.08)"/>
+      <path d="M36 18v36M24 30l12-12 12 12" stroke="rgba(255,55,95,0.4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M26 44h20" stroke="rgba(255,55,95,0.25)" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  ),
+  default: (
+    <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+      <circle cx="36" cy="36" r="32" fill="rgba(142,142,147,0.08)"/>
+      <circle cx="36" cy="36" r="14" fill="none" stroke="rgba(142,142,147,0.3)" strokeWidth="1.5"/>
+      <circle cx="36" cy="36" r="4" fill="rgba(142,142,147,0.3)"/>
+      <line x1="46" y1="46" x2="54" y2="54" stroke="rgba(142,142,147,0.3)" strokeWidth="2.5" strokeLinecap="round"/>
+    </svg>
+  ),
+};
+
+const EmptyState = ({message, action, t, variant="default"}) => (
+  <div style={{ textAlign:"center", padding:"48px 32px", display:"flex", flexDirection:"column", alignItems:"center", gap:12 }}>
+    <div style={{ animation:"slideUp 0.4s cubic-bezier(0.34,1.2,0.64,1)" }}>
+      {illustrations[variant] || illustrations.default}
+    </div>
+    <p style={{ color:t.textSub, fontSize:14, margin:0, maxWidth:220, lineHeight:1.5 }}>{message}</p>
+    {action && <div style={{ marginTop:4 }}>{action}</div>}
   </div>
 );
+
+// ── Toast notification system ─────────────────────────────────
+let _toastFn = null;
+const toast = (message, type="success") => { if (_toastFn) _toastFn(message, type); };
+
+const ToastContainer = () => {
+  const [toasts, setToasts] = useState([]);
+  useEffect(() => {
+    _toastFn = (message, type) => {
+      const id = Date.now();
+      setToasts(prev => [...prev, { id, message, type }]);
+      setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3200);
+    };
+    return () => { _toastFn = null; };
+  }, []);
+  const icons = { success:"✓", error:"✕", info:"ℹ" };
+  const colors = { success:"#34C759", error:"#FF375F", info:"#0071E3" };
+  return (
+    <div style={{ position:"fixed", bottom:24, right:24, zIndex:9999, display:"flex", flexDirection:"column", gap:10, pointerEvents:"none" }}>
+      {toasts.map(t => (
+        <div key={t.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"12px 18px", borderRadius:14, background:"rgba(28,28,36,0.95)", backdropFilter:"blur(20px)", boxShadow:"0 8px 32px rgba(0,0,0,0.3)", border:`1px solid ${colors[t.type]}33`, animation:"slideInToast 0.35s cubic-bezier(0.34,1.2,0.64,1)", minWidth:200, maxWidth:320, pointerEvents:"auto" }}>
+          <div style={{ width:22, height:22, borderRadius:"50%", background:`${colors[t.type]}22`, border:`1.5px solid ${colors[t.type]}66`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:colors[t.type], flexShrink:0 }}>{icons[t.type]}</div>
+          <span style={{ fontSize:13, fontWeight:500, color:"#F0F0F5", lineHeight:1.4 }}>{t.message}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ── Confirm dialog ─────────────────────────────────────────────
+const ConfirmDialog = ({ confirm, onConfirm, onCancel, t }) => {
+  if (!confirm) return null;
+  return (
+    <div style={{ position:"fixed", inset:0, zIndex:2000, background:"rgba(0,0,0,0.6)", backdropFilter:"blur(8px)", display:"flex", alignItems:"center", justifyContent:"center", padding:20, animation:"fadeIn 0.15s ease" }} onClick={onCancel}>
+      <div style={{ background:t.surface, borderRadius:20, padding:"28px 32px", width:"100%", maxWidth:380, boxShadow:t.shadow, border:`1px solid ${t.border}`, animation:"slideUp 0.2s cubic-bezier(0.34,1.56,0.64,1)" }} onClick={e=>e.stopPropagation()}>
+        <div style={{ textAlign:"center", marginBottom:20 }}>
+          <div style={{ width:48, height:48, borderRadius:"50%", background:"rgba(255,55,95,0.1)", border:"1.5px solid rgba(255,55,95,0.3)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 14px", fontSize:22 }}>⚠️</div>
+          <h3 style={{ fontSize:17, fontWeight:700, margin:"0 0 8px", color:t.text }}>{confirm.title||"Are you sure?"}</h3>
+          <p style={{ fontSize:14, color:t.textSub, margin:0, lineHeight:1.5 }}>{confirm.message||"This action cannot be undone."}</p>
+        </div>
+        <div style={{ display:"flex", gap:10 }}>
+          <button onClick={onCancel} style={{ flex:1, padding:"11px", borderRadius:10, border:`1px solid ${t.border}`, background:t.surfaceAlt, color:t.text, fontSize:14, fontWeight:600, cursor:"pointer" }}>Cancel</button>
+          <button onClick={onConfirm} style={{ flex:1, padding:"11px", borderRadius:10, border:"none", background:"rgba(255,55,95,0.12)", color:"#FF375F", fontSize:14, fontWeight:700, cursor:"pointer" }}>{confirm.action||"Delete"}</button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const Card = ({children,t,style={}}) => (
   <div style={{ background:t.surface, borderRadius:24, padding:"32px", border:`1px solid ${t.border}`, boxShadow:t.cardShadow, overflow:"hidden", ...style }}>{children}</div>
@@ -153,4 +247,4 @@ const SkeletonTab = ({ activeTab, t }) => {
 
 // ── Main App ──────────────────────────────────────────────────
 
-export { Avatar, Modal, Field, iStyle, Input, Textarea, Select, Btn, ColorPicker, EmptyState, Card, StatCard, ChartCard, SkeletonTab };
+export { Avatar, Modal, Field, iStyle, Input, Textarea, Select, Btn, ColorPicker, EmptyState, Card, StatCard, ChartCard, SkeletonTab, ToastContainer, ConfirmDialog, toast };

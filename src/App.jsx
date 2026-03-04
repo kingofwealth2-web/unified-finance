@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./lib/supabaseClient.js";
 import { useAppData } from "./hooks/useAppData.js";
-import { Avatar, SkeletonTab } from "./components/ui/index.jsx";
+import { Avatar, SkeletonTab, ToastContainer, ConfirmDialog, toast } from "./components/ui/index.jsx";
 import { OverviewTab }    from "./components/tabs/OverviewTab.jsx";
 import { PeopleTab }      from "./components/tabs/PeopleTab.jsx";
 import { PaymentTypesTab } from "./components/tabs/PaymentTypesTab.jsx";
@@ -33,6 +33,21 @@ export default function App({ session }) {
 
   const SW = isMobile ? 0 : collapsed ? 64 : 240;
 
+  // ── Confirm dialog state ──
+  const [confirm, setConfirm] = useState(null);
+  const withConfirm = (title, message, action, onConfirm) => {
+    setConfirm({ title, message, action, onConfirm });
+  };
+  const handleConfirm = () => { if (confirm?.onConfirm) confirm.onConfirm(); setConfirm(null); };
+  const handleCancelConfirm = () => setConfirm(null);
+
+  // ── Wrapped delete handlers with confirm + toast ──
+  const confirmDeleteContribution = (c) => withConfirm("Delete Contribution", `Remove this contribution of ${c.amount ? `GHS ${Number(c.amount).toLocaleString()}` : "this entry"}? This cannot be undone.`, "Delete", () => { app.handleDeleteContribution(c); toast("Contribution deleted"); });
+  const confirmDeleteExpenseEntry = (ex) => withConfirm("Delete Expense", `Remove "${ex.label || "this expense"}"? This cannot be undone.`, "Delete", () => { app.handleDeleteExpenseEntry(ex); toast("Expense deleted"); });
+  const confirmDeletePerson = (id, name) => withConfirm("Delete Person", `Remove ${name || "this person"} and all their contributions? This cannot be undone.`, "Delete", () => { app.handleDeletePerson(id); toast(`${name || "Person"} deleted`); });
+  const confirmDeletePaymentType = (id, name) => withConfirm("Delete Payment Type", `Remove "${name || "this payment type"}"? This cannot be undone.`, "Delete", () => { app.handleDeletePaymentType(id); toast("Payment type deleted"); });
+  const confirmDeleteExpenseCategory = (id, name) => withConfirm("Delete Category", `Remove "${name || "this category"}" and all its expenses? This cannot be undone.`, "Delete", () => { app.handleDeleteExpenseCategory(id); toast("Category deleted"); });
+
   const fyText = app.data.org?.financial_year_start
     ? `FY ${app.data.org.financial_year_start}`
     : null;
@@ -54,6 +69,7 @@ export default function App({ session }) {
         @keyframes slideIn { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:translateX(0)} }
         @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.7;transform:scale(0.95)} }
         @keyframes shimmer { 0%{background-position:200% center} 100%{background-position:-200% center} }
+        @keyframes slideInToast { from{opacity:0;transform:translateX(40px) scale(0.95)} to{opacity:1;transform:translateX(0) scale(1)} }
         .nav-btn:hover { background:rgba(0,113,227,0.07) !important; color:#0071E3 !important; }
         .row-hover:hover { background:rgba(0,113,227,0.04) !important; transition:background 0.15s; }
         .card-hover { transition:transform 0.2s ease, box-shadow 0.2s ease; }
@@ -179,9 +195,9 @@ export default function App({ session }) {
               isSuperAdmin={isSuperAdmin} openModal={app.openModal}
               setActiveTab={setActiveTab}
               setEditingContribution={app.setEditingContribution}
-              handleDeleteContribution={app.handleDeleteContribution}
+              handleDeleteContribution={confirmDeleteContribution}
               setEditingExpenseEntry={app.setEditingExpenseEntry}
-              handleDeleteExpenseEntry={app.handleDeleteExpenseEntry}
+              handleDeleteExpenseEntry={confirmDeleteExpenseEntry}
             />
           )}
 
@@ -190,8 +206,8 @@ export default function App({ session }) {
               data={app.data} t={t} fmt={app.fmt}
               isSuperAdmin={isSuperAdmin} openModal={app.openModal}
               setEditingPerson={app.setEditingPerson}
-              handleDeletePerson={app.handleDeletePerson}
-              handleDeleteContribution={app.handleDeleteContribution}
+              handleDeletePerson={(id) => confirmDeletePerson(id, app.data?.people?.find(p=>p.id===id)?.name)}
+              handleDeleteContribution={confirmDeleteContribution}
               setEditingContribution={app.setEditingContribution}
             />
           )}
@@ -203,7 +219,7 @@ export default function App({ session }) {
               expandedPaymentType={app.expandedPaymentType}
               setExpandedPaymentType={app.setExpandedPaymentType}
               setEditingPaymentType={app.setEditingPaymentType}
-              handleDeletePaymentType={app.handleDeletePaymentType}
+              handleDeletePaymentType={(id) => confirmDeletePaymentType(id, app.data?.paymentTypes?.find(p=>p.id===id)?.name)}
             />
           )}
 
@@ -212,7 +228,7 @@ export default function App({ session }) {
               data={app.data} t={t} fmt={app.fmt}
               isSuperAdmin={isSuperAdmin} openModal={app.openModal}
               setEditingExpenseCategory={app.setEditingExpenseCategory}
-              handleDeleteExpenseCategory={app.handleDeleteExpenseCategory}
+              handleDeleteExpenseCategory={(id) => confirmDeleteExpenseCategory(id, app.data?.expenseCategories?.find(c=>c.id===id)?.name)}
             />
           )}
 
@@ -228,8 +244,8 @@ export default function App({ session }) {
               showPrintView={app.showPrintView} setShowPrintView={app.setShowPrintView}
               exportFinancialReport={app.exportFinancialReport}
               orgName={orgName}
-              handleDeleteContribution={app.handleDeleteContribution}
-              handleDeleteExpenseEntry={app.handleDeleteExpenseEntry}
+              handleDeleteContribution={confirmDeleteContribution}
+              handleDeleteExpenseEntry={confirmDeleteExpenseEntry}
               setEditingContribution={app.setEditingContribution}
               setEditingExpenseEntry={app.setEditingExpenseEntry}
               ACTIVITY_PAGE_SIZE={ACTIVITY_PAGE_SIZE}
@@ -246,9 +262,9 @@ export default function App({ session }) {
               isSuperAdmin={isSuperAdmin} openModal={app.openModal}
               orgName={orgName} session={session}
               setEditingPaymentType={app.setEditingPaymentType}
-              handleDeletePaymentType={app.handleDeletePaymentType}
+              handleDeletePaymentType={(id) => confirmDeletePaymentType(id, app.data?.paymentTypes?.find(p=>p.id===id)?.name)}
               setEditingExpenseCategory={app.setEditingExpenseCategory}
-              handleDeleteExpenseCategory={app.handleDeleteExpenseCategory}
+              handleDeleteExpenseCategory={(id) => confirmDeleteExpenseCategory(id, app.data?.expenseCategories?.find(c=>c.id===id)?.name)}
             />
           )}
 
@@ -274,6 +290,9 @@ export default function App({ session }) {
         editingExpenseEntry={app.editingExpenseEntry} setEditingExpenseEntry={app.setEditingExpenseEntry} handleEditExpenseEntry={app.handleEditExpenseEntry}
         editingPerson={app.editingPerson} setEditingPerson={app.setEditingPerson} handleEditPerson={app.handleEditPerson}
       />
+
+      <ToastContainer/>
+      <ConfirmDialog confirm={confirm} onConfirm={handleConfirm} onCancel={handleCancelConfirm} t={t}/>
 
     </div>
   );
