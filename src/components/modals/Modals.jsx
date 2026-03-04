@@ -102,7 +102,7 @@ export function Modals({
                         />
                       </div>
                       {memberSearch && (
-                        <div style={{ border:`1px solid ${t.borderStrong}`, borderRadius:10, marginTop:4, overflow:"hidden", maxHeight:200, overflowY:"auto" }}>
+                        <div className="subtle-scroll" style={{ border:`1px solid ${t.borderStrong}`, borderRadius:10, marginTop:4, overflow:"hidden", maxHeight:200, overflowY:"auto" }}>
                           {filteredMembers.length === 0
                             ? <p style={{ fontSize:13, color:t.textSub, margin:0, padding:"10px 14px" }}>No members match "{memberSearch}"</p>
                             : filteredMembers.map(p => (
@@ -146,6 +146,10 @@ export function Modals({
                       .bulk-scroll::-webkit-scrollbar-track { background:transparent; }
                       .bulk-scroll::-webkit-scrollbar-thumb { background:rgba(128,128,128,0.2); border-radius:99px; }
                       .bulk-scroll::-webkit-scrollbar-thumb:hover { background:rgba(128,128,128,0.4); }
+                      .subtle-scroll::-webkit-scrollbar { width:3px; }
+                      .subtle-scroll::-webkit-scrollbar-track { background:transparent; }
+                      .subtle-scroll::-webkit-scrollbar-thumb { background:rgba(128,128,128,0.2); border-radius:99px; }
+                      .subtle-scroll::-webkit-scrollbar-thumb:hover { background:rgba(128,128,128,0.4); }
                     `}</style>
 
                     {/* Header */}

@@ -126,6 +126,10 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
         .sidebar-nav::-webkit-scrollbar-track { background:transparent; }
         .sidebar-nav::-webkit-scrollbar-thumb { background:rgba(128,128,128,0.2); border-radius:99px; }
         .sidebar-nav::-webkit-scrollbar-thumb:hover { background:rgba(128,128,128,0.4); }
+        .subtle-scroll::-webkit-scrollbar { width:3px; }
+        .subtle-scroll::-webkit-scrollbar-track { background:transparent; }
+        .subtle-scroll::-webkit-scrollbar-thumb { background:rgba(128,128,128,0.2); border-radius:99px; }
+        .subtle-scroll::-webkit-scrollbar-thumb:hover { background:rgba(128,128,128,0.4); }
         .sidebar-logo-area .switch-btn { opacity:0; transition:opacity 0.2s; }
         .sidebar-logo-area:hover .switch-btn { opacity:1; }
         @media (max-width:767px) {
