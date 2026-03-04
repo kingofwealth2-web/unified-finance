@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./lib/supabaseClient.js";
 import { useAppData } from "./hooks/useAppData.js";
-import { Avatar } from "./components/ui/index.jsx";
+import { Avatar, SkeletonTab } from "./components/ui/index.jsx";
 import { OverviewTab }    from "./components/tabs/OverviewTab.jsx";
 import { PeopleTab }      from "./components/tabs/PeopleTab.jsx";
 import { PaymentTypesTab } from "./components/tabs/PaymentTypesTab.jsx";
@@ -53,7 +53,7 @@ export default function App({ session }) {
         @keyframes slideUp { from{opacity:0;transform:translateY(24px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
         @keyframes slideIn { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:translateX(0)} }
         @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.7;transform:scale(0.95)} }
-        @keyframes slideInLeft { from{transform:translateX(-100%)} to{transform:translateX(0)} }
+        @keyframes shimmer { 0%{background-position:200% center} 100%{background-position:-200% center} }
         .nav-btn:hover { background:rgba(0,113,227,0.07) !important; color:#0071E3 !important; }
         .row-hover:hover { background:rgba(0,113,227,0.04) !important; transition:background 0.15s; }
         .card-hover { transition:transform 0.2s ease, box-shadow 0.2s ease; }
@@ -168,7 +168,9 @@ export default function App({ session }) {
           </h1>
         </div>
 
-        <div style={{ opacity:app.visible?1:0, transform:app.visible?"translateY(0)":"translateY(16px)", transition:"opacity 0.35s ease, transform 0.35s ease" }}>
+        {!app.visible
+          ? <SkeletonTab activeTab={activeTab} t={t}/>
+          : <div style={{ animation:"slideUp 0.25s ease" }}>
 
           {activeTab==="overview" && (
             <OverviewTab
@@ -250,7 +252,7 @@ export default function App({ session }) {
             />
           )}
 
-        </div>
+        </div>}
       </div>
 
       {/* ── Modals ── */}

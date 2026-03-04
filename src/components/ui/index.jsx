@@ -97,6 +97,60 @@ function buildTimeline(contributions) {
   return Object.values(months);
 }
 
+// ── Skeleton loading components ───────────────────────────────
+const SkeletonBox = ({ w="100%", h=16, r=8, style={} }) => (
+  <div style={{ width:w, height:h, borderRadius:r, background:"linear-gradient(90deg,rgba(128,128,128,0.1) 25%,rgba(128,128,128,0.2) 50%,rgba(128,128,128,0.1) 75%)", backgroundSize:"200% 100%", animation:"shimmer 1.4s ease-in-out infinite", ...style }}/>
+);
+
+const SkeletonCard = ({ t, children, style={} }) => (
+  <div style={{ background:t.surface, borderRadius:24, padding:"32px", border:`1px solid ${t.border}`, boxShadow:t.cardShadow, overflow:"hidden", ...style }}>{children}</div>
+);
+
+const SkeletonTab = ({ activeTab, t }) => {
+  const b = (w, h=14, r=8, s={}) => <SkeletonBox w={w} h={h} r={r} style={s}/>;
+  if (activeTab === "overview") return (
+    <div>
+      <div className="grid-3" style={{ marginBottom:24 }}>
+        <div className="col-span-2" style={{ background:"linear-gradient(135deg,rgba(0,113,227,0.25),rgba(52,170,220,0.2))", borderRadius:24, padding:"36px 40px" }}>
+          {b("40%",11,6,{marginBottom:12})}{b("55%",44,10,{marginBottom:20})}{b("70%",14,6)}
+        </div>
+        <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+          {[0,1].map(i=><SkeletonCard key={i} t={t}>{b("50%",11,6,{marginBottom:10})}{b("65%",32,8)}</SkeletonCard>)}
+        </div>
+      </div>
+      <div className="grid-2" style={{ marginBottom:20 }}>
+        {[0,1].map(i=><SkeletonCard key={i} t={t}>{b("40%",12,6,{marginBottom:16})}{b("100%",120,12)}</SkeletonCard>)}
+      </div>
+      <SkeletonCard t={t}>
+        {b("30%",14,6,{marginBottom:20})}
+        {[0,1,2,3,4].map(i=><div key={i} style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 0", borderBottom:`1px solid ${t.border}` }}>
+          <SkeletonBox w={36} h={36} r={18}/>{b("40%",12,6)}<SkeletonBox w={60} h={12} r={6} style={{ marginLeft:"auto" }}/>
+        </div>)}
+      </SkeletonCard>
+    </div>
+  );
+  if (activeTab === "people") return (
+    <div>
+      <SkeletonCard t={t} style={{ marginBottom:20 }}>{b("35%",14,6,{marginBottom:16})}{[0,1,2,3].map(i=><div key={i} style={{ height:8, background:"linear-gradient(90deg,rgba(128,128,128,0.1) 25%,rgba(128,128,128,0.2) 50%,rgba(128,128,128,0.1) 75%)", backgroundSize:"200% 100%", animation:"shimmer 1.4s ease-in-out infinite", borderRadius:99, marginBottom:12, width:`${70-i*10}%` }}/>)}</SkeletonCard>
+      <SkeletonCard t={t}>
+        {b("25%",14,6,{marginBottom:16})}{b("100%",42,10,{marginBottom:16})}
+        {[0,1,2,3].map(i=><div key={i} style={{ display:"flex", alignItems:"center", gap:14, padding:"14px 0", borderBottom:`1px solid ${t.border}` }}>
+          <SkeletonBox w={42} h={42} r={21}/><div style={{ flex:1 }}>{b("45%",13,6,{marginBottom:6})}{b("60%",11,6)}</div>{b(80,13,6)}
+        </div>)}
+      </SkeletonCard>
+    </div>
+  );
+  // Generic skeleton for other tabs
+  return (
+    <SkeletonCard t={t}>
+      {b("35%",16,8,{marginBottom:24})}
+      {[0,1,2,3,4,5].map(i=><div key={i} style={{ display:"flex", alignItems:"center", gap:12, padding:"14px 0", borderBottom:`1px solid ${t.border}` }}>
+        <SkeletonBox w={36} h={36} r={10}/><div style={{ flex:1 }}>{b("50%",13,6,{marginBottom:6})}{b("35%",11,6)}</div>{b(70,13,6)}
+      </div>)}
+    </SkeletonCard>
+  );
+};
+
 // ── Main App ──────────────────────────────────────────────────
 
-export { Avatar, Modal, Field, iStyle, Input, Textarea, Select, Btn, ColorPicker, EmptyState, Card, StatCard, ChartCard };
+export { Avatar, Modal, Field, iStyle, Input, Textarea, Select, Btn, ColorPicker, EmptyState, Card, StatCard, ChartCard, SkeletonTab };
