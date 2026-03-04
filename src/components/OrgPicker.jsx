@@ -45,8 +45,9 @@ function OrgCard({ org, role, onSelect, delay = 0, isSuperAdmin }) {
       ]);
       const totalIn  = (contribs || []).reduce((s, c) => s + Number(c.amount), 0);
       const totalOut = (expenses || []).reduce((s, e) => s + Number(e.amount), 0);
+      const openingBalance = Number(org.opening_balance || 0);
       const fmt = makeFmt(org.currency || "USD");
-      setStats({ balance: fmt(totalIn - totalOut), totalIn: fmt(totalIn), members: contribs?.length || 0 });
+      setStats({ balance: fmt(openingBalance + totalIn - totalOut), totalIn: fmt(totalIn), members: contribs?.length || 0 });
     }
     loadStats();
   }, [org.id]);

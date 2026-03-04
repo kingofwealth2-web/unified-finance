@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { COLORS } from "../../constants.js";
 
 // ── UI primitives ─────────────────────────────────────────────
@@ -9,7 +10,7 @@ const Avatar = ({ name, size = 36 }) => {
   return <div style={{ width:size, height:size, borderRadius:"50%", background:`linear-gradient(135deg,${color}22,${color}55)`, border:`1.5px solid ${color}44`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:size*0.33, fontWeight:600, color, flexShrink:0 }}>{initials}</div>;
 };
 
-const Modal = ({ title, onClose, children, t }) => (
+const Modal = ({ title, onClose, children, t }) => createPortal(
   <div style={{ position:"fixed", inset:0, zIndex:1000, background:"rgba(0,0,0,0.5)", backdropFilter:"blur(8px)", display:"flex", alignItems:"center", justifyContent:"center", padding:20, animation:"fadeIn 0.15s ease" }} onClick={onClose}>
     <div style={{ background:t.surface, borderRadius:24, padding:"36px 40px", width:"100%", maxWidth:460, boxShadow:t.shadow, maxHeight:"90vh", overflowY:"auto", border:`1px solid ${t.border}`, animation:"slideUp 0.2s cubic-bezier(0.34,1.56,0.64,1)" }} onClick={e=>e.stopPropagation()}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:28 }}>
@@ -18,7 +19,8 @@ const Modal = ({ title, onClose, children, t }) => (
       </div>
       {children}
     </div>
-  </div>
+  </div>,
+  document.body
 );
 
 const Field = ({ label, children, t }) => (
@@ -111,9 +113,9 @@ const ToastContainer = () => {
     };
     return () => { _toastFn = null; };
   }, []);
-  const icons  = { success:"✓", error:"✕", info:"ℹ", warning:"⚠" };
-  const colors = { success:"#34C759", error:"#FF375F", info:"#0071E3", warning:"#FF9F0A" };
-  return (
+  const icons = { success:"✓", error:"✕", info:"ℹ" };
+  const colors = { success:"#34C759", error:"#FF375F", info:"#0071E3" };
+  return createPortal(
     <div style={{ position:"fixed", bottom:24, right:24, zIndex:9999, display:"flex", flexDirection:"column", gap:10, pointerEvents:"none" }}>
       {toasts.map(t => (
         <div key={t.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"12px 18px", borderRadius:14, background:"rgba(28,28,36,0.95)", backdropFilter:"blur(20px)", boxShadow:"0 8px 32px rgba(0,0,0,0.3)", border:`1px solid ${colors[t.type]}33`, animation:"slideInToast 0.35s cubic-bezier(0.34,1.2,0.64,1)", minWidth:200, maxWidth:320, pointerEvents:"auto" }}>
@@ -121,14 +123,15 @@ const ToastContainer = () => {
           <span style={{ fontSize:13, fontWeight:500, color:"#F0F0F5", lineHeight:1.4 }}>{t.message}</span>
         </div>
       ))}
-    </div>
+    </div>,
+    document.body
   );
 };
 
 // ── Confirm dialog ─────────────────────────────────────────────
 const ConfirmDialog = ({ confirm, onConfirm, onCancel, t }) => {
   if (!confirm) return null;
-  return (
+  return createPortal(
     <div style={{ position:"fixed", inset:0, zIndex:2000, background:"rgba(0,0,0,0.6)", backdropFilter:"blur(8px)", display:"flex", alignItems:"center", justifyContent:"center", padding:20, animation:"fadeIn 0.15s ease" }} onClick={onCancel}>
       <div style={{ background:t.surface, borderRadius:20, padding:"28px 32px", width:"100%", maxWidth:380, boxShadow:t.shadow, border:`1px solid ${t.border}`, animation:"slideUp 0.2s cubic-bezier(0.34,1.56,0.64,1)" }} onClick={e=>e.stopPropagation()}>
         <div style={{ textAlign:"center", marginBottom:20 }}>
@@ -141,7 +144,8 @@ const ConfirmDialog = ({ confirm, onConfirm, onCancel, t }) => {
           <button onClick={onConfirm} style={{ flex:1, padding:"11px", borderRadius:10, border:"none", background:"rgba(255,55,95,0.12)", color:"#FF375F", fontSize:14, fontWeight:700, cursor:"pointer" }}>{confirm.action||"Delete"}</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

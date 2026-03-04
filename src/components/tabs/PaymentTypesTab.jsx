@@ -10,6 +10,7 @@ export function PaymentTypesTab({
     <div>
                   <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:20, gap:10 }}>
                     <Btn t={t} onClick={()=>openModal("addContribution")} variant="secondary">+ Record Payment</Btn>
+                    <Btn t={t} onClick={()=>openModal("bulkContribution")} variant="secondary">+ Bulk Add</Btn>
                     {isSuperAdmin&&<Btn t={t} onClick={()=>openModal("addPaymentType")}>+ New Payment Type</Btn>}
                   </div>
                   {data.paymentTypes.length>0&&(
