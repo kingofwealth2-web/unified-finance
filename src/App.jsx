@@ -107,7 +107,7 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
   );
 
   return (
-    <div style={{ minHeight:"100vh", background:t.bg, fontFamily:"-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif", color:t.text, opacity:exitingOrg?0:1, transform:exitingOrg?"scale(1.02)":"scale(1)", transition:"opacity 0.4s ease, transform 0.4s ease, background 0.3s, color 0.3s" }}>
+    <div style={{ minHeight:"100vh", background:t.bg, fontFamily:"-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif", color:t.text, opacity:exitingOrg?0:1, transition:"opacity 0.4s ease, background 0.3s, color 0.3s" }}>
       <style>{`
         @keyframes fadeIn       { from{opacity:0} to{opacity:1} }
         @keyframes slideUp      { from{opacity:0;transform:translateY(24px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
