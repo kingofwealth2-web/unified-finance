@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabaseClient.js";
 import { makeFmt, CURRENCIES, COLORS } from "../constants.js";
 
@@ -232,10 +233,10 @@ export function CreateOrgModal({ session, onCreated, onClose }) {
     } catch(err) { setError(err.message); } finally { setLoading(false); }
   }
 
-  return (
+  return createPortal(
     <div
       onClick={onClose}
-      style={{ position:"fixed", inset:0, zIndex:500, background:"rgba(0,0,0,0.7)", backdropFilter:"blur(12px)", display:"flex", alignItems:"center", justifyContent:"center", padding:20, animation:"fadeIn 0.2s ease" }}
+      style={{ position:"fixed", inset:0, zIndex:9998, background:"rgba(0,0,0,0.7)", backdropFilter:"blur(12px)", display:"flex", alignItems:"center", justifyContent:"center", padding:20, animation:"fadeIn 0.2s ease" }}
     >
       <div
         onClick={e => e.stopPropagation()}
@@ -285,7 +286,8 @@ export function CreateOrgModal({ session, onCreated, onClose }) {
           </button>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
