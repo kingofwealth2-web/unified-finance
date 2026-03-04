@@ -329,7 +329,7 @@ export function useAppData({ session }) {
   ];
 
   return {
-    data, loading, activeTab, setActiveTab, isDark, toggleTheme, t,
+    data, loading, activeTab, setActiveTab, isDark, toggleTheme, t, visible,
     modal, openModal, closeModal, formLoading, formError, setFormError,
     userRole, isSuperAdmin, orgName, navItems, monthlyData, timelineData,
     auditLog,
