@@ -1,5 +1,5 @@
 import { Card, ChartCard, Btn, EmptyState } from "../ui/index.jsx";
-import { DonutChart } from "../Charts.jsx";
+import { DonutChart } from "../ui/Charts.jsx";
 
 export function PaymentTypesTab({
   data, t, fmt, isSuperAdmin, openModal,
@@ -56,12 +56,12 @@ export function PaymentTypesTab({
                                     <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                                       {pt.members.map((m,ri)=>{
                                         const pct2=Math.round((m.total/pt.total)*100);
-                                        const medal=ri===0?"ð¥":ri===1?"ð¥":ri===2?"ð¥":null;
+                                        const medal = ri===0 ? { label:"1", bg:"linear-gradient(135deg,#FFD700,#FFA500)", color:"#7A4F00", shadow:"0 2px 8px rgba(255,180,0,0.5)" } : ri===1 ? { label:"2", bg:"linear-gradient(135deg,#C0C0C0,#A8A8A8)", color:"#3A3A3A", shadow:"0 2px 8px rgba(160,160,160,0.4)" } : ri===2 ? { label:"3", bg:"linear-gradient(135deg,#CD7F32,#A0522D)", color:"#fff", shadow:"0 2px 8px rgba(180,100,40,0.4)" } : null;
                                         return (
                                           <div key={m.id} style={{ animation:`slideIn 0.25s ease ${ri*0.04}s both` }}>
                                             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:5 }}>
                                               <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                                                {medal?<span style={{ fontSize:16, lineHeight:1 }}>{medal}</span>:<span style={{ width:20, height:20, borderRadius:"50%", background:`${pt.color}22`, border:`1.5px solid ${pt.color}55`, display:"inline-flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:700, color:pt.color }}>{ri+1}</span>}
+                                                {medal ? <span style={{ width:22, height:22, borderRadius:"50%", background:medal.bg, boxShadow:medal.shadow, display:"inline-flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:800, color:medal.color, flexShrink:0, letterSpacing:"-0.3px" }}>{medal.label}</span> : <span style={{ width:22, height:22, borderRadius:"50%", background:`${pt.color}22`, border:`1.5px solid ${pt.color}55`, display:"inline-flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:700, color:pt.color, flexShrink:0 }}>{ri+1}</span>}
                                                 <span style={{ fontSize:13, fontWeight:600, color:t.text }}>{m.name}</span>
                                               </div>
                                               <div style={{ display:"flex", alignItems:"center", gap:8 }}>
