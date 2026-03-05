@@ -305,6 +305,7 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
               handleDeletePerson={(id) => confirmDeletePerson(id, app.data?.people?.find(p=>p.id===id)?.name)}
               handleDeleteContribution={confirmDeleteContribution}
               setEditingContribution={app.setEditingContribution}
+              handleDeactivatePerson={app.handleDeactivatePerson}
             />
           )}
           {activeTab==="payments" && (
