@@ -17,17 +17,21 @@ import { Modals }          from "./components/modals/Modals.jsx";
 const ACTIVITY_PAGE_SIZE = 20;
 
 export default function App({ session }) {
-  // ── Org selection state ──────────────────────────────────────
+  // ── Org selection state — scoped to user ID to prevent cross-user leakage ──
+  const uid = session?.user?.id || "anon";
+  const ORG_KEY  = `uf_current_org_${uid}`;
+  const ROLE_KEY = `uf_org_role_${uid}`;
+
   const [currentOrg, setCurrentOrg] = useState(() => {
-    try { return JSON.parse(sessionStorage.getItem("uf_current_org")) || null; } catch { return null; }
+    try { return JSON.parse(sessionStorage.getItem(ORG_KEY)) || null; } catch { return null; }
   });
-  const [orgRole, setOrgRole] = useState(() => sessionStorage.getItem("uf_org_role") || null);
+  const [orgRole, setOrgRole] = useState(() => sessionStorage.getItem(ROLE_KEY) || null);
   const [exitingOrg, setExitingOrg] = useState(false);
   const [manualSwitch, setManualSwitch] = useState(false);
 
   function handleOrgSelect(org, role) {
-    sessionStorage.setItem("uf_current_org", JSON.stringify(org));
-    sessionStorage.setItem("uf_org_role", role);
+    sessionStorage.setItem(ORG_KEY, JSON.stringify(org));
+    sessionStorage.setItem(ROLE_KEY, role);
     setCurrentOrg(org);
     setOrgRole(role);
     setManualSwitch(false);
@@ -36,8 +40,8 @@ export default function App({ session }) {
   function handleSwitchOrg() {
     setExitingOrg(true);
     setTimeout(() => {
-      sessionStorage.removeItem("uf_current_org");
-      sessionStorage.removeItem("uf_org_role");
+      sessionStorage.removeItem(ORG_KEY);
+      sessionStorage.removeItem(ROLE_KEY);
       setCurrentOrg(null);
       setOrgRole(null);
       setExitingOrg(false);
