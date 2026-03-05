@@ -172,7 +172,7 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
         height:"100vh",
         background:t.sidebar, backdropFilter:"blur(40px)",
         borderRight:`1px solid ${t.border}`,
-        display:"flex", flexDirection:"column", padding:"28px 0",
+        display:"flex", flexDirection:"column", padding:`${isMobile ? 64 : 28}px 0 28px`,
         zIndex: isMobile ? 160 : 100,
         transition: isMobile
           ? "transform 0.3s cubic-bezier(0.4,0,0.2,1)"
