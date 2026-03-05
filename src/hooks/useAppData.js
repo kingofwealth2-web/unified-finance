@@ -158,14 +158,22 @@ export function useAppData({ session, currentOrg, orgRole }) {
   async function handleAddUser(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
     try {
-      // ⚠️  supabase.auth.signUp() can sign out the current user in some client versions.
-      // For production, replace this with a Supabase Edge Function using the Admin API
-      // (supabaseAdmin.auth.admin.createUser) so the current session is preserved.
+      // Save current super admin session before signUp() which may overwrite it
+      const { data: { session: adminSession } } = await supabase.auth.getSession();
+
       const { data: authData, error } = await supabase.auth.signUp({
         email: newUser.email, password: newUser.password,
         options: { data: { full_name: newUser.full_name, role: newUser.role } },
       });
       if (error) throw error;
+
+      // Immediately restore the super admin session
+      if (adminSession) {
+        await supabase.auth.setSession({
+          access_token: adminSession.access_token,
+          refresh_token: adminSession.refresh_token,
+        });
+      }
 
       const userId = authData.user?.id;
       if (userId) {
