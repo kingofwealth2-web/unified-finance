@@ -158,30 +158,21 @@ export function useAppData({ session, currentOrg, orgRole }) {
   async function handleAddUser(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
     try {
-      // Capture super admin org and session before signUp() which may overwrite them
-      const adminOrgId = orgId;
-      const { data: { session: adminSession } } = await supabase.auth.getSession();
-
+      // ⚠️  supabase.auth.signUp() can sign out the current user in some client versions.
+      // For production, replace this with a Supabase Edge Function using the Admin API
+      // (supabaseAdmin.auth.admin.createUser) so the current session is preserved.
       const { data: authData, error } = await supabase.auth.signUp({
         email: newUser.email, password: newUser.password,
         options: { data: { full_name: newUser.full_name, role: newUser.role } },
       });
       if (error) throw error;
 
-      // Immediately restore the super admin session
-      if (adminSession) {
-        await supabase.auth.setSession({
-          access_token: adminSession.access_token,
-          refresh_token: adminSession.refresh_token,
-        });
-      }
-
       const userId = authData.user?.id;
       if (userId) {
-        // Link new user to the super admin's org using captured adminOrgId
-        await supabase.from("org_members").insert({ org_id: adminOrgId, user_id: userId, role: newUser.role });
-        // Create profile scoped to the super admin's org
-        await supabase.from("profiles").insert({ id: userId, org_id: adminOrgId, full_name: newUser.full_name, role: newUser.role, status: "active" });
+        // Add to org_members for this org
+        await supabase.from("org_members").insert({ org_id: orgId, user_id: userId, role: newUser.role });
+        // Add profile scoped to this org
+        await supabase.from("profiles").insert({ id: userId, org_id: orgId, full_name: newUser.full_name, role: newUser.role, status: "active" });
       }
 
       await logAudit("create","user",userId,newUser.full_name,`Created user ${newUser.full_name} (${newUser.email})`,null,{email:newUser.email,role:newUser.role});
