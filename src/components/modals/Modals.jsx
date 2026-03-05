@@ -126,6 +126,7 @@ export function Modals({
                     <Field label="Payment Type" t={t}><Select t={t} value={newContribution.payment_type_id} onChange={e=>setNewContribution({...newContribution,payment_type_id:e.target.value})}><option value="">Select type...</option>{data.paymentTypes.map(pt=><option key={pt.id} value={pt.id}>{pt.name}</option>)}</Select></Field>
                     <Field label="Amount" t={t}><Input t={t} type="number" min="1" step="0.01" value={newContribution.amount} onChange={e=>setNewContribution({...newContribution,amount:e.target.value})} placeholder="0.00" required/></Field>
                     <Field label="Note (optional)" t={t}><Textarea t={t} value={newContribution.note} onChange={e=>setNewContribution({...newContribution,note:e.target.value})} placeholder="Any notes..."/></Field>
+                    <Field label="Date" t={t}><Input t={t} type="date" value={newContribution.date} onChange={e=>setNewContribution({...newContribution,date:e.target.value})} required/></Field>
                     {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
                     <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
                       <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
@@ -157,7 +158,7 @@ export function Modals({
                         </div>
                         <button onClick={closeModal} style={{ background:"none", border:"none", color:t.textSub, fontSize:22, cursor:"pointer", lineHeight:1, padding:4, marginTop:-4 }}>×</button>
                       </div>
-                      {/* Payment type + note */}
+                      {/* Payment type + note + date */}
                       <div style={{ display:"flex", gap:12 }}>
                         <div style={{ flex:1 }}>
                           <p style={{ fontSize:11, fontWeight:600, color:t.textSub, textTransform:"uppercase", letterSpacing:"0.06em", margin:"0 0 6px" }}>Payment Type</p>
@@ -169,6 +170,10 @@ export function Modals({
                         <div style={{ flex:1 }}>
                           <p style={{ fontSize:11, fontWeight:600, color:t.textSub, textTransform:"uppercase", letterSpacing:"0.06em", margin:"0 0 6px" }}>Note (optional)</p>
                           <Input t={t} value={bulkContributions.note} onChange={e=>setBulkContributions({...bulkContributions,note:e.target.value})} placeholder="e.g. March offering"/>
+                        </div>
+                        <div style={{ flex:1 }}>
+                          <p style={{ fontSize:11, fontWeight:600, color:t.textSub, textTransform:"uppercase", letterSpacing:"0.06em", margin:"0 0 6px" }}>Date</p>
+                          <Input t={t} type="date" value={bulkContributions.date} onChange={e=>setBulkContributions({...bulkContributions,date:e.target.value})}/>
                         </div>
                       </div>
                       {/* Search */}
@@ -332,6 +337,7 @@ export function Modals({
                     <Field label="Amount" t={t}><Input t={t} type="number" min="1" step="0.01" value={editingContribution.amount} onChange={e=>setEditingContribution({...editingContribution,amount:e.target.value})} required/></Field>
                     <Field label="Payment Type" t={t}><Select t={t} value={editingContribution.payment_type_id} onChange={e=>setEditingContribution({...editingContribution,payment_type_id:e.target.value})}><option value="">None</option>{data.paymentTypes.map(pt=><option key={pt.id} value={pt.id}>{pt.name}</option>)}</Select></Field>
                     <Field label="Note (optional)" t={t}><Textarea t={t} value={editingContribution.note} onChange={e=>setEditingContribution({...editingContribution,note:e.target.value})}/></Field>
+                    <Field label="Date" t={t}><Input t={t} type="date" value={editingContribution.date||""} onChange={e=>setEditingContribution({...editingContribution,date:e.target.value})}/></Field>
                     {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
                     <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
                       <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>

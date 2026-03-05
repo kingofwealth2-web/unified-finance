@@ -18,8 +18,8 @@ export function useAppData({ session, currentOrg, orgRole }) {
   const [modal, setModal] = useState(null);
   const [newUser, setNewUser] = useState({ full_name:"", email:"", password:"", role:"admin" });
   const [newPerson, setNewPerson] = useState({ full_name:"", status:"active", monthly_target:"" });
-  const [newContribution, setNewContribution] = useState({ member_id:"", amount:"", payment_type_id:"", note:"" });
-  const [bulkContributions, setBulkContributions] = useState({ payment_type_id:"", note:"", amounts:{} });
+  const [newContribution, setNewContribution] = useState({ member_id:"", amount:"", payment_type_id:"", note:"", date: new Date().toISOString().slice(0,10) });
+  const [bulkContributions, setBulkContributions] = useState({ payment_type_id:"", note:"", date: new Date().toISOString().slice(0,10), amounts:{} });
   const [newExpense, setNewExpense] = useState({ category_id:"", amount:"", label:"" });
   const [newPaymentType, setNewPaymentType] = useState({ name:"", description:"", goal:"", color:"#0071E3" });
   const [newExpenseCategory, setNewExpenseCategory] = useState({ name:"", description:"", budget:"", color:"#0071E3" });
@@ -196,11 +196,12 @@ export function useAppData({ session, currentOrg, orgRole }) {
         member_id: newContribution.member_id, amount: Number(newContribution.amount),
         payment_type_id: newContribution.payment_type_id || null,
         note: newContribution.note, type: "other", org_id: orgId,
+        created_at: newContribution.date ? new Date(newContribution.date).toISOString() : new Date().toISOString(),
       });
       if (error) throw error;
       const memberName = data.allPeople.find(p=>p.id===newContribution.member_id)?.full_name||"Member";
       await logAudit("create","contribution",null,memberName,`Recorded contribution of ${newContribution.amount} for ${memberName}`,null,{amount:newContribution.amount,note:newContribution.note});
-      closeModal(); setNewContribution({member_id:"",amount:"",payment_type_id:"",note:""}); fetchAllData();
+      closeModal(); setNewContribution({member_id:"",amount:"",payment_type_id:"",note:"",date:new Date().toISOString().slice(0,10)}); fetchAllData();
     } catch(err) { setFormError(err.message); } finally { setFormLoading(false); }
   }
 
@@ -214,12 +215,13 @@ export function useAppData({ session, currentOrg, orgRole }) {
         member_id, amount: Number(amt),
         payment_type_id: bulkContributions.payment_type_id || null,
         note: bulkContributions.note, type: "other", org_id: orgId,
+        created_at: bulkContributions.date ? new Date(bulkContributions.date).toISOString() : new Date().toISOString(),
       }));
       const { error } = await supabase.from("contributions").insert(rows);
       if (error) throw error;
       await logAudit("create","contribution",null,"Bulk","Bulk contribution entry",null,{ count: rows.length, total: rows.reduce((s,r)=>s+r.amount,0) });
       toast(`✓ ${rows.length} contribution${rows.length>1?"s":""} recorded`, "success");
-      closeModal(); setBulkContributions({ payment_type_id:"", note:"", amounts:{} }); fetchAllData();
+      closeModal(); setBulkContributions({ payment_type_id:"", note:"", date: new Date().toISOString().slice(0,10), amounts:{} }); fetchAllData();
     } catch(err) { setFormError(err.message); } finally { setFormLoading(false); }
   }
 
@@ -375,6 +377,7 @@ export function useAppData({ session, currentOrg, orgRole }) {
         amount: Number(editingContribution.amount),
         payment_type_id: editingContribution.payment_type_id || null,
         note: editingContribution.note,
+        ...(editingContribution.date ? { created_at: new Date(editingContribution.date).toISOString() } : {}),
       }).eq("id", editingContribution.id).eq("org_id", orgId);
       if (error) throw error;
       await logAudit("edit","contribution",editingContribution.id,editingContribution.member_name,`Edited contribution for ${editingContribution.member_name}`,{amount:old?.amount,note:old?.note},{amount:editingContribution.amount,note:editingContribution.note});
