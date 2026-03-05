@@ -304,7 +304,6 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
               setEditingPerson={app.setEditingPerson}
               handleDeletePerson={(id) => confirmDeletePerson(id, app.data?.people?.find(p=>p.id===id)?.name)}
               handleDeleteContribution={confirmDeleteContribution}
-              setEditingContribution={app.setEditingContribution}
               handleDeactivatePerson={app.handleDeactivatePerson}
             />
           )}
@@ -316,6 +315,8 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
               setExpandedPaymentType={app.setExpandedPaymentType}
               setEditingPaymentType={app.setEditingPaymentType}
               handleDeletePaymentType={(id) => confirmDeletePaymentType(id, app.data?.paymentTypes?.find(p=>p.id===id)?.name)}
+              setEditingContribution={app.setEditingContribution}
+              handleDeleteContribution={confirmDeleteContribution}
             />
           )}
           {activeTab==="income" && (
