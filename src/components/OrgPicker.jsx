@@ -252,7 +252,7 @@ export function CreateOrgModal({ session, onCreated, onClose }) {
             <label style={{ fontSize:12, fontWeight:600, color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.06em", display:"block", marginBottom:8 }}>Organisation Name</label>
             <input
               value={form.name} onChange={e => setForm({...form, name:e.target.value})}
-              required placeholder="e.g. Grace Chapel, City Youth"
+              required placeholder="e.g. Westside FC, City Council"
               style={{ width:"100%", padding:"12px 14px", borderRadius:10, border:"1px solid rgba(255,255,255,0.12)", background:"rgba(255,255,255,0.05)", color:"white", fontSize:14, outline:"none", boxSizing:"border-box", fontFamily:"inherit" }}
               onFocus={e => e.target.style.borderColor = form.color}
               onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.12)"}

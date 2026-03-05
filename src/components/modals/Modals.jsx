@@ -171,7 +171,7 @@ export function Modals({
                         </div>
                         <div style={{ flex:1 }}>
                           <p style={{ fontSize:11, fontWeight:600, color:t.textSub, textTransform:"uppercase", letterSpacing:"0.06em", margin:"0 0 6px" }}>Note (optional)</p>
-                          <Input t={t} value={bulkContributions.note} onChange={e=>setBulkContributions({...bulkContributions,note:e.target.value})} placeholder="e.g. March offering"/>
+                          <Input t={t} value={bulkContributions.note} onChange={e=>setBulkContributions({...bulkContributions,note:e.target.value})} placeholder="e.g. April dues, Q1 payment"/>
                         </div>
                         <div style={{ flex:1 }}>
                           <p style={{ fontSize:11, fontWeight:600, color:t.textSub, textTransform:"uppercase", letterSpacing:"0.06em", margin:"0 0 6px" }}>Date</p>
@@ -256,7 +256,7 @@ export function Modals({
               {modal==="addPaymentType"&&(
                 <Modal title="New Payment Type" onClose={closeModal} t={t}>
                   <form onSubmit={handleAddPaymentType}>
-                    <Field label="Name" t={t}><Input t={t} value={newPaymentType.name} onChange={e=>setNewPaymentType({...newPaymentType,name:e.target.value})} placeholder="e.g. Rhapsody, Healing School" required/></Field>
+                    <Field label="Name" t={t}><Input t={t} value={newPaymentType.name} onChange={e=>setNewPaymentType({...newPaymentType,name:e.target.value})} placeholder="e.g. Monthly Dues, Annual Levy" required/></Field>
                     <Field label="Description (optional)" t={t}><Textarea t={t} value={newPaymentType.description} onChange={e=>setNewPaymentType({...newPaymentType,description:e.target.value})} placeholder="Brief description..."/></Field>
                     <Field label="Goal Amount (optional)" t={t}><Input t={t} type="number" min="0" step="0.01" value={newPaymentType.goal} onChange={e=>setNewPaymentType({...newPaymentType,goal:e.target.value})} placeholder="e.g. 10000"/></Field>
                     <Field label="Color" t={t}><ColorPicker value={newPaymentType.color} onChange={color=>setNewPaymentType({...newPaymentType,color})}/></Field>
@@ -369,9 +369,9 @@ export function Modals({
               {modal==="addIncome"&&(
                 <Modal title="Record Income" onClose={closeModal} t={t}>
                   <form onSubmit={handleAddIncome}>
-                    <Field label="Description" t={t}><Input t={t} value={newIncome.label} onChange={e=>setNewIncome({...newIncome,label:e.target.value})} placeholder="e.g. Sunday offering, Grant from XYZ" required/></Field>
+                    <Field label="Description" t={t}><Input t={t} value={newIncome.label} onChange={e=>setNewIncome({...newIncome,label:e.target.value})} placeholder="e.g. Annual fundraiser proceeds" required/></Field>
                     <Field label="Amount" t={t}><Input t={t} type="number" min="0.01" step="0.01" value={newIncome.amount} onChange={e=>setNewIncome({...newIncome,amount:e.target.value})} placeholder="0.00" required/></Field>
-                    <Field label="Source (optional)" t={t}><Input t={t} value={newIncome.source} onChange={e=>setNewIncome({...newIncome,source:e.target.value})} placeholder="e.g. Donation, Grant, Offering, Interest"/></Field>
+                    <Field label="Source (optional)" t={t}><Input t={t} value={newIncome.source} onChange={e=>setNewIncome({...newIncome,source:e.target.value})} placeholder="e.g. Donation, Grant, Investment, Interest"/></Field>
                     <Field label="Note (optional)" t={t}><Textarea t={t} value={newIncome.note} onChange={e=>setNewIncome({...newIncome,note:e.target.value})} placeholder="Any additional details..."/></Field>
                     <Field label="Date" t={t}><Input t={t} type="date" value={newIncome.date} onChange={e=>setNewIncome({...newIncome,date:e.target.value})} required/></Field>
                     {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
@@ -388,7 +388,7 @@ export function Modals({
                   <form onSubmit={handleEditIncome}>
                     <Field label="Description" t={t}><Input t={t} value={editingIncomeSource.label} onChange={e=>setEditingIncomeSource({...editingIncomeSource,label:e.target.value})} required/></Field>
                     <Field label="Amount" t={t}><Input t={t} type="number" min="0.01" step="0.01" value={editingIncomeSource.amount} onChange={e=>setEditingIncomeSource({...editingIncomeSource,amount:e.target.value})} required/></Field>
-                    <Field label="Source (optional)" t={t}><Input t={t} value={editingIncomeSource.source} onChange={e=>setEditingIncomeSource({...editingIncomeSource,source:e.target.value})} placeholder="e.g. Donation, Grant, Offering"/></Field>
+                    <Field label="Source (optional)" t={t}><Input t={t} value={editingIncomeSource.source} onChange={e=>setEditingIncomeSource({...editingIncomeSource,source:e.target.value})} placeholder="e.g. Donation, Grant, Investment"/></Field>
                     <Field label="Note (optional)" t={t}><Textarea t={t} value={editingIncomeSource.note} onChange={e=>setEditingIncomeSource({...editingIncomeSource,note:e.target.value})}/></Field>
                     <Field label="Date" t={t}><Input t={t} type="date" value={editingIncomeSource.date||""} onChange={e=>setEditingIncomeSource({...editingIncomeSource,date:e.target.value})}/></Field>
                     {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}

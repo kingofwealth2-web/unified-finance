@@ -6,18 +6,13 @@ import { ContributorBars } from "../Charts.jsx";
 export function PeopleTab({
   data, t, fmt, isSuperAdmin, openModal,
   setEditingPerson, handleDeletePerson, handleDeleteContribution,
-  setEditingContribution,
+  setEditingContribution, handleDeactivatePerson,
 }) {
   const [peopleSearch, setPeopleSearch] = useState("");
   const [selectedMember, setSelectedMember] = useState(null);
   const [memberReport, setMemberReport] = useState(null); // full report view
   const [reportFilters, setReportFilters] = useState({ from:"", to:"", payment_type_id:"", search:"" });
   const iStyle = (t) => ({ width:"100%", padding:"11px 14px", borderRadius:10, border:`1px solid ${t.borderStrong}`, fontSize:14, color:t.text, background:t.inputBg, outline:"none", boxSizing:"border-box", fontFamily:"inherit", transition:"border-color 0.15s" });
-  const handleDeactivatePerson = async (id, currentStatus) => {
-    const { supabase } = await import("../../lib/supabaseClient.js");
-    const newStatus = currentStatus === "Active" ? "inactive" : "active";
-    await supabase.from("profiles").update({ status: newStatus }).eq("id", id);
-  };
   const exportPeopleReport = () => {
     const headers = ["Name","Status","Total Contributed","Last Activity"];
     const rows = data.people.map(p=>[p.name,p.status,p.contributions,p.lastActivity]);
@@ -139,7 +134,7 @@ export function PeopleTab({
                                             <p style={{ fontSize:13, fontWeight:700, color:"#34C759", margin:0 }}>{fmt(c.amount)}</p>
                                             <p style={{ fontSize:11, color:t.textSub, margin:0 }}>{new Date(c.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</p>
                                           </div>
-                                          <Btn size="sm" variant="secondary" t={t} onClick={()=>{setEditingContribution({id:c.id,member_name:p.name,amount:c.amount,payment_type_id:c.payment_type_id||"",note:c.note||""});openModal("editContribution");}}>Edit</Btn>
+                                          <Btn size="sm" variant="secondary" t={t} onClick={()=>{setEditingContribution({id:c.id,member_name:p.name,amount:c.amount,payment_type_id:c.payment_type_id||"",note:c.note||"",date:c.created_at?new Date(c.created_at).toISOString().slice(0,10):new Date().toISOString().slice(0,10)});openModal("editContribution");}}>Edit</Btn>
                                           <Btn size="sm" variant="danger" t={t} onClick={()=>handleDeleteContribution(c)}>Del</Btn>
                                         </div>
                                       </div>
