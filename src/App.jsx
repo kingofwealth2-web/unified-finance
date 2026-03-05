@@ -136,6 +136,7 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
         .sidebar-logo-area:hover .switch-btn { opacity:1; }
         @media (max-width:767px) {
           .main-content  { margin-left:0 !important; padding:72px 16px 24px !important; }
+          .desktop-topbar { left:0 !important; }
           .mobile-topbar { display:flex !important; }
           .grid-3 { grid-template-columns:1fr !important; gap:12px !important; }
           .grid-2 { grid-template-columns:1fr !important; gap:12px !important; }
@@ -145,6 +146,8 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
           .sidebar-logo-area .switch-btn { opacity:1 !important; }
         }
         @media (min-width:768px) { .mobile-topbar { display:none !important; } }
+        .desktop-topbar { display:flex; }
+        @media (max-width:767px) { .desktop-topbar { display:none !important; } }
         @media print {
           body * { visibility:hidden; }
           #print-area, #print-area * { visibility:visible; }
@@ -156,7 +159,10 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
       {/* ── Mobile top bar ── */}
       <div className="mobile-topbar" style={{ display:"none", position:"fixed", top:0, left:0, right:0, height:56, background:t.sidebar, backdropFilter:"blur(40px)", borderBottom:`1px solid ${t.border}`, alignItems:"center", justifyContent:"space-between", padding:"0 16px", zIndex:200 }}>
         <button onClick={()=>setMobileOpen(true)} style={{ background:"none", border:"none", cursor:"pointer", color:t.text, fontSize:22, padding:4, display:"flex", alignItems:"center", justifyContent:"center" }}>☰</button>
-        <div style={{ fontSize:15, fontWeight:700, color:t.text, letterSpacing:"-0.3px" }}>{orgName}</div>
+        <div style={{ textAlign:"center", minWidth:0, flex:1, padding:"0 8px" }}>
+          <div style={{ fontSize:14, fontWeight:700, color:t.text, letterSpacing:"-0.3px", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{orgName}</div>
+          {app.data.org?.address && <div style={{ fontSize:11, color:t.textSub, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{app.data.org.address.split(",")[0]}</div>}
+        </div>
         <button onClick={toggleTheme} style={{ background:"none", border:"none", cursor:"pointer", fontSize:18, padding:4 }}>{isDark?"☀️":"🌙"}</button>
       </div>
 
@@ -164,6 +170,15 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
       {isMobile && mobileOpen && (
         <div onClick={()=>setMobileOpen(false)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:150, animation:"fadeIn 0.2s ease" }}/>
       )}
+
+      {/* ── Desktop top bar ── */}
+      <div className="desktop-topbar" style={{ position:"fixed", top:0, left:SW, right:0, height:56, background:t.sidebar, backdropFilter:"blur(40px)", borderBottom:`1px solid ${t.border}`, alignItems:"center", justifyContent:"space-between", padding:"0 32px", zIndex:90, transition:"left 0.3s cubic-bezier(0.4,0,0.2,1)" }}>
+        <div style={{ minWidth:0 }}>
+          <div style={{ fontSize:15, fontWeight:700, color:t.text, letterSpacing:"-0.3px", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{orgName}</div>
+          {app.data.org?.address && <div style={{ fontSize:11, color:t.textSub, marginTop:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{app.data.org.address}</div>}
+        </div>
+        <button onClick={toggleTheme} style={{ background:"none", border:"none", cursor:"pointer", fontSize:18, padding:4, flexShrink:0 }}>{isDark?"☀️":"🌙"}</button>
+      </div>
 
       {/* ── Sidebar ── */}
       <div style={{
@@ -194,12 +209,7 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
               {orgName?.[0]?.toUpperCase() || "U"}
             </div>
 
-            {(!collapsed || isMobile) && (
-              <div style={{ minWidth:0 }}>
-                <div style={{ fontSize:15, fontWeight:700, letterSpacing:"-0.3px", color:t.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{orgName}</div>
-                {fyText && <div style={{ fontSize:10, color:t.textSub, fontWeight:500 }}>{fyText}</div>}
-              </div>
-            )}
+
           </div>
 
           <div style={{ display:"flex", alignItems:"center", gap:4, flexShrink:0 }}>
@@ -271,7 +281,7 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
       </div>
 
       {/* ── Main content ── */}
-      <div className="main-content" style={{ marginLeft:SW, padding:"40px 48px", maxWidth:1100, transition:"margin-left 0.3s cubic-bezier(0.4,0,0.2,1)" }}>
+      <div className="main-content" style={{ marginLeft:SW, padding:"80px 48px 40px", maxWidth:1100, transition:"margin-left 0.3s cubic-bezier(0.4,0,0.2,1)" }}>
         <div style={{ marginBottom:40, animation:"slideUp 0.3s ease" }}>
           <p style={{ fontSize:13, color:t.textSub, fontWeight:500, marginBottom:4, letterSpacing:"0.02em", textTransform:"uppercase" }}>
             {new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}
