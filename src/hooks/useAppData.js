@@ -11,7 +11,7 @@ export function useAppData({ session, currentOrg, orgRole }) {
 
   const orgId = currentOrg?.id;
 
-  const [data, setData] = useState({ totalBalance:0, totalContributions:0, totalExpenses:0, people:[], expenses:[], recentActivity:[], users:[], paymentTypes:[], allPeople:[], org:null, rawContributions:[], rawExpenses:[], categories:[] });
+  const [data, setData] = useState({ totalBalance:0, totalContributions:0, totalExpenses:0, totalIncome:0, people:[], expenses:[], recentActivity:[], users:[], paymentTypes:[], allPeople:[], org:null, rawContributions:[], rawExpenses:[], rawIncome:[], categories:[] });
   const [loading, setLoading] = useState(true);
   const [fmt, setFmt] = useState(() => makeFmt(currentOrg?.currency || "USD"));
 
@@ -20,7 +20,9 @@ export function useAppData({ session, currentOrg, orgRole }) {
   const [newPerson, setNewPerson] = useState({ full_name:"", status:"active", monthly_target:"" });
   const [newContribution, setNewContribution] = useState({ member_id:"", amount:"", payment_type_id:"", note:"", date: new Date().toISOString().slice(0,10) });
   const [bulkContributions, setBulkContributions] = useState({ payment_type_id:"", note:"", date: new Date().toISOString().slice(0,10), amounts:{} });
-  const [newExpense, setNewExpense] = useState({ category_id:"", amount:"", label:"" });
+  const [newExpense, setNewExpense] = useState({ category_id:"", amount:"", label:"", date: new Date().toISOString().slice(0,10) });
+  const [newIncome, setNewIncome] = useState({ label:"", amount:"", source:"", note:"", date: new Date().toISOString().slice(0,10) });
+  const [editingIncomeSource, setEditingIncomeSource] = useState(null);
   const [newPaymentType, setNewPaymentType] = useState({ name:"", description:"", goal:"", color:"#0071E3" });
   const [newExpenseCategory, setNewExpenseCategory] = useState({ name:"", description:"", budget:"", color:"#0071E3" });
   const [editingPaymentType, setEditingPaymentType] = useState(null);
@@ -67,6 +69,7 @@ export function useAppData({ session, currentOrg, orgRole }) {
         { data: orgRows },
         { data: auditRows },
         { data: orgMembers },
+        { data: incomeRows },
       ] = await Promise.all([
         supabase.from("profiles").select("*").eq("org_id", orgId).order("created_at",{ascending:false}),
         supabase.from("contributions").select("*, profiles(full_name), payment_types(name,color)").eq("org_id", orgId).order("created_at",{ascending:false}),
@@ -76,6 +79,7 @@ export function useAppData({ session, currentOrg, orgRole }) {
         supabase.from("org_settings").select("*").eq("id", orgId).limit(1),
         supabase.from("audit_log").select("*").eq("org_id", orgId).order("created_at",{ascending:false}).limit(200),
         supabase.from("org_members").select("user_id, role").eq("org_id", orgId),
+        supabase.from("income_sources").select("*").eq("org_id", orgId).order("created_at",{ascending:false}),
       ]);
 
       const org = orgRows?.[0] || currentOrg;
@@ -110,10 +114,12 @@ export function useAppData({ session, currentOrg, orgRole }) {
         return {id:pt.id,name:pt.name,description:pt.description,total,goal:Number(pt.goal||0),color:pt.color||"#0071E3",members};
       });
 
-      const cA=(contributions||[]).slice(0,6).map(c=>({id:`c-${c.id}`,name:c.profiles?.full_name||"Member",action:c.payment_types?.name||"Contribution",amount:`+${fmtLocal(c.amount)}`,time:new Date(c.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"}),positive:true}));
-      const eA=(expenses||[]).slice(0,6).map(e=>({id:`e-${e.id}`,name:e.expense_categories?.name||"Expense",action:e.label,amount:`-${fmtLocal(e.amount)}`,time:new Date(e.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"}),positive:false}));
+      const cA=(contributions||[]).slice(0,6).map(c=>({id:`c-${c.id}`,name:c.profiles?.full_name||"Member",action:c.payment_types?.name||"Contribution",amount:`+${fmtLocal(c.amount)}`,time:new Date(c.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"}),positive:true,rawAmount:Number(c.amount)}));
+      const eA=(expenses||[]).slice(0,6).map(e=>({id:`e-${e.id}`,name:e.expense_categories?.name||"Expense",action:e.label,amount:`-${fmtLocal(e.amount)}`,time:new Date(e.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"}),positive:false,rawAmount:Number(e.amount)}));
+      const iA=(incomeRows||[]).slice(0,6).map(i=>({id:`i-${i.id}`,name:i.source||"Other Income",action:i.label,amount:`+${fmtLocal(i.amount)}`,time:new Date(i.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"}),positive:true,rawAmount:Number(i.amount)}));
       const totalC=(contributions||[]).reduce((s,c)=>s+Number(c.amount),0);
       const totalE=(expenses||[]).reduce((s,e)=>s+Number(e.amount),0);
+      const totalI=(incomeRows||[]).reduce((s,i)=>s+Number(i.amount),0);
       const openingBalance=Number(org?.opening_balance||0);
 
       // Build users list: match org_members to the admin/super_admin profiles already fetched
@@ -129,7 +135,7 @@ export function useAppData({ session, currentOrg, orgRole }) {
           role: memberRoleMap[p.id] || p.role,
         }));
 
-      setData({ totalBalance:openingBalance+totalC-totalE, totalContributions:totalC, totalExpenses:totalE, people, expenses:expenseData, recentActivity:[...cA,...eA].slice(0,10), users, paymentTypes:paymentTypeData, allPeople:profiles||[], org, categories:categories||[], rawContributions:contributions||[], rawExpenses:expenses||[] });
+      setData({ totalBalance:openingBalance+totalC+totalI-totalE, totalContributions:totalC, totalExpenses:totalE, totalIncome:totalI, people, expenses:expenseData, recentActivity:[...cA,...eA,...iA].sort((a,b)=>new Date(b.time)-new Date(a.time)).slice(0,10), users, paymentTypes:paymentTypeData, allPeople:profiles||[], org, categories:categories||[], rawContributions:contributions||[], rawExpenses:expenses||[], rawIncome:incomeRows||[] });
       setAuditLog(auditRows || []);
     } catch(err) { console.error(err); } finally { setLoading(false); }
   }
@@ -231,11 +237,12 @@ export function useAppData({ session, currentOrg, orgRole }) {
       const { error } = await supabase.from("expenses").insert({
         category_id: newExpense.category_id, amount: Number(newExpense.amount),
         label: newExpense.label, recorded_by: session?.user?.id, org_id: orgId,
+        created_at: newExpense.date ? new Date(newExpense.date).toISOString() : new Date().toISOString(),
       });
       if (error) throw error;
       const catName = data.categories?.find(c=>c.id===newExpense.category_id)?.name||"Expense";
       await logAudit("create","expense",null,null,`Recorded expense: ${newExpense.label} (${newExpense.amount}) under ${catName}`,null,{amount:newExpense.amount,label:newExpense.label});
-      closeModal(); setNewExpense({category_id:"",amount:"",label:""});
+      closeModal(); setNewExpense({category_id:"",amount:"",label:"",date:new Date().toISOString().slice(0,10)});
 
       const cat = data.expenses?.find(c=>c.id===newExpense.category_id);
       if (cat && cat.budget > 0) {
@@ -399,6 +406,7 @@ export function useAppData({ session, currentOrg, orgRole }) {
         amount: Number(editingExpenseEntry.amount),
         label: editingExpenseEntry.label,
         category_id: editingExpenseEntry.category_id,
+        ...(editingExpenseEntry.date ? { created_at: new Date(editingExpenseEntry.date).toISOString() } : {}),
       }).eq("id", editingExpenseEntry.id).eq("org_id", orgId);
       if (error) throw error;
       await logAudit("edit","expense",editingExpenseEntry.id,null,`Edited expense: ${editingExpenseEntry.label}`,{amount:old?.amount,label:old?.label},{amount:editingExpenseEntry.amount,label:editingExpenseEntry.label});
@@ -409,6 +417,41 @@ export function useAppData({ session, currentOrg, orgRole }) {
   async function handleDeleteExpenseEntry(ex) {
     await supabase.from("expenses").delete().eq("id", ex.id).eq("org_id", orgId);
     await logAudit("delete","expense",ex.id,null,`Deleted expense: ${ex.label} (${ex.amount})`,{amount:ex.amount,label:ex.label},null);
+    fetchAllData();
+  }
+
+  async function handleAddIncome(e) {
+    e.preventDefault(); setFormLoading(true); setFormError(null);
+    try {
+      const { error } = await supabase.from("income_sources").insert({
+        label: newIncome.label, amount: Number(newIncome.amount),
+        source: newIncome.source || null, note: newIncome.note || null,
+        org_id: orgId,
+        created_at: newIncome.date ? new Date(newIncome.date).toISOString() : new Date().toISOString(),
+      });
+      if (error) throw error;
+      await logAudit("create","income_source",null,null,`Recorded income: ${newIncome.label} (${newIncome.amount})`,null,{amount:newIncome.amount,label:newIncome.label,source:newIncome.source});
+      closeModal(); setNewIncome({label:"",amount:"",source:"",note:"",date:new Date().toISOString().slice(0,10)}); fetchAllData();
+    } catch(err) { setFormError(err.message); } finally { setFormLoading(false); }
+  }
+
+  async function handleEditIncome(e) {
+    e.preventDefault(); setFormLoading(true); setFormError(null);
+    try {
+      const { error } = await supabase.from("income_sources").update({
+        label: editingIncomeSource.label, amount: Number(editingIncomeSource.amount),
+        source: editingIncomeSource.source || null, note: editingIncomeSource.note || null,
+        ...(editingIncomeSource.date ? { created_at: new Date(editingIncomeSource.date).toISOString() } : {}),
+      }).eq("id", editingIncomeSource.id).eq("org_id", orgId);
+      if (error) throw error;
+      await logAudit("edit","income_source",editingIncomeSource.id,null,`Edited income: ${editingIncomeSource.label}`,null,{amount:editingIncomeSource.amount,label:editingIncomeSource.label});
+      closeModal(); fetchAllData();
+    } catch(err) { setFormError(err.message); } finally { setFormLoading(false); }
+  }
+
+  async function handleDeleteIncomeSource(id) {
+    await supabase.from("income_sources").delete().eq("id", id).eq("org_id", orgId);
+    await logAudit("delete","income_source",id,null,"Deleted income source",null,null);
     fetchAllData();
   }
 
@@ -432,8 +475,9 @@ export function useAppData({ session, currentOrg, orgRole }) {
   function exportFinancialReport() {
     const headers = ["Date","Type","Category / Person","Description","Amount"];
     const contribRows = (data.rawContributions||[]).filter(c=>inExportRange(c.created_at)).map(c=>[new Date(c.created_at).toLocaleDateString(),"Income",c.profiles?.full_name||"Member",c.payment_types?.name||"Contribution",c.amount]);
+    const incomeExportRows = (data.rawIncome||[]).filter(i=>inExportRange(i.created_at)).map(i=>[new Date(i.created_at).toLocaleDateString(),"Other Income",i.source||"Other",i.label,i.amount]);
     const expenseRows = (data.rawExpenses||[]).filter(e=>inExportRange(e.created_at)).map(e=>[new Date(e.created_at).toLocaleDateString(),"Expense",e.expense_categories?.name||"Expense",e.label,`-${e.amount}`]);
-    const rows = [...contribRows,...expenseRows].sort((a,b)=>new Date(b[0])-new Date(a[0]));
+    const rows = [...contribRows,...incomeExportRows,...expenseRows].sort((a,b)=>new Date(b[0])-new Date(a[0]));
     const suffix = exportDateFrom||exportDateTo ? `_${exportDateFrom||"start"}_to_${exportDateTo||"today"}` : "";
     exportToCSV(`financial-report${suffix}-${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
   }
@@ -456,6 +500,7 @@ export function useAppData({ session, currentOrg, orgRole }) {
     {id:"overview", label:"Overview", icon:"⊞"},
     {id:"people",   label:"People",   icon:"◎"},
     {id:"payments", label:"Payments", icon:"◈"},
+    {id:"income",   label:"Income",   icon:"◆"},
     {id:"expenses", label:"Expenses", icon:"◉"},
     {id:"activity", label:"Activity", icon:"◷"},
     ...(isSuperAdmin ? [{id:"settings",label:"Settings",icon:"⊙"},{id:"audit",label:"Audit Log",icon:"◑"}] : []),
@@ -467,12 +512,13 @@ export function useAppData({ session, currentOrg, orgRole }) {
     isSuperAdmin, orgName, navItems, monthlyData, timelineData, auditLog,
     fmt: makeFmt(data.org?.currency || currentOrg?.currency || "USD"),
     newUser, setNewUser, newPerson, setNewPerson,
-    newContribution, setNewContribution, newExpense, setNewExpense,
+    newContribution, setNewContribution, newExpense, setNewExpense, newIncome, setNewIncome,
     bulkContributions, setBulkContributions,
     newPaymentType, setNewPaymentType, newExpenseCategory, setNewExpenseCategory,
     orgForm, setOrgForm,
     editingContribution, setEditingContribution,
     editingExpenseEntry, setEditingExpenseEntry,
+    editingIncomeSource, setEditingIncomeSource,
     editingPaymentType, setEditingPaymentType,
     editingExpenseCategory, setEditingExpenseCategory,
     editingPerson, setEditingPerson,
@@ -488,6 +534,7 @@ export function useAppData({ session, currentOrg, orgRole }) {
     handleSaveOrg, handleEditPerson, handleDeletePerson, handleDeactivatePerson,
     handleEditContribution, handleDeleteContribution,
     handleEditExpenseEntry, handleDeleteExpenseEntry,
+    handleAddIncome, handleEditIncome, handleDeleteIncomeSource,
     exportFinancialReport,
     currentOrg, orgRole,
   };

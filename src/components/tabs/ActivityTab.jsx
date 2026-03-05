@@ -25,6 +25,13 @@ export function ActivityTab({
                     time:new Date(c.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}),
                     date:c.created_at, positive:true,
                   })),
+                  ...(data.rawIncome||[]).map(i=>({
+                    id:`i-${i.id}`, name:i.source||"Other Income",
+                    action:i.label,
+                    amount:`+${fmtLocal(i.amount)}`, rawAmount:Number(i.amount),
+                    time:new Date(i.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}),
+                    date:i.created_at, positive:true,
+                  })),
                   ...(data.rawExpenses||[]).map(e=>({
                     id:`e-${e.id}`, name:e.expense_categories?.name||"Expense",
                     action:e.label, amount:`-${fmtLocal(e.amount)}`, rawAmount:Number(e.amount),

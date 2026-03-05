@@ -7,6 +7,7 @@ import { OverviewTab }     from "./components/tabs/OverviewTab.jsx";
 import { PeopleTab }       from "./components/tabs/PeopleTab.jsx";
 import { PaymentTypesTab } from "./components/tabs/PaymentTypesTab.jsx";
 import { ExpensesTab }     from "./components/tabs/ExpensesTab.jsx";
+import { IncomeTab }       from "./components/tabs/IncomeTab.jsx";
 import { ActivityTab }     from "./components/tabs/ActivityTab.jsx";
 import { AuditTab }        from "./components/tabs/AuditTab.jsx";
 import { SettingsTab }     from "./components/tabs/SettingsTab.jsx";
@@ -315,6 +316,14 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
               handleDeletePaymentType={(id) => confirmDeletePaymentType(id, app.data?.paymentTypes?.find(p=>p.id===id)?.name)}
             />
           )}
+          {activeTab==="income" && (
+            <IncomeTab
+              data={app.data} t={t} fmt={app.fmt}
+              isSuperAdmin={isSuperAdmin} openModal={app.openModal}
+              setEditingIncomeSource={app.setEditingIncomeSource}
+              handleDeleteIncomeSource={app.handleDeleteIncomeSource}
+            />
+          )}
           {activeTab==="expenses" && (
             <ExpensesTab
               data={app.data} t={t} fmt={app.fmt}
@@ -376,6 +385,8 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
         editingContribution={app.editingContribution} setEditingContribution={app.setEditingContribution} handleEditContribution={app.handleEditContribution}
         editingExpenseEntry={app.editingExpenseEntry} setEditingExpenseEntry={app.setEditingExpenseEntry} handleEditExpenseEntry={app.handleEditExpenseEntry}
         editingPerson={app.editingPerson} setEditingPerson={app.setEditingPerson} handleEditPerson={app.handleEditPerson}
+        newIncome={app.newIncome} setNewIncome={app.setNewIncome} handleAddIncome={app.handleAddIncome}
+        editingIncomeSource={app.editingIncomeSource} setEditingIncomeSource={app.setEditingIncomeSource} handleEditIncome={app.handleEditIncome}
       />
       <ToastContainer/>
       <ConfirmDialog confirm={confirm} onConfirm={handleConfirm} onCancel={handleCancelConfirm} t={t}/>

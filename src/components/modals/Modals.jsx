@@ -18,6 +18,8 @@ export function Modals({
   editingContribution, setEditingContribution, handleEditContribution,
   editingExpenseEntry, setEditingExpenseEntry, handleEditExpenseEntry,
   editingPerson, setEditingPerson, handleEditPerson,
+  newIncome, setNewIncome, handleAddIncome,
+  editingIncomeSource, setEditingIncomeSource, handleEditIncome,
   fmt,
 }) {
   const [memberSearch, setMemberSearch] = useState("");
@@ -242,6 +244,7 @@ export function Modals({
                     <Field label="Category" t={t}><Select t={t} value={newExpense.category_id} onChange={e=>setNewExpense({...newExpense,category_id:e.target.value})} required><option value="">Select category...</option>{data.expenses.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</Select></Field>
                     <Field label="Amount" t={t}><Input t={t} type="number" min="1" step="0.01" value={newExpense.amount} onChange={e=>setNewExpense({...newExpense,amount:e.target.value})} placeholder="0.00" required/></Field>
                     <Field label="Description" t={t}><Input t={t} value={newExpense.label} onChange={e=>setNewExpense({...newExpense,label:e.target.value})} placeholder="What was this for?" required/></Field>
+                    <Field label="Date" t={t}><Input t={t} type="date" value={newExpense.date} onChange={e=>setNewExpense({...newExpense,date:e.target.value})} required/></Field>
                     {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
                     <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
                       <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
@@ -353,6 +356,41 @@ export function Modals({
                     <Field label="Description" t={t}><Input t={t} value={editingExpenseEntry.label} onChange={e=>setEditingExpenseEntry({...editingExpenseEntry,label:e.target.value})} required/></Field>
                     <Field label="Amount" t={t}><Input t={t} type="number" min="1" step="0.01" value={editingExpenseEntry.amount} onChange={e=>setEditingExpenseEntry({...editingExpenseEntry,amount:e.target.value})} required/></Field>
                     <Field label="Category" t={t}><Select t={t} value={editingExpenseEntry.category_id} onChange={e=>setEditingExpenseEntry({...editingExpenseEntry,category_id:e.target.value})} required><option value="">Select category...</option>{data.expenses.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</Select></Field>
+                    <Field label="Date" t={t}><Input t={t} type="date" value={editingExpenseEntry.date||""} onChange={e=>setEditingExpenseEntry({...editingExpenseEntry,date:e.target.value})}/></Field>
+                    {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
+                    <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
+                      <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
+                      <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Saving...":"Save Changes"}</Btn>
+                    </div>
+                  </form>
+                </Modal>
+              )}
+
+              {modal==="addIncome"&&(
+                <Modal title="Record Income" onClose={closeModal} t={t}>
+                  <form onSubmit={handleAddIncome}>
+                    <Field label="Description" t={t}><Input t={t} value={newIncome.label} onChange={e=>setNewIncome({...newIncome,label:e.target.value})} placeholder="e.g. Sunday offering, Grant from XYZ" required/></Field>
+                    <Field label="Amount" t={t}><Input t={t} type="number" min="0.01" step="0.01" value={newIncome.amount} onChange={e=>setNewIncome({...newIncome,amount:e.target.value})} placeholder="0.00" required/></Field>
+                    <Field label="Source (optional)" t={t}><Input t={t} value={newIncome.source} onChange={e=>setNewIncome({...newIncome,source:e.target.value})} placeholder="e.g. Donation, Grant, Offering, Interest"/></Field>
+                    <Field label="Note (optional)" t={t}><Textarea t={t} value={newIncome.note} onChange={e=>setNewIncome({...newIncome,note:e.target.value})} placeholder="Any additional details..."/></Field>
+                    <Field label="Date" t={t}><Input t={t} type="date" value={newIncome.date} onChange={e=>setNewIncome({...newIncome,date:e.target.value})} required/></Field>
+                    {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
+                    <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
+                      <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
+                      <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Saving...":"Record"}</Btn>
+                    </div>
+                  </form>
+                </Modal>
+              )}
+
+              {modal==="editIncome"&&editingIncomeSource&&(
+                <Modal title="Edit Income" onClose={closeModal} t={t}>
+                  <form onSubmit={handleEditIncome}>
+                    <Field label="Description" t={t}><Input t={t} value={editingIncomeSource.label} onChange={e=>setEditingIncomeSource({...editingIncomeSource,label:e.target.value})} required/></Field>
+                    <Field label="Amount" t={t}><Input t={t} type="number" min="0.01" step="0.01" value={editingIncomeSource.amount} onChange={e=>setEditingIncomeSource({...editingIncomeSource,amount:e.target.value})} required/></Field>
+                    <Field label="Source (optional)" t={t}><Input t={t} value={editingIncomeSource.source} onChange={e=>setEditingIncomeSource({...editingIncomeSource,source:e.target.value})} placeholder="e.g. Donation, Grant, Offering"/></Field>
+                    <Field label="Note (optional)" t={t}><Textarea t={t} value={editingIncomeSource.note} onChange={e=>setEditingIncomeSource({...editingIncomeSource,note:e.target.value})}/></Field>
+                    <Field label="Date" t={t}><Input t={t} type="date" value={editingIncomeSource.date||""} onChange={e=>setEditingIncomeSource({...editingIncomeSource,date:e.target.value})}/></Field>
                     {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
                     <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
                       <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
