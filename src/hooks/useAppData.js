@@ -497,12 +497,13 @@ export function useAppData({ session, currentOrg, orgRole }) {
   const timelineData       = buildTimeline(data.rawContributions);
 
   const navItems = [
-    {id:"overview", label:"Overview", icon:"⊞"},
-    {id:"people",   label:"People",   icon:"◎"},
-    {id:"payments", label:"Payments", icon:"◈"},
-    {id:"income",   label:"Income",   icon:"◆"},
-    {id:"expenses", label:"Expenses", icon:"◉"},
-    {id:"activity", label:"Activity", icon:"◷"},
+    {id:"overview",  label:"Overview",  icon:"⊞"},
+    {id:"people",    label:"People",    icon:"◎"},
+    {id:"payments",  label:"Payments",  icon:"◈"},
+    {id:"income",    label:"Income",    icon:"◆"},
+    {id:"expenses",  label:"Expenses",  icon:"◉"},
+    {id:"activity",  label:"Activity",  icon:"◷"},
+    {id:"summary",   label:"Summary",   icon:"▤"},
     ...(isSuperAdmin ? [{id:"settings",label:"Settings",icon:"⊙"},{id:"audit",label:"Audit Log",icon:"◑"}] : []),
   ];
 

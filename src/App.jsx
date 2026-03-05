@@ -8,6 +8,7 @@ import { PeopleTab }       from "./components/tabs/PeopleTab.jsx";
 import { PaymentTypesTab } from "./components/tabs/PaymentTypesTab.jsx";
 import { ExpensesTab }     from "./components/tabs/ExpensesTab.jsx";
 import { IncomeTab }       from "./components/tabs/IncomeTab.jsx";
+import { FinancialSummaryTab } from "./components/tabs/FinancialSummaryTab.jsx";
 import { ActivityTab }     from "./components/tabs/ActivityTab.jsx";
 import { AuditTab }        from "./components/tabs/AuditTab.jsx";
 import { SettingsTab }     from "./components/tabs/SettingsTab.jsx";
@@ -349,6 +350,14 @@ function Dashboard({ session, currentOrg, orgRole, onSwitchOrg, exitingOrg }) {
               setEditingContribution={app.setEditingContribution}
               setEditingExpenseEntry={app.setEditingExpenseEntry}
               ACTIVITY_PAGE_SIZE={ACTIVITY_PAGE_SIZE}
+            />
+          )}
+          {activeTab==="summary" && (
+            <FinancialSummaryTab
+              data={app.data} t={t} fmt={app.fmt}
+              orgName={orgName}
+              exportDateFrom={app.exportDateFrom} setExportDateFrom={app.setExportDateFrom}
+              exportDateTo={app.exportDateTo}     setExportDateTo={app.setExportDateTo}
             />
           )}
           {activeTab==="audit" && isSuperAdmin && <AuditTab auditLog={app.auditLog} t={t}/>}
