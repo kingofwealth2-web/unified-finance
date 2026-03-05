@@ -33,9 +33,10 @@ function MeshBackground({ color = "#0071E3" }) {
 }
 
 // ── Single org card ────────────────────────────────────────────
-function OrgCard({ org, role, onSelect, delay = 0, isSuperAdmin }) {
+function OrgCard({ org, role, onSelect, onDelete, delay = 0, isSuperAdmin }) {
   const [hovered, setHovered] = useState(false);
   const [stats, setStats] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     async function loadStats() {
@@ -136,14 +137,37 @@ function OrgCard({ org, role, onSelect, delay = 0, isSuperAdmin }) {
         ))}
       </div>
 
-      {/* Hover arrow */}
-      <div style={{
-        position:"absolute", right:24, bottom:24,
-        opacity: hovered ? 1 : 0,
-        transform: hovered ? "translateX(0)" : "translateX(-8px)",
-        transition:"all 0.25s ease",
-        color: color, fontSize:18, fontWeight:700,
-      }}>→</div>
+      {/* Bottom row: delete + hover arrow */}
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:16 }} onClick={e => e.stopPropagation()}>
+        {isSuperAdmin ? (
+          confirmDelete ? (
+            <div style={{ display:"flex", alignItems:"center", gap:8, animation:"fadeIn 0.15s ease" }}>
+              <span style={{ fontSize:12, color:"rgba(255,255,255,0.5)" }}>Delete org?</span>
+              <button
+                onClick={e => { e.stopPropagation(); onDelete(org); }}
+                style={{ padding:"4px 12px", borderRadius:8, border:"none", cursor:"pointer", fontSize:12, fontWeight:700, background:"#FF375F", color:"white", fontFamily:"inherit" }}
+              >Yes, delete</button>
+              <button
+                onClick={e => { e.stopPropagation(); setConfirmDelete(false); }}
+                style={{ padding:"4px 10px", borderRadius:8, border:"1px solid rgba(255,255,255,0.15)", cursor:"pointer", fontSize:12, fontWeight:600, background:"transparent", color:"rgba(255,255,255,0.5)", fontFamily:"inherit" }}
+              >Cancel</button>
+            </div>
+          ) : (
+            <button
+              onClick={e => { e.stopPropagation(); setConfirmDelete(true); }}
+              style={{ padding:"4px 12px", borderRadius:8, border:"1px solid rgba(255,55,95,0.3)", cursor:"pointer", fontSize:12, fontWeight:600, background:"rgba(255,55,95,0.1)", color:"#FF375F", fontFamily:"inherit", transition:"all 0.15s" }}
+              onMouseEnter={e => e.target.style.background="rgba(255,55,95,0.2)"}
+              onMouseLeave={e => e.target.style.background="rgba(255,55,95,0.1)"}
+            >Delete</button>
+          )
+        ) : <div/>}
+        <div style={{
+          opacity: hovered ? 1 : 0,
+          transform: hovered ? "translateX(0)" : "translateX(-8px)",
+          transition:"all 0.25s ease",
+          color: color, fontSize:18, fontWeight:700,
+        }}>→</div>
+      </div>
     </div>
   );
 }
@@ -348,6 +372,20 @@ export function OrgPicker({ session, onSelect, allowAutoEnter = true }) {
     handleSelect(newOrg, "super_admin");
   }
 
+  async function handleDeleteOrg(org) {
+    // Delete all related data then the org itself
+    await Promise.all([
+      supabase.from("contributions").delete().eq("org_id", org.id),
+      supabase.from("expenses").delete().eq("org_id", org.id),
+      supabase.from("income_sources").delete().eq("org_id", org.id),
+      supabase.from("profiles").delete().eq("org_id", org.id),
+      supabase.from("org_members").delete().eq("org_id", org.id),
+    ]);
+    await supabase.from("org_settings").delete().eq("id", org.id);
+    setOrgs(prev => prev.filter(o => o.id !== org.id));
+    setUserMemberships(prev => prev.filter(m => m.org_id !== org.id));
+  }
+
   const dominantColor = orgs[0]?.color || "#0071E3";
 
   if (loading) return (
@@ -446,6 +484,7 @@ export function OrgPicker({ session, onSelect, allowAutoEnter = true }) {
                   role={role}
                   isSuperAdmin={role === "super_admin"}
                   onSelect={o => handleSelect(o, role)}
+                  onDelete={handleDeleteOrg}
                   delay={i * 0.07}
                 />
               );
