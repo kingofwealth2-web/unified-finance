@@ -30,7 +30,6 @@ export function PeopleTab({
   };
   return (
     <div>
-    <div>
                   {/* ── Status Summary ── */}
                   {(() => {
                     const total = data.people.length;
@@ -154,7 +153,6 @@ export function PeopleTab({
                       ))}</div>;
                     })()}
                   </Card>
-                </div>
       {/* ── Member Report Portal ── */}
       {memberReport && createPortal(
         (() => {
@@ -168,18 +166,8 @@ export function PeopleTab({
           });
           const filteredTotal = filtered.reduce((s,c)=>s+Number(c.amount),0);
           const allTime = allContribs.reduce((s,c)=>s+Number(c.amount),0);
-          const printStyle = `
-            @media print {
-              body > *:not(#member-report-root) { display:none !important; }
-              #member-report-root { display:block !important; }
-              .no-print { display:none !important; }
-              @page { margin:20mm; }
-            }
-            #member-report-root { display:none; }
-          `;
           return (
             <>
-              <style>{printStyle}</style>
               <div style={{ position:"fixed", inset:0, zIndex:9998, display:"flex", alignItems:"center", justifyContent:"center", padding:24, animation:"fadeIn 0.2s ease" }}>
                 {/* Backdrop */}
                 <div onClick={()=>setMemberReport(null)} style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.6)", backdropFilter:"blur(8px)" }}/>
@@ -200,7 +188,40 @@ export function PeopleTab({
                         </div>
                       </div>
                       <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-                        <Btn variant="secondary" t={t} onClick={()=>{ window.print(); }} style={{ fontSize:12 }}>🖨 Print</Btn>
+                        <Btn variant="secondary" t={t} onClick={()=>{
+                          const rows = filtered.map((c,ci) => `
+                            <tr style="border-bottom:1px solid #F0F0F5;background:${ci%2===0?"#FAFAFA":"white"}">
+                              <td style="padding:9px 12px">${new Date(c.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</td>
+                              <td style="padding:9px 12px;font-weight:500">${c.payment_types?.name||"General"}</td>
+                              <td style="padding:9px 12px;color:#666">${c.note||"—"}</td>
+                              <td style="padding:9px 12px;text-align:right;font-weight:600">${data.org?.currency||""} ${Number(c.amount).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+                            </tr>`).join("");
+                          const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${memberReport.name} — Statement</title>
+                            <style>body{font-family:-apple-system,sans-serif;color:#1C1C1E;padding:20px;margin:0}@page{margin:20mm}</style>
+                            </head><body>
+                            <div style="border-bottom:2px solid #1C1C1E;padding-bottom:12px;margin-bottom:24px">
+                              <p style="font-size:12px;color:#666;margin:0 0 4px">${data.org?.name||""}</p>
+                              <h1 style="font-size:22px;font-weight:700;margin:0 0 4px">${memberReport.name} — Contribution Statement</h1>
+                              <p style="font-size:12px;color:#666;margin:0">${memberReport.created_at?`Member since ${new Date(memberReport.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})} · `:""}Printed ${new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}${reportFilters.from||reportFilters.to?` · ${reportFilters.from||"Start"} to ${reportFilters.to||"Today"}`:""}</p>
+                            </div>
+                            <table style="width:100%;border-collapse:collapse;font-size:13px">
+                              <thead><tr style="background:#F5F5F7">
+                                <th style="padding:8px 12px;text-align:left;font-size:11px;color:#666;text-transform:uppercase">Date</th>
+                                <th style="padding:8px 12px;text-align:left;font-size:11px;color:#666;text-transform:uppercase">Payment Type</th>
+                                <th style="padding:8px 12px;text-align:left;font-size:11px;color:#666;text-transform:uppercase">Note</th>
+                                <th style="padding:8px 12px;text-align:right;font-size:11px;color:#666;text-transform:uppercase">Amount</th>
+                              </tr></thead>
+                              <tbody>${rows}</tbody>
+                              <tfoot><tr style="background:#F5F5F7;font-weight:700">
+                                <td colspan="3" style="padding:9px 12px">Total (${filtered.length} records)</td>
+                                <td style="padding:9px 12px;text-align:right">${data.org?.currency||""} ${filteredTotal.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+                              </tr></tfoot>
+                            </table>
+                            </body></html>`;
+                          const w = window.open("","_blank","width=900,height=700");
+                          w.document.write(html); w.document.close(); w.focus();
+                          setTimeout(()=>{ w.print(); }, 300);
+                        }} style={{ fontSize:12 }}>🖨 Print</Btn>
                         <button onClick={()=>setMemberReport(null)} style={{ background:"none", border:"none", color:t.textSub, fontSize:22, cursor:"pointer", padding:4 }}>×</button>
                       </div>
                     </div>
@@ -259,45 +280,6 @@ export function PeopleTab({
                     <span style={{ fontSize:16, fontWeight:700, color:t.accent }}>{fmt(filteredTotal)}</span>
                   </div>
                 </div>
-              </div>
-
-              {/* Print view — hidden on screen, visible on print */}
-              <div id="member-report-root">
-                <div style={{ borderBottom:"2px solid #1C1C1E", paddingBottom:12, marginBottom:24 }}>
-                  <p style={{ fontSize:12, color:"#666", margin:"0 0 4px" }}>{data.org?.name}</p>
-                  <h1 style={{ fontSize:22, fontWeight:700, margin:"0 0 4px" }}>{memberReport.name} — Contribution Statement</h1>
-                  <p style={{ fontSize:12, color:"#666", margin:0 }}>
-                    {memberReport.created_at && `Member since ${new Date(memberReport.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})} · `}
-                    Printed {new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}
-                    {(reportFilters.from||reportFilters.to) && ` · ${reportFilters.from||"Start"} to ${reportFilters.to||"Today"}`}
-                  </p>
-                </div>
-                <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
-                  <thead>
-                    <tr style={{ background:"#F5F5F7" }}>
-                      <th style={{ padding:"8px 12px", textAlign:"left", fontWeight:600, color:"#666", fontSize:11, textTransform:"uppercase" }}>Date</th>
-                      <th style={{ padding:"8px 12px", textAlign:"left", fontWeight:600, color:"#666", fontSize:11, textTransform:"uppercase" }}>Payment Type</th>
-                      <th style={{ padding:"8px 12px", textAlign:"left", fontWeight:600, color:"#666", fontSize:11, textTransform:"uppercase" }}>Note</th>
-                      <th style={{ padding:"8px 12px", textAlign:"right", fontWeight:600, color:"#666", fontSize:11, textTransform:"uppercase" }}>Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((c,ci) => (
-                      <tr key={c.id} style={{ borderBottom:"1px solid #F0F0F5", background: ci%2===0?"#FAFAFA":"white" }}>
-                        <td style={{ padding:"9px 12px" }}>{new Date(c.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</td>
-                        <td style={{ padding:"9px 12px", fontWeight:500 }}>{c.payment_types?.name||"General"}</td>
-                        <td style={{ padding:"9px 12px", color:"#666" }}>{c.note||"—"}</td>
-                        <td style={{ padding:"9px 12px", textAlign:"right", fontWeight:600 }}>{data.org?.currency||""} {Number(c.amount).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr style={{ background:"#F5F5F7", fontWeight:700 }}>
-                      <td colSpan={3} style={{ padding:"9px 12px" }}>Total ({filtered.length} records)</td>
-                      <td style={{ padding:"9px 12px", textAlign:"right" }}>{data.org?.currency||""} {filteredTotal.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
-                    </tr>
-                  </tfoot>
-                </table>
               </div>
             </>
           );
