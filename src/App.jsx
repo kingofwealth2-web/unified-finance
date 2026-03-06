@@ -9,6 +9,8 @@ import { ExpensesTab }    from "./components/tabs/ExpensesTab.jsx";
 import { ActivityTab }    from "./components/tabs/ActivityTab.jsx";
 import { AuditTab }       from "./components/tabs/AuditTab.jsx";
 import { SettingsTab }    from "./components/tabs/SettingsTab.jsx";
+import { IncomeTab }      from "./components/tabs/IncomeTab.jsx";
+import { FinancialSummaryTab } from "./components/tabs/FinancialSummaryTab.jsx";
 import { Modals }         from "./components/modals/Modals.jsx";
 
 const ACTIVITY_PAGE_SIZE = 20;
@@ -131,7 +133,7 @@ export default function App({ session }) {
             {(!collapsed || isMobile) && (
               <div style={{ minWidth:0 }}>
                 <div style={{ fontSize:15, fontWeight:700, letterSpacing:"-0.3px", color:t.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{orgName}</div>
-                {fyText && <div style={{ fontSize:10, color:t.textSub, fontWeight:500 }}>FY {fyText}</div>}
+                {fyText && <div style={{ fontSize:10, color:t.textSub, fontWeight:500 }}>{fyText}</div>}
               </div>
             )}
           </div>
@@ -209,6 +211,7 @@ export default function App({ session }) {
               handleDeletePerson={(id) => confirmDeletePerson(id, app.data?.people?.find(p=>p.id===id)?.name)}
               handleDeleteContribution={confirmDeleteContribution}
               setEditingContribution={app.setEditingContribution}
+              handleDeactivatePerson={app.handleDeactivatePerson}
             />
           )}
 
@@ -220,6 +223,8 @@ export default function App({ session }) {
               setExpandedPaymentType={app.setExpandedPaymentType}
               setEditingPaymentType={app.setEditingPaymentType}
               handleDeletePaymentType={(id) => confirmDeletePaymentType(id, app.data?.paymentTypes?.find(p=>p.id===id)?.name)}
+              setEditingContribution={app.setEditingContribution}
+              handleDeleteContribution={confirmDeleteContribution}
             />
           )}
 
@@ -229,6 +234,28 @@ export default function App({ session }) {
               isSuperAdmin={isSuperAdmin} openModal={app.openModal}
               setEditingExpenseCategory={app.setEditingExpenseCategory}
               handleDeleteExpenseCategory={(id) => confirmDeleteExpenseCategory(id, app.data?.expenseCategories?.find(c=>c.id===id)?.name)}
+            />
+          )}
+
+          {activeTab==="income" && (
+            <IncomeTab
+              data={app.data} t={t} fmt={app.fmt}
+              isSuperAdmin={isSuperAdmin} openModal={app.openModal}
+              newIncome={app.newIncome} setNewIncome={app.setNewIncome}
+              editingIncomeSource={app.editingIncomeSource}
+              setEditingIncomeSource={app.setEditingIncomeSource}
+              handleAddIncome={app.handleAddIncome}
+              handleEditIncome={app.handleEditIncome}
+            />
+          )}
+
+          {activeTab==="summary" && (
+            <FinancialSummaryTab
+              data={app.data} t={t} fmt={app.fmt}
+              isSuperAdmin={isSuperAdmin}
+              exportDateFrom={app.exportDateFrom} setExportDateFrom={app.setExportDateFrom}
+              exportDateTo={app.exportDateTo} setExportDateTo={app.setExportDateTo}
+              exportFinancialReport={app.exportFinancialReport}
             />
           )}
 
@@ -281,6 +308,7 @@ export default function App({ session }) {
         newUser={app.newUser} setNewUser={app.setNewUser} handleAddUser={app.handleAddUser}
         newPerson={app.newPerson} setNewPerson={app.setNewPerson} handleAddPerson={app.handleAddPerson}
         newContribution={app.newContribution} setNewContribution={app.setNewContribution} handleAddContribution={app.handleAddContribution}
+        bulkContributions={app.bulkContributions} setBulkContributions={app.setBulkContributions} handleBulkAddContributions={app.handleBulkAddContributions}
         newExpense={app.newExpense} setNewExpense={app.setNewExpense} handleAddExpense={app.handleAddExpense}
         newPaymentType={app.newPaymentType} setNewPaymentType={app.setNewPaymentType} handleAddPaymentType={app.handleAddPaymentType}
         newExpenseCategory={app.newExpenseCategory} setNewExpenseCategory={app.setNewExpenseCategory} handleAddExpenseCategory={app.handleAddExpenseCategory}
@@ -289,6 +317,8 @@ export default function App({ session }) {
         editingContribution={app.editingContribution} setEditingContribution={app.setEditingContribution} handleEditContribution={app.handleEditContribution}
         editingExpenseEntry={app.editingExpenseEntry} setEditingExpenseEntry={app.setEditingExpenseEntry} handleEditExpenseEntry={app.handleEditExpenseEntry}
         editingPerson={app.editingPerson} setEditingPerson={app.setEditingPerson} handleEditPerson={app.handleEditPerson}
+        newIncome={app.newIncome} setNewIncome={app.setNewIncome} handleAddIncome={app.handleAddIncome}
+        editingIncomeSource={app.editingIncomeSource} setEditingIncomeSource={app.setEditingIncomeSource} handleEditIncome={app.handleEditIncome}
       />
 
       <ToastContainer/>

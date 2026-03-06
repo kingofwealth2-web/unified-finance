@@ -67,7 +67,7 @@ export default function Auth() {
   // Detect password reset token in URL on mount
   useEffect(() => {
     const hash = window.location.hash;
-    if (hash.includes("type=recovery") || hash.includes("access_token")) {
+    if (hash.includes("type=recovery")) {
       setView("reset");
       // Supabase handles the session automatically from the URL hash
     }

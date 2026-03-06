@@ -29,6 +29,17 @@ export function useAppData({ session }) {
 
   const [expandedPaymentType, setExpandedPaymentType] = useState(null);
 
+  // Income sources
+  const [newIncome, setNewIncome] = useState({ label:"", amount:"", source:"", note:"", date: new Date().toISOString().slice(0,10) });
+  const [editingIncomeSource, setEditingIncomeSource] = useState(null);
+
+  // Bulk contributions
+  const [bulkContributions, setBulkContributions] = useState(null);
+
+  // Export date range
+  const [exportDateFrom, setExportDateFrom] = useState("");
+  const [exportDateTo, setExportDateTo] = useState("");
+
   // Search & filter
   const [peopleSearch, setPeopleSearch] = useState("");
   const [activitySearch, setActivitySearch] = useState("");
@@ -38,9 +49,6 @@ export function useAppData({ session }) {
   const [activityDateFrom, setActivityDateFrom] = useState("");
   const [activityDateTo, setActivityDateTo] = useState("");
   const [showPrintView, setShowPrintView] = useState(false);
-  const [exportDateFrom, setExportDateFrom] = useState("");
-  const [exportDateTo, setExportDateTo] = useState("");
-
   // Member detail panel
   const [selectedMember, setSelectedMember] = useState(null);
 
@@ -118,16 +126,38 @@ export function useAppData({ session }) {
   async function handleAddUser(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
     try {
-      const {error}=await supabase.auth.signUp({email:newUser.email,password:newUser.password,options:{data:{full_name:newUser.full_name,role:newUser.role}}});
-      if(error)throw error;
-      await logAudit("create","user",null,newUser.full_name,`Created user ${newUser.full_name} (${newUser.email})`,null,{email:newUser.email,role:newUser.role});
+      // Capture org and session before signUp() which may overwrite them
+      const adminOrgId = data.org?.id;
+      const { data: { session: adminSession } } = await supabase.auth.getSession();
+
+      const { data: authData, error } = await supabase.auth.signUp({
+        email: newUser.email, password: newUser.password,
+        options: { data: { full_name: newUser.full_name, role: newUser.role } },
+      });
+      if (error) throw error;
+
+      // Immediately restore the super admin session
+      if (adminSession) {
+        await supabase.auth.setSession({
+          access_token: adminSession.access_token,
+          refresh_token: adminSession.refresh_token,
+        });
+      }
+
+      const userId = authData.user?.id;
+      if (userId && adminOrgId) {
+        await supabase.from("org_members").insert({ org_id: adminOrgId, user_id: userId, role: newUser.role });
+        await supabase.from("profiles").insert({ id: userId, org_id: adminOrgId, full_name: newUser.full_name, role: newUser.role, status: "active" });
+      }
+
+      await logAudit("create","user",userId,newUser.full_name,`Created user ${newUser.full_name} (${newUser.email})`,null,{email:newUser.email,role:newUser.role});
       closeModal(); setNewUser({full_name:"",email:"",password:"",role:"admin"}); fetchAllData();
     } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleAddPerson(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
     try {
-      const {error}=await supabase.from("profiles").insert({id:crypto.randomUUID(),full_name:newPerson.full_name,role:"member",status:newPerson.status,monthly_target:newPerson.monthly_target?Number(newPerson.monthly_target):0});
+      const {error}=await supabase.from("profiles").insert({id:crypto.randomUUID(),full_name:newPerson.full_name,role:"member",status:newPerson.status,monthly_target:newPerson.monthly_target?Number(newPerson.monthly_target):0,org_id:data.org?.id});
       if(error)throw error;
       await logAudit("create","person",null,newPerson.full_name,`Added person ${newPerson.full_name}`,null,{full_name:newPerson.full_name,status:newPerson.status});
       closeModal(); setNewPerson({full_name:"",status:"active",monthly_target:""}); fetchAllData();
@@ -182,7 +212,6 @@ export function useAppData({ session }) {
     } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleDeletePaymentType(id) {
-    if(!confirm("Delete this payment type? This cannot be undone."))return;
     const pt = data.paymentTypes.find(p=>p.id===id);
     await supabase.from("payment_types").delete().eq("id",id);
     await logAudit("delete","payment_type",id,null,`Deleted payment type: ${pt?.name||id}`,{name:pt?.name},null);
@@ -199,7 +228,6 @@ export function useAppData({ session }) {
     } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleDeleteExpenseCategory(id) {
-    if(!confirm("Delete this category? This cannot be undone."))return;
     const cat = data.expenses.find(c=>c.id===id);
     await supabase.from("expenses").delete().eq("category_id",id);
     await supabase.from("expense_categories").delete().eq("id",id);
@@ -240,7 +268,6 @@ export function useAppData({ session }) {
   }
 
   async function handleDeletePerson(id) {
-    if (!confirm("Permanently delete this person and all their contribution records? This cannot be undone.")) return;
     const person = data.allPeople.find(p=>p.id===id);
     await supabase.from("contributions").delete().eq("member_id", id);
     await supabase.from("profiles").delete().eq("id", id);
@@ -293,6 +320,58 @@ export function useAppData({ session }) {
     exportToCSV(`financial-report${suffix}-${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
   }
 
+  // ── Income handlers ───────────────────────────────────────────
+  async function handleAddIncome(e) {
+    e.preventDefault(); setFormLoading(true); setFormError(null);
+    try {
+      const {error}=await supabase.from("income_sources").insert({
+        label:newIncome.label, amount:Number(newIncome.amount),
+        source:newIncome.source||null, note:newIncome.note||null,
+        date:newIncome.date||new Date().toISOString().slice(0,10),
+        recorded_by:session?.user?.id,
+      });
+      if(error)throw error;
+      await logAudit("create","income",null,null,`Recorded income: ${newIncome.label} (${newIncome.amount})`,null,{label:newIncome.label,amount:newIncome.amount});
+      closeModal(); setNewIncome({label:"",amount:"",source:"",note:"",date:new Date().toISOString().slice(0,10)}); fetchAllData();
+    } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
+  }
+
+  async function handleEditIncome(e) {
+    e.preventDefault(); setFormLoading(true); setFormError(null);
+    try {
+      const {error}=await supabase.from("income_sources").update({
+        label:editingIncomeSource.label, amount:Number(editingIncomeSource.amount),
+        source:editingIncomeSource.source||null, note:editingIncomeSource.note||null,
+        date:editingIncomeSource.date||null,
+      }).eq("id",editingIncomeSource.id);
+      if(error)throw error;
+      await logAudit("edit","income",editingIncomeSource.id,null,`Edited income: ${editingIncomeSource.label}`,null,{label:editingIncomeSource.label,amount:editingIncomeSource.amount});
+      closeModal(); fetchAllData();
+    } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
+  }
+
+  // ── Bulk contribution handler ──────────────────────────────────
+  async function handleBulkAddContributions(e) {
+    e.preventDefault(); setFormLoading(true); setFormError(null);
+    try {
+      const entries = Object.entries(bulkContributions.amounts)
+        .filter(([,v]) => v !== "" && Number(v) > 0)
+        .map(([memberId, amount]) => ({
+          member_id: memberId,
+          amount: Number(amount),
+          payment_type_id: bulkContributions.payment_type_id || null,
+          note: bulkContributions.note || null,
+          type: "other",
+          created_at: bulkContributions.date ? new Date(bulkContributions.date).toISOString() : new Date().toISOString(),
+        }));
+      if (entries.length === 0) { setFormError("No amounts entered."); setFormLoading(false); return; }
+      const {error} = await supabase.from("contributions").insert(entries);
+      if(error) throw error;
+      await logAudit("create","contribution",null,null,`Bulk recorded ${entries.length} contributions`,null,{count:entries.length});
+      closeModal(); setBulkContributions(null); fetchAllData();
+    } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
+  }
+
   // ── Audit log helper ──────────────────────────────────────────
   async function logAudit(action, entity, entityId, memberName, description, oldVal, newVal) {
     try {
@@ -326,7 +405,6 @@ export function useAppData({ session }) {
   }
 
   async function handleDeleteContribution(c) {
-    if (!confirm(`Delete this ${fmt(c.amount)} contribution? This cannot be undone.`)) return;
     await supabase.from("contributions").delete().eq("id", c.id);
     await logAudit("delete", "contribution", c.id, c.profiles?.full_name || "Member",
       `Deleted contribution of ${c.amount} for ${c.profiles?.full_name || "Member"}`,
@@ -357,7 +435,6 @@ export function useAppData({ session }) {
   }
 
   async function handleDeleteExpenseEntry(ex) {
-    if (!confirm(`Delete "${ex.label}" (${fmt(ex.amount)})? This cannot be undone.`)) return;
     await supabase.from("expenses").delete().eq("id", ex.id);
     await logAudit("delete", "expense", ex.id, null,
       `Deleted expense: ${ex.label} (${ex.amount})`,
@@ -384,7 +461,9 @@ export function useAppData({ session }) {
     {id:"people",label:"People",icon:"◎"},
     {id:"payments",label:"Payments",icon:"◈"},
     {id:"expenses",label:"Expenses",icon:"◉"},
+    {id:"income",label:"Income",icon:"◆"},
     {id:"activity",label:"Activity",icon:"◷"},
+    {id:"summary",label:"Summary",icon:"◧"},
     ...(isSuperAdmin?[{id:"settings",label:"Settings",icon:"⊙"},{id:"audit",label:"Audit Log",icon:"◑"}]:[]),
   ];
 
@@ -410,10 +489,14 @@ export function useAppData({ session }) {
     handleAddPaymentType, handleAddExpenseCategory,
     handleEditPaymentType, handleDeletePaymentType,
     handleEditExpenseCategory, handleDeleteExpenseCategory,
-    handleSaveOrg, handleEditPerson, handleDeletePerson,
+    handleSaveOrg, handleEditPerson, handleDeletePerson, handleDeactivatePerson,
     handleEditContribution, handleDeleteContribution,
     handleEditExpenseEntry, handleDeleteExpenseEntry,
-    exportFinancialReport,
+    handleAddIncome, handleEditIncome,
+    handleBulkAddContributions,
+    newIncome, setNewIncome, editingIncomeSource, setEditingIncomeSource,
+    bulkContributions, setBulkContributions,
+    exportFinancialReport, exportDateFrom, setExportDateFrom, exportDateTo, setExportDateTo,
     fmt: makeFmt(data.org?.currency || 'USD'),
   };
 }
