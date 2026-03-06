@@ -69,6 +69,7 @@ function Root() {
     <OrgPicker
       session={session}
       onSelect={handleOrgSelect}
+      allowAutoEnter={!switchedRef.current}
     />
   )
 
