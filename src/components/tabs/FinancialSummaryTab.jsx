@@ -185,6 +185,80 @@ export function FinancialSummaryTab({
     setTimeout(() => { w.print(); }, 300);
   }
 
+  // ── CSV Export ───────────────────────────────────────────────
+  function exportCSV() {
+    const escape = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+
+    const rows = [
+      // Header
+      [`${orgName} — Financial Summary Export`],
+      [`Period: ${periodLabel}`],
+      [`Generated: ${new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}`],
+      [],
+
+      // Contributions
+      ["MEMBER CONTRIBUTIONS"],
+      ["Date", "Member", "Payment Type", "Note", "Amount"],
+      ...contributions.map(c => [
+        new Date(c.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}),
+        c.profiles?.full_name || "Unknown",
+        c.payment_types?.name || "Uncategorised",
+        c.note || "",
+        Number(c.amount),
+      ]),
+      ["", "", "", "TOTAL", totalContribs],
+      [],
+
+      // Other Income
+      ...(incomeRows.length > 0 ? [
+        ["OTHER INCOME"],
+        ["Date", "Label", "Source", "Note", "Amount"],
+        ...incomeRows.map(i => [
+          new Date(i.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}),
+          i.label || "",
+          i.source || "",
+          i.note || "",
+          Number(i.amount),
+        ]),
+        ["", "", "", "TOTAL", totalIncome],
+        [],
+      ] : []),
+
+      // Expenses
+      ...(expenseRows.length > 0 ? [
+        ["EXPENSES"],
+        ["Date", "Label", "Category", "Amount"],
+        ...expenseRows.map(e => [
+          new Date(e.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}),
+          e.label || "",
+          e.expense_categories?.name || "Uncategorised",
+          Number(e.amount),
+        ]),
+        ["", "", "TOTAL", totalExpenses],
+        [],
+      ] : []),
+
+      // Summary
+      ["SUMMARY"],
+      ["Member Contributions", totalContribs],
+      ["Other Income", totalIncome],
+      ["Total Income", totalAllIncome],
+      ["Total Expenses", totalExpenses],
+      ["Net", net],
+      ...(openingBalance > 0 ? [["Opening Balance", openingBalance]] : []),
+    ];
+
+    const csv = rows.map(r => r.map(escape).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const dateTag = exportDateFrom || new Date().toISOString().slice(0,10);
+    a.download = `financial-summary-${dateTag}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   // ── UI ───────────────────────────────────────────────────────
   const StatCard = ({ label, value, sub, color }) => (
     <div style={{ background:t.surface, border:`1px solid ${t.border}`, borderRadius:20, padding:"20px 24px", boxShadow:t.cardShadow, animation:"slideUp 0.3s ease" }}>
@@ -242,7 +316,8 @@ export function FinancialSummaryTab({
               Clear
             </button>
           )}
-          <Btn t={t} onClick={triggerPrint} variant="secondary">🖨 Print / Export</Btn>
+          <Btn t={t} onClick={exportCSV} variant="secondary">↓ CSV</Btn>
+          <Btn t={t} onClick={triggerPrint} variant="secondary">🖨 Print / PDF</Btn>
         </div>
       </div>
 
