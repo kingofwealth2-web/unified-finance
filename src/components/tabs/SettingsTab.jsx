@@ -1,6 +1,5 @@
 import { Card, Btn, Avatar, EmptyState } from "../ui/index.jsx";
 import { fyLabel } from "../../constants.js";
-import { fyLabel } from "../../constants.js";
 
 export function SettingsTab({ data, t, fmt, isSuperAdmin, openModal, orgName, session,
   setEditingPaymentType, handleDeletePaymentType,
