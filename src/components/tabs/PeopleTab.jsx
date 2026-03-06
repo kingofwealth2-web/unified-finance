@@ -107,7 +107,7 @@ export function PeopleTab({
                           </div>
                           {/* Member detail panel */}
                           {selectedMember?.id===p.id && (() => {
-                            const memberContribs = (data.rawContributions||[]).filter(c=>c.member_id===p.id);
+                            const memberContribs = (data.allTimeContributions||data.rawContributions||[]).filter(c=>c.member_id===p.id);
                             return (
                               <div style={{ margin:"0 14px 14px", background:t.bg, borderRadius:14, padding:"20px 24px", border:`1px solid ${t.border}`, animation:"slideUp 0.25s ease" }}>
                                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
@@ -149,7 +149,7 @@ export function PeopleTab({
       {/* ── Member Report Portal ── */}
       {memberReport && createPortal(
         (() => {
-          const allContribs = (data.rawContributions||[]).filter(c=>c.member_id===memberReport.id);
+          const allContribs = (data.allTimeContributions||data.rawContributions||[]).filter(c=>c.member_id===memberReport.id);
           const filtered = allContribs.filter(c => {
             if (reportFilters.from && new Date(c.created_at) < new Date(reportFilters.from)) return false;
             if (reportFilters.to && new Date(c.created_at) > new Date(reportFilters.to+"T23:59:59")) return false;
@@ -185,6 +185,7 @@ export function PeopleTab({
                           const rows = filtered.map((c,ci) => `
                             <tr style="border-bottom:1px solid #F0F0F5;background:${ci%2===0?"#FAFAFA":"white"}">
                               <td style="padding:9px 12px">${new Date(c.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</td>
+                              <td style="padding:9px 12px;color:#8E8E93;font-size:11px">FY${c.financial_year||""}</td>
                               <td style="padding:9px 12px;font-weight:500">${c.payment_types?.name||"General"}</td>
                               <td style="padding:9px 12px;color:#666">${c.note||"—"}</td>
                               <td style="padding:9px 12px;text-align:right;font-weight:600">${data.org?.currency||""} ${Number(c.amount).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
@@ -260,7 +261,10 @@ export function PeopleTab({
                           </div>
                           <div style={{ textAlign:"right", flexShrink:0 }}>
                             <p style={{ fontSize:13, fontWeight:700, color:"#34C759", margin:0 }}>{fmt(c.amount)}</p>
-                            <p style={{ fontSize:11, color:t.textSub, margin:"2px 0 0" }}>{new Date(c.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</p>
+                            <div style={{ display:"flex", alignItems:"center", gap:5, justifyContent:"flex-end" }}>
+                              <p style={{ fontSize:11, color:t.textSub, margin:"2px 0 0" }}>{new Date(c.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</p>
+                              {c.financial_year && <span style={{ fontSize:9, fontWeight:700, padding:"1px 5px", borderRadius:8, background:`${t.accent}15`, color:t.accent }}>FY{c.financial_year}</span>}
+                            </div>
                           </div>
                         </div>
                       ))

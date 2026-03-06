@@ -77,7 +77,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       const currentFY = orgRowsFirst?.[0]?.financial_year_start || new Date().getFullYear();
       const activeFY = viewingFY ?? currentFY;
 
-      const [{ data: profiles }, { data: contributions }, { data: categories }, { data: expenses }, { data: paymentTypes }, { data: orgRows }, { data: auditRows }, { data: incomeRows }] = await Promise.all([
+      const [{ data: profiles }, { data: contributions }, { data: categories }, { data: expenses }, { data: paymentTypes }, { data: orgRows }, { data: auditRows }, { data: incomeRows }, { data: allTimeContribs }] = await Promise.all([
         supabase.from("profiles").select("*").eq("org_id", orgId).order("created_at",{ascending:false}),
         supabase.from("contributions").select("*, profiles(full_name), payment_types(name,color)").eq("org_id", orgId).eq("financial_year", activeFY).order("created_at",{ascending:false}),
         supabase.from("expense_categories").select("*").eq("org_id", orgId).order("created_at",{ascending:false}),
@@ -86,6 +86,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
         supabase.from("org_settings").select("*").eq("id", orgId).limit(1),
         supabase.from("audit_log").select("*").eq("org_id", orgId).order("created_at",{ascending:false}).limit(200),
         supabase.from("income_sources").select("*").eq("org_id", orgId).eq("financial_year", activeFY).order("created_at",{ascending:false}),
+        supabase.from("contributions").select("*, profiles(full_name), payment_types(name,color)").eq("org_id", orgId).order("created_at",{ascending:false}),
       ]);
 
       const org = orgRows?.[0] || null;
@@ -128,7 +129,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
 
       const openingBalance = Number(org?.opening_balance || 0);
       const totalBalance = totalC - totalE + openingBalance;
-      setData({ totalBalance, totalContributions:totalC, totalExpenses:totalE, people, expenses:expenseData, recentActivity:[...cA,...eA].slice(0,10), users:(profiles||[]).filter(p=>["super_admin","admin"].includes(p.role)), paymentTypes:paymentTypeData, allPeople:profiles||[], org, categories:categories||[], rawContributions:contributions||[], rawExpenses:expenses||[], rawIncome:incomeRows||[] });
+      setData({ totalBalance, totalContributions:totalC, totalExpenses:totalE, people, expenses:expenseData, recentActivity:[...cA,...eA].slice(0,10), users:(profiles||[]).filter(p=>["super_admin","admin"].includes(p.role)), paymentTypes:paymentTypeData, allPeople:profiles||[], org, categories:categories||[], rawContributions:contributions||[], rawExpenses:expenses||[], rawIncome:incomeRows||[], allTimeContributions:allTimeContribs||[] });
       setAuditLog(auditRows || []);
     } catch(err) { console.error(err); } finally { setLoading(false); }
   }
