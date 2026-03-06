@@ -186,6 +186,36 @@ export function OverviewTab({
   const missed = membersWithTarget.filter(p=>p.thisMonth===0&&p.target>0).length;
   const totalTargetThisMonth = membersWithTarget.reduce((s,p)=>s+p.target,0);
   const totalActualThisMonth = data.people.reduce((s,p)=>s+(p.thisMonth||0),0);
+
+  // ── Empty state for brand new orgs ───────────────────────
+  const isNewOrg = data.people.length === 0 && (data.rawContributions||[]).length === 0;
+  if (isNewOrg) {
+    const steps = [
+      { num:1, title:"Add your members", desc:"Go to People and add the members of your organisation.", tab:"people", btn:"Go to People" },
+      { num:2, title:"Set up payment types", desc:"Go to Settings and create payment types like Tithes or Dues.", tab:"settings", btn:"Go to Settings" },
+      { num:3, title:"Record contributions", desc:"Once members are added, record their payments in Payments.", tab:"payments", btn:"Go to Payments" },
+    ];
+    return (
+      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"40px 20px", minHeight:400 }}>
+        <div style={{ width:64, height:64, borderRadius:20, background:`${t.accent}18`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:32, marginBottom:20 }}>🎉</div>
+        <h2 style={{ fontSize:22, fontWeight:700, color:t.text, margin:"0 0 8px", textAlign:"center" }}>Welcome to {data.org?.name || "your organisation"}</h2>
+        <p style={{ fontSize:14, color:t.textSub, margin:"0 0 36px", textAlign:"center", maxWidth:400 }}>Get started in 3 simple steps to begin tracking your finances.</p>
+        <div style={{ display:"flex", flexDirection:"column", gap:16, width:"100%", maxWidth:480 }}>
+          {steps.map((step, i) => (
+            <div key={step.num} style={{ display:"flex", alignItems:"center", gap:16, padding:"18px 20px", background:t.surface, borderRadius:16, border:`1px solid ${t.border}`, boxShadow:t.cardShadow, animation:`slideUp 0.3s ease ${i*0.08}s both` }}>
+              <div style={{ width:36, height:36, borderRadius:11, background:`${t.accent}18`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:15, fontWeight:700, color:t.accent, flexShrink:0 }}>{step.num}</div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <p style={{ fontSize:14, fontWeight:600, margin:"0 0 2px", color:t.text }}>{step.title}</p>
+                <p style={{ fontSize:12, color:t.textSub, margin:0 }}>{step.desc}</p>
+              </div>
+              <button onClick={()=>setActiveTab(step.tab)} style={{ fontSize:12, fontWeight:600, color:t.accent, background:`${t.accent}12`, border:"none", borderRadius:8, padding:"6px 12px", cursor:"pointer", flexShrink:0, whiteSpace:"nowrap" }}>{step.btn}</button>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
                   <div className="grid-3" style={{ marginBottom:24 }}>
