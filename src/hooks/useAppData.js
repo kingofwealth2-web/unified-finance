@@ -130,31 +130,30 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole }) {
   async function handleAddUser(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
     try {
-      // Capture org and session before signUp() which may overwrite them
-      const adminOrgId = currentOrg.id;
+      // Call Edge Function — creates auth user server-side with no session disruption
       const { data: { session: adminSession } } = await supabase.auth.getSession();
+      const response = await fetch(
+        "https://jsxixfwjupxwruybyeut.supabase.co/functions/v1/create-user",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${adminSession.access_token}`,
+          },
+          body: JSON.stringify({
+            email: newUser.email,
+            password: newUser.password,
+            full_name: newUser.full_name,
+            role: newUser.role,
+            org_id: currentOrg.id,
+          }),
+        }
+      );
 
-      const { data: authData, error } = await supabase.auth.signUp({
-        email: newUser.email, password: newUser.password,
-        options: { data: { full_name: newUser.full_name, role: newUser.role } },
-      });
-      if (error) throw error;
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Failed to create user");
 
-      // Immediately restore the super admin session
-      if (adminSession) {
-        await supabase.auth.setSession({
-          access_token: adminSession.access_token,
-          refresh_token: adminSession.refresh_token,
-        });
-      }
-
-      const userId = authData.user?.id;
-      if (userId && adminOrgId) {
-        await supabase.from("org_members").insert({ org_id: adminOrgId, user_id: userId, role: newUser.role });
-        await supabase.from("profiles").insert({ id: userId, org_id: adminOrgId, full_name: newUser.full_name, role: newUser.role, status: "active" });
-      }
-
-      await logAudit("create","user",userId,newUser.full_name,`Created user ${newUser.full_name} (${newUser.email})`,null,{email:newUser.email,role:newUser.role});
+      await logAudit("create","user",result.user_id,newUser.full_name,`Created user ${newUser.full_name} (${newUser.email})`,null,{email:newUser.email,role:newUser.role});
       closeModal(); setNewUser({full_name:"",email:"",password:"",role:"admin"}); fetchAllData();
     } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
