@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabaseClient.js";
 import { toast } from "../components/ui/index.jsx";
 import { makeFmt, light, dark, buildMonthly, buildTimeline, fyLabel } from "../constants.js";
 
-export function useAppData({ session, currentOrg, orgRole: initialOrgRole }) {
+export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewingFY }) {
   const [activeTab, setActiveTab] = useState("overview");
   const [isDark, setIsDark] = useState(() => localStorage.getItem("unified-theme") === "dark");
   const t = isDark ? dark : light;
@@ -63,7 +63,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole }) {
 
   const [visible, setVisible] = useState(false);
   useEffect(() => { setVisible(false); const timer = setTimeout(() => setVisible(true), 30); return () => clearTimeout(timer); }, [activeTab]);
-  useEffect(() => { if(currentOrg?.id) fetchAllData(); }, [currentOrg?.id]);
+  useEffect(() => { if(currentOrg?.id) fetchAllData(); }, [currentOrg?.id, viewingFY]);
 
   const openModal = (name) => { setFormError(null); setModal(name); };
   const closeModal = () => { setModal(null); setEditingPaymentType(null); setEditingExpenseCategory(null); setEditingPerson(null); };
@@ -75,16 +75,17 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole }) {
       // Get org first to know the current financial year
       const { data: orgRowsFirst } = await supabase.from("org_settings").select("*").eq("id", orgId).limit(1);
       const currentFY = orgRowsFirst?.[0]?.financial_year_start || new Date().getFullYear();
+      const activeFY = viewingFY ?? currentFY;
 
       const [{ data: profiles }, { data: contributions }, { data: categories }, { data: expenses }, { data: paymentTypes }, { data: orgRows }, { data: auditRows }, { data: incomeRows }] = await Promise.all([
         supabase.from("profiles").select("*").eq("org_id", orgId).order("created_at",{ascending:false}),
-        supabase.from("contributions").select("*, profiles(full_name), payment_types(name,color)").eq("org_id", orgId).eq("financial_year", currentFY).order("created_at",{ascending:false}),
+        supabase.from("contributions").select("*, profiles(full_name), payment_types(name,color)").eq("org_id", orgId).eq("financial_year", activeFY).order("created_at",{ascending:false}),
         supabase.from("expense_categories").select("*").eq("org_id", orgId).order("created_at",{ascending:false}),
-        supabase.from("expenses").select("*, expense_categories(name,color)").eq("org_id", orgId).eq("financial_year", currentFY).order("created_at",{ascending:false}),
+        supabase.from("expenses").select("*, expense_categories(name,color)").eq("org_id", orgId).eq("financial_year", activeFY).order("created_at",{ascending:false}),
         supabase.from("payment_types").select("*").eq("org_id", orgId).order("created_at",{ascending:false}),
         supabase.from("org_settings").select("*").eq("id", orgId).limit(1),
         supabase.from("audit_log").select("*").eq("org_id", orgId).order("created_at",{ascending:false}).limit(200),
-        supabase.from("income_sources").select("*").eq("org_id", orgId).eq("financial_year", currentFY).order("created_at",{ascending:false}),
+        supabase.from("income_sources").select("*").eq("org_id", orgId).eq("financial_year", activeFY).order("created_at",{ascending:false}),
       ]);
 
       const org = orgRows?.[0] || null;

@@ -16,7 +16,8 @@ import { Modals }         from "./components/modals/Modals.jsx";
 const ACTIVITY_PAGE_SIZE = 20;
 
 export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
-  const app = useAppData({ session, currentOrg, orgRole });
+  const [viewingFY, setViewingFY] = useState(null); // null = current year
+  const app = useAppData({ session, currentOrg, orgRole, viewingFY });
   const { t, isDark, toggleTheme, activeTab, setActiveTab, navItems,
           orgName, loading, isSuperAdmin, visible } = app;
   const [collapsed, setCollapsed] = useState(false);
@@ -53,6 +54,11 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
   const fyText = app.data.org?.financial_year_start
     ? `FY ${app.data.org.financial_year_start}`
     : null;
+
+  // Reset to current year when switching orgs
+  useEffect(() => { setViewingFY(null); }, [currentOrg?.id]);
+
+  const isViewingPastYear = viewingFY !== null && viewingFY !== app.data.org?.financial_year_start;
 
   if (loading) return (
     <div style={{ minHeight:"100vh", background:t.bg, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"-apple-system,sans-serif" }}>
@@ -134,7 +140,30 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
             {(!collapsed || isMobile) && (
               <div style={{ minWidth:0 }}>
                 <div style={{ fontSize:15, fontWeight:700, letterSpacing:"-0.3px", color:t.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{orgName}</div>
-                {fyText && <div style={{ fontSize:10, color:t.textSub, fontWeight:500 }}>{fyText}</div>}
+                {fyText && (
+                  <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+                    <div style={{ fontSize:10, color:t.textSub, fontWeight:500 }}>FY</div>
+                    <select
+                      value={viewingFY ?? app.data.org?.financial_year_start ?? ""}
+                      onChange={e => {
+                        const val = Number(e.target.value);
+                        const currentFY = app.data.org?.financial_year_start;
+                        setViewingFY(val === currentFY ? null : val);
+                      }}
+                      onClick={e => e.stopPropagation()}
+                      style={{ fontSize:10, color:t.textSub, background:"transparent", border:"none", outline:"none", cursor:"pointer", fontWeight:600, padding:0, appearance:"auto" }}
+                    >
+                      {(() => {
+                        const currentFY = app.data.org?.financial_year_start || new Date().getFullYear();
+                        const startFY = Math.min(currentFY, 2024);
+                        return Array.from({ length: currentFY - startFY + 1 }, (_, i) => {
+                          const yr = startFY + i;
+                          return <option key={yr} value={yr}>{yr}{yr === currentFY ? " (current)" : ""}</option>;
+                        });
+                      })()}
+                    </select>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -187,6 +216,22 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
             {navItems.find(n=>n.id===activeTab)?.label}
           </h1>
         </div>
+
+        {/* ── Viewing past year banner ── */}
+        {isViewingPastYear && (
+          <div style={{ marginBottom:20, padding:"12px 18px", borderRadius:12, background:"rgba(255,159,10,0.1)", border:"1px solid rgba(255,159,10,0.3)", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, flexWrap:"wrap" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+              <span style={{ fontSize:16 }}>📅</span>
+              <div>
+                <p style={{ fontSize:13, fontWeight:600, margin:0, color:"#FF9F0A" }}>Viewing FY {viewingFY} — Read Only</p>
+                <p style={{ fontSize:11, color:t.textSub, margin:0 }}>You are browsing historical data. Switch back to record new transactions.</p>
+              </div>
+            </div>
+            <button onClick={()=>setViewingFY(null)} style={{ fontSize:12, fontWeight:600, color:t.accent, background:`${t.accent}12`, border:"none", borderRadius:8, padding:"6px 14px", cursor:"pointer", whiteSpace:"nowrap" }}>
+              Back to FY {app.data.org?.financial_year_start} →
+            </button>
+          </div>
+        )}
 
         {!app.visible
           ? <SkeletonTab activeTab={activeTab} t={t}/>
