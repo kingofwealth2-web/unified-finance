@@ -15,8 +15,8 @@ import { Modals }         from "./components/modals/Modals.jsx";
 
 const ACTIVITY_PAGE_SIZE = 20;
 
-export default function App({ session }) {
-  const app = useAppData({ session });
+export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
+  const app = useAppData({ session, currentOrg });
   const { t, isDark, toggleTheme, activeTab, setActiveTab, navItems,
           orgName, loading, isSuperAdmin, visible } = app;
   const [collapsed, setCollapsed] = useState(false);
@@ -169,6 +169,7 @@ export default function App({ session }) {
                   <div style={{ fontSize:10, fontWeight:700, color:t.accent, textTransform:"uppercase", letterSpacing:"0.06em" }}>{isSuperAdmin?"Super Admin":"Admin"}</div>
                   <div style={{ fontSize:11, color:t.textSub, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{session?.user?.email}</div>
                 </div>
+                <button onClick={onSwitchOrg} style={{ background:"none", border:"none", cursor:"pointer", color:t.textMuted, fontSize:14, padding:2 }} title="Switch organisation">⇄</button>
                 <button onClick={()=>supabase.auth.signOut()} style={{ background:"none", border:"none", cursor:"pointer", color:t.textMuted, fontSize:16, padding:2 }} title="Sign out">⎋</button>
               </>
             )}

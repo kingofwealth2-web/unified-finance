@@ -96,13 +96,23 @@ export default function Auth() {
     if (password !== confirmPassword) { setError("Passwords don't match."); return; }
     if (password.length < 6) { setError("Password must be at least 6 characters."); return; }
     setLoading(true); setError(null);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { full_name: fullName } },
     });
-    if (error) { setError(error.message); }
-    else { setSuccess("Account created! Check your email to confirm, then sign in."); }
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+      return;
+    }
+    // If email confirmation is disabled, session is returned immediately — sign in directly
+    if (data.session) {
+      // onAuthStateChange in main.jsx will pick up the session automatically
+      return;
+    }
+    // Email confirmation required
+    setSuccess("Account created! Check your email to confirm, then sign in.");
     setLoading(false);
   }
 
