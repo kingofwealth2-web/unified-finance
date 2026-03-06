@@ -140,30 +140,35 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
             {(!collapsed || isMobile) && (
               <div style={{ minWidth:0 }}>
                 <div style={{ fontSize:15, fontWeight:700, letterSpacing:"-0.3px", color:t.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{orgName}</div>
-                {fyText && (
-                  <div style={{ display:"flex", alignItems:"center", gap:4 }}>
-                    <div style={{ fontSize:10, color:t.textSub, fontWeight:500 }}>FY</div>
-                    <select
-                      value={viewingFY ?? app.data.org?.financial_year_start ?? ""}
-                      onChange={e => {
-                        const val = Number(e.target.value);
-                        const currentFY = app.data.org?.financial_year_start;
-                        setViewingFY(val === currentFY ? null : val);
-                      }}
-                      onClick={e => e.stopPropagation()}
-                      style={{ fontSize:10, color:t.textSub, background:"transparent", border:"none", outline:"none", cursor:"pointer", fontWeight:600, padding:0, appearance:"auto" }}
-                    >
-                      {(() => {
-                        const currentFY = app.data.org?.financial_year_start || new Date().getFullYear();
-                        const startFY = Math.min(currentFY, 2024);
-                        return Array.from({ length: currentFY - startFY + 1 }, (_, i) => {
-                          const yr = startFY + i;
-                          return <option key={yr} value={yr}>{yr}{yr === currentFY ? " (current)" : ""}</option>;
-                        });
-                      })()}
-                    </select>
-                  </div>
-                )}
+                {fyText && (() => {
+                  const currentFY = app.data.org?.financial_year_start || new Date().getFullYear();
+                  const activeFY = viewingFY ?? currentFY;
+                  const startFY = Math.min(currentFY, 2024);
+                  const years = Array.from({ length: currentFY - startFY + 1 }, (_, i) => startFY + i);
+                  const isPast = activeFY !== currentFY;
+                  const cycleYear = (dir) => {
+                    const idx = years.indexOf(activeFY);
+                    const next = years[Math.max(0, Math.min(years.length - 1, idx + dir))];
+                    setViewingFY(next === currentFY ? null : next);
+                  };
+                  return (
+                    <div style={{ display:"flex", alignItems:"center", gap:4, marginTop:3 }}>
+                      {years.length > 1 && (
+                        <button onClick={e=>{e.stopPropagation();cycleYear(-1);}} disabled={activeFY===startFY}
+                          style={{ background:"none", border:"none", cursor:activeFY===startFY?"default":"pointer", color:activeFY===startFY?t.border:t.textSub, fontSize:10, padding:"0 1px", lineHeight:1, opacity:activeFY===startFY?0.3:1 }}>‹</button>
+                      )}
+                      <div onClick={e=>{e.stopPropagation(); setViewingFY(isPast?null:null);}}
+                        style={{ display:"flex", alignItems:"center", gap:4, padding:"2px 7px", borderRadius:20, background:isPast?`rgba(255,159,10,0.15)`:`${t.accent}15`, border:`1px solid ${isPast?"rgba(255,159,10,0.4)":`${t.accent}30`}`, cursor:"default" }}>
+                        <div style={{ width:5, height:5, borderRadius:"50%", background:isPast?"#FF9F0A":t.accent, flexShrink:0 }}/>
+                        <span style={{ fontSize:10, fontWeight:700, color:isPast?"#FF9F0A":t.accent, letterSpacing:"0.02em" }}>FY {activeFY}</span>
+                      </div>
+                      {years.length > 1 && (
+                        <button onClick={e=>{e.stopPropagation();cycleYear(1);}} disabled={activeFY===currentFY}
+                          style={{ background:"none", border:"none", cursor:activeFY===currentFY?"default":"pointer", color:activeFY===currentFY?t.border:t.textSub, fontSize:10, padding:"0 1px", lineHeight:1, opacity:activeFY===currentFY?0.3:1 }}>›</button>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
