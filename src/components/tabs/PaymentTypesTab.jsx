@@ -7,6 +7,7 @@ export function PaymentTypesTab({
   expandedPaymentType, setExpandedPaymentType,
   setEditingPaymentType, handleDeletePaymentType,
   setEditingContribution, handleDeleteContribution,
+  setBulkContributions,
 }) {
   const currency = data.org?.currency || "";
   const [ptView, setPtView] = useState({});
@@ -94,7 +95,7 @@ export function PaymentTypesTab({
       <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:20, gap:10 }}>
         <Btn t={t} onClick={()=>triggerPrint("all")} variant="secondary">🖨 Print All</Btn>
         <Btn t={t} onClick={()=>openModal("addContribution")} variant="secondary">+ Record Payment</Btn>
-        <Btn t={t} onClick={()=>openModal("bulkContribution")} variant="secondary">+ Bulk Add</Btn>
+        <Btn t={t} onClick={()=>{ setBulkContributions({ payment_type_id:"", note:"", date:new Date().toISOString().slice(0,10), amounts:{} }); openModal("bulkContribution"); }} variant="secondary">+ Bulk Add</Btn>
         {isSuperAdmin&&<Btn t={t} onClick={()=>openModal("addPaymentType")}>+ New Payment Type</Btn>}
       </div>
 
