@@ -11,6 +11,7 @@ export function PaymentTypesTab({
 }) {
   const currency = data.org?.currency || "";
   const [ptView, setPtView] = useState({});
+  const [memberSearch, setMemberSearch] = useState("");
 
   function getView(ptId) { return ptView[ptId] || "rankings"; }
   function setView(ptId, v) { setPtView(prev => ({ ...prev, [ptId]: v })); }
@@ -169,13 +170,28 @@ export function PaymentTypesTab({
                         <Btn size="sm" variant="secondary" t={t} onClick={e=>{e.stopPropagation();triggerPrint(pt.id);}}>🖨 Print</Btn>
                       </div>
 
+                      {/* Member search */}
+                      <div style={{ padding:"0 32px 16px" }} onClick={e=>e.stopPropagation()}>
+                        <input
+                          type="text"
+                          placeholder="Search members..."
+                          value={memberSearch}
+                          onChange={e=>setMemberSearch(e.target.value)}
+                          style={{ width:"100%", padding:"9px 14px", borderRadius:10, border:`1px solid ${t.border}`, background:t.inputBg, color:t.text, fontSize:13, outline:"none", boxSizing:"border-box" }}
+                        />
+                      </div>
+
                       {/* Rankings */}
                       {view==="rankings"&&(
                         <div style={{ padding:"20px 32px" }}>
-                          {pt.members.length===0
-                            ? <p style={{ fontSize:13, color:t.textSub, margin:0, textAlign:"center", padding:"8px 0" }}>No contributions recorded yet.</p>
-                            : <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                                {pt.members.map((m,ri)=>{
+                          {(() => {
+                            const filteredMembers = memberSearch.trim()
+                              ? pt.members.filter(m => m.name.toLowerCase().includes(memberSearch.toLowerCase()))
+                              : pt.members;
+                            return filteredMembers.length===0
+                              ? <p style={{ fontSize:13, color:t.textSub, margin:0, textAlign:"center", padding:"8px 0" }}>{memberSearch ? `No members matching "${memberSearch}".` : "No contributions recorded yet."}</p>
+                              : <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                                  {filteredMembers.map((m,ri)=>{
                                   const pct2=Math.round((m.total/pt.total)*100);
                                   const medal = ri===0?{label:"1",bg:"linear-gradient(135deg,#FFD700,#FFA500)",color:"#7A4F00",shadow:"0 2px 8px rgba(255,180,0,0.5)"}
                                               : ri===1?{label:"2",bg:"linear-gradient(135deg,#C0C0C0,#A8A8A8)",color:"#3A3A3A",shadow:"0 2px 8px rgba(160,160,160,0.4)"}
@@ -203,18 +219,23 @@ export function PaymentTypesTab({
                                   );
                                 })}
                               </div>
-                          }
+                            ;
+                          })()}
                         </div>
                       )}
 
                       {/* Contributions */}
                       {view==="contributions"&&(
                         <div style={{ padding:"20px 32px" }}>
-                          {contributions.length===0
-                            ? <p style={{ fontSize:13, color:t.textSub, margin:0, textAlign:"center", padding:"8px 0" }}>No contributions recorded yet.</p>
-                            : <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
-                                {contributions.map((c,ci)=>{
-                                  const memberName = c.profiles?.full_name || "Unknown";
+                          {(() => {
+                            const filteredContribs = memberSearch.trim()
+                              ? contributions.filter(c => (c.profiles?.full_name||"Unknown").toLowerCase().includes(memberSearch.toLowerCase()))
+                              : contributions;
+                            return filteredContribs.length===0
+                              ? <p style={{ fontSize:13, color:t.textSub, margin:0, textAlign:"center", padding:"8px 0" }}>{memberSearch ? `No contributions matching "${memberSearch}".` : "No contributions recorded yet."}</p>
+                              : <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
+                                  {filteredContribs.map((c,ci)=>{
+                                    const memberName = c.profiles?.full_name || "Unknown";
                                   const dateStr = c.created_at ? new Date(c.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}) : "";
                                   return (
                                     <div key={c.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", borderRadius:10, background:ci%2===0?t.surface:"transparent", animation:`slideIn 0.2s ease ${ci*0.02}s both`, gap:10, flexWrap:"wrap" }}>
@@ -241,9 +262,10 @@ export function PaymentTypesTab({
                                       </div>
                                     </div>
                                   );
-                                })}
+                                  })}
                               </div>
-                          }
+                            ;
+                          })()}
                         </div>
                       )}
 
