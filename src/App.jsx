@@ -123,7 +123,8 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
         width: isMobile ? 260 : SW,
         background:t.sidebar, backdropFilter:"blur(40px)",
         borderRight:`1px solid ${t.border}`,
-        display:"flex", flexDirection:"column", padding:"28px 0",
+        display:"flex", flexDirection:"column", padding:"0 0 28px",
+        paddingTop: isMobile ? "env(safe-area-inset-top, 28px)" : "28px",
         zIndex: isMobile ? 160 : 100,
         transition: isMobile ? "transform 0.3s cubic-bezier(0.4,0,0.2,1)" : "width 0.3s cubic-bezier(0.4,0,0.2,1), background 0.3s",
         transform: isMobile ? (mobileOpen ? "translateX(0)" : "translateX(-100%)") : "translateX(0)",
@@ -155,7 +156,7 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
                     <div style={{ display:"flex", alignItems:"center", gap:4, marginTop:3 }}>
                       {years.length > 1 && (
                         <button onClick={e=>{e.stopPropagation();cycleYear(-1);}} disabled={activeFY===startFY}
-                          style={{ background:"none", border:"none", cursor:activeFY===startFY?"default":"pointer", color:activeFY===startFY?t.border:t.textSub, fontSize:12, padding:"4px 6px", lineHeight:1, opacity:activeFY===startFY?0.3:1, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center" }}>‹</button>
+                          style={{ background:"none", border:"none", cursor:activeFY===startFY?"default":"pointer", color:activeFY===startFY?t.border:t.textSub, fontSize:10, padding:"0 1px", lineHeight:1, opacity:activeFY===startFY?0.3:1 }}>‹</button>
                       )}
                       <div onClick={e=>{e.stopPropagation(); setViewingFY(isPast?null:null);}}
                         style={{ display:"flex", alignItems:"center", gap:4, padding:"2px 7px", borderRadius:20, background:isPast?`rgba(255,159,10,0.15)`:`${t.accent}15`, border:`1px solid ${isPast?"rgba(255,159,10,0.4)":`${t.accent}30`}`, cursor:"default" }}>
@@ -164,7 +165,7 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
                       </div>
                       {years.length > 1 && (
                         <button onClick={e=>{e.stopPropagation();cycleYear(1);}} disabled={activeFY===currentFY}
-                          style={{ background:"none", border:"none", cursor:activeFY===currentFY?"default":"pointer", color:activeFY===currentFY?t.border:t.textSub, fontSize:12, padding:"4px 6px", lineHeight:1, opacity:activeFY===currentFY?0.3:1, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center" }}>›</button>
+                          style={{ background:"none", border:"none", cursor:activeFY===currentFY?"default":"pointer", color:activeFY===currentFY?t.border:t.textSub, fontSize:10, padding:"0 1px", lineHeight:1, opacity:activeFY===currentFY?0.3:1 }}>›</button>
                       )}
                     </div>
                   );
@@ -192,9 +193,11 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
         </nav>
 
         <div style={{ padding:"0 8px", display:"flex", flexDirection:"column", gap:8, flexShrink:0 }}>
+          {!isMobile && (
           <button onClick={toggleTheme} title={isDark?"Light mode":"Dark mode"} style={{ background:"none", border:"none", cursor:"pointer", color:t.textSub, fontSize:18, padding:"8px 12px", textAlign:collapsed&&!isMobile?"center":"left", borderRadius:8, width:"100%" }}>
             {isDark?"☀️":"🌙"}
           </button>
+          )}
           <div style={{ display:"flex", alignItems:"center", gap:collapsed&&!isMobile?0:10, padding:"10px 12px", borderRadius:12, background:t.surfaceAlt, border:`1px solid ${t.border}`, justifyContent:collapsed&&!isMobile?"center":"flex-start" }}>
             <Avatar name={session?.user?.email||"A"} size={30}/>
             {(!collapsed || isMobile) && (
