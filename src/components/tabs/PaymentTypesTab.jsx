@@ -220,7 +220,7 @@ export function PaymentTypesTab({
                                 })}
                               </div>
                             ;
-                          })()}
+                          })()
                         </div>
                       )}
 
@@ -265,7 +265,7 @@ export function PaymentTypesTab({
                                   })}
                               </div>
                             ;
-                          })()}
+                          })()
                         </div>
                       )}
 
@@ -279,3 +279,4 @@ export function PaymentTypesTab({
     </div>
   );
 }
+
