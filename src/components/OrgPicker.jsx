@@ -238,21 +238,17 @@ export function CreateOrgModal({ session, onCreated, onClose }) {
         .insert({ org_id: newOrg.id, user_id: session.user.id, role: "super_admin" });
       if (memErr) throw memErr;
 
-      // Also add them to profiles for this org
+      // Upsert profile for this org — safe if profile already exists for this (id, org_id)
       const { error: profErr } = await supabase
         .from("profiles")
-        .insert({
+        .upsert({
           id: session.user.id,
           org_id: newOrg.id,
           full_name: session.user.user_metadata?.full_name || session.user.email,
           role: "super_admin",
           status: "active",
-        })
-        .select()
-        .single();
-      // Ignore conflict — same user can have profiles in multiple orgs (different org_id)
-      // but the profiles PK is (id, org_id) so a true duplicate here means concurrent create
-      if (profErr && !profErr.code?.includes("23505")) throw profErr;
+        }, { onConflict: "id,org_id" });
+      if (profErr) throw profErr;
 
       onCreated(newOrg);
     } catch(err) { setError(err.message); } finally { setLoading(false); }
