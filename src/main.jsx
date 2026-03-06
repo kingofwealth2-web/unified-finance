@@ -1,4 +1,4 @@
-import { StrictMode, useState, useEffect } from 'react'
+import { StrictMode, useState, useEffect, useRef } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
@@ -11,6 +11,7 @@ function Root() {
   const [checking, setChecking] = useState(true)
   const [currentOrg, setCurrentOrg] = useState(null)
   const [orgRole, setOrgRole] = useState(null)
+  const switchedRef = useRef(false)
 
   // Scope sessionStorage keys to user so different users don't share org
   const uid = session?.user?.id || 'anon'
@@ -26,15 +27,16 @@ function Root() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       // Clear org when user signs out
-      if (!session) { setCurrentOrg(null); setOrgRole(null); }
+      if (!session) { setCurrentOrg(null); setOrgRole(null); switchedRef.current = false; }
     })
 
     return () => subscription.unsubscribe()
   }, [])
 
-  // Restore org from sessionStorage when session loads
+  // Restore org from sessionStorage when session loads — but not if user just switched
   useEffect(() => {
     if (!session) return
+    if (switchedRef.current) return
     const savedOrg  = sessionStorage.getItem(ORG_KEY)
     const savedRole = sessionStorage.getItem(ROLE_KEY)
     if (savedOrg && savedRole) {
@@ -44,6 +46,7 @@ function Root() {
   }, [session?.user?.id])
 
   function handleOrgSelect(org, role) {
+    switchedRef.current = false
     setCurrentOrg(org)
     setOrgRole(role)
     sessionStorage.setItem(ORG_KEY, JSON.stringify(org))
@@ -51,6 +54,7 @@ function Root() {
   }
 
   function handleSwitchOrg() {
+    switchedRef.current = true
     setCurrentOrg(null)
     setOrgRole(null)
     sessionStorage.removeItem(ORG_KEY)
