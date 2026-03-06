@@ -122,6 +122,7 @@ export default function App({ session }) {
         transition: isMobile ? "transform 0.3s cubic-bezier(0.4,0,0.2,1)" : "width 0.3s cubic-bezier(0.4,0,0.2,1), background 0.3s",
         transform: isMobile ? (mobileOpen ? "translateX(0)" : "translateX(-100%)") : "translateX(0)",
         overflow:"hidden",
+        minHeight:0,
       }}>
         
         {/* Logo + collapse toggle */}
@@ -144,7 +145,7 @@ export default function App({ session }) {
           ) : null}
         </div>
 
-        <nav style={{ flex:1, padding:"0 8px", display:"flex", flexDirection:"column", gap:2 }}>
+        <nav style={{ flex:1, padding:"0 8px", display:"flex", flexDirection:"column", gap:2, overflowY:"auto", minHeight:0 }}>
           {navItems.map((item,i)=>(
             <button key={item.id} className="nav-btn" onClick={()=>{ setActiveTab(item.id); if(isMobile) setMobileOpen(false); }}
               title={collapsed&&!isMobile?item.label:""}
@@ -156,7 +157,7 @@ export default function App({ session }) {
           ))}
         </nav>
 
-        <div style={{ padding:"0 8px", display:"flex", flexDirection:"column", gap:8 }}>
+        <div style={{ padding:"0 8px", display:"flex", flexDirection:"column", gap:8, flexShrink:0 }}>
           <button onClick={toggleTheme} title={isDark?"Light mode":"Dark mode"} style={{ background:"none", border:"none", cursor:"pointer", color:t.textSub, fontSize:18, padding:"8px 12px", textAlign:collapsed&&!isMobile?"center":"left", borderRadius:8, width:"100%" }}>
             {isDark?"☀️":"🌙"}
           </button>
@@ -241,18 +242,15 @@ export default function App({ session }) {
             <IncomeTab
               data={app.data} t={t} fmt={app.fmt}
               isSuperAdmin={isSuperAdmin} openModal={app.openModal}
-              newIncome={app.newIncome} setNewIncome={app.setNewIncome}
-              editingIncomeSource={app.editingIncomeSource}
               setEditingIncomeSource={app.setEditingIncomeSource}
-              handleAddIncome={app.handleAddIncome}
-              handleEditIncome={app.handleEditIncome}
+              handleDeleteIncomeSource={app.handleDeleteIncomeSource}
             />
           )}
 
           {activeTab==="summary" && (
             <FinancialSummaryTab
               data={app.data} t={t} fmt={app.fmt}
-              isSuperAdmin={isSuperAdmin}
+              isSuperAdmin={isSuperAdmin} orgName={orgName}
               exportDateFrom={app.exportDateFrom} setExportDateFrom={app.setExportDateFrom}
               exportDateTo={app.exportDateTo} setExportDateTo={app.setExportDateTo}
               exportFinancialReport={app.exportFinancialReport}
