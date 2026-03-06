@@ -127,6 +127,30 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole }) {
     } catch(err) { console.error(err); } finally { setLoading(false); }
   }
 
+  async function handleDeleteUser(userId, userName) {
+    try {
+      const { data: { session: adminSession } } = await supabase.auth.getSession();
+      const response = await fetch(
+        "https://jsxixfwjupxwruybyeut.supabase.co/functions/v1/delete-user",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${adminSession.access_token}`,
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            requester_id: session?.user?.id,
+          }),
+        }
+      );
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Failed to delete user");
+      await logAudit("delete","user",userId,userName,`Deleted user ${userName}`,{full_name:userName},null);
+      fetchAllData();
+    } catch(err) { alert(err.message); }
+  }
+
   async function handleAddUser(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
     try {
@@ -497,7 +521,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole }) {
     activitySearch, setActivitySearch, activityFilter, setActivityFilter,
     activityDateFrom, setActivityDateFrom, activityDateTo, setActivityDateTo,
     activityPage, setActivityPage, showPrintView, setShowPrintView,
-    handleAddUser, handleAddPerson, handleAddContribution, handleAddExpense,
+    handleDeleteUser, handleAddUser, handleAddPerson, handleAddContribution, handleAddExpense,
     handleAddPaymentType, handleAddExpenseCategory,
     handleEditPaymentType, handleDeletePaymentType,
     handleEditExpenseCategory, handleDeleteExpenseCategory,
