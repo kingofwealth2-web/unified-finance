@@ -155,7 +155,7 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
                     <div style={{ display:"flex", alignItems:"center", gap:4, marginTop:3 }}>
                       {years.length > 1 && (
                         <button onClick={e=>{e.stopPropagation();cycleYear(-1);}} disabled={activeFY===startFY}
-                          style={{ background:"none", border:"none", cursor:activeFY===startFY?"default":"pointer", color:activeFY===startFY?t.border:t.textSub, fontSize:10, padding:"0 1px", lineHeight:1, opacity:activeFY===startFY?0.3:1 }}>‹</button>
+                          style={{ background:"none", border:"none", cursor:activeFY===startFY?"default":"pointer", color:activeFY===startFY?t.border:t.textSub, fontSize:12, padding:"4px 6px", lineHeight:1, opacity:activeFY===startFY?0.3:1, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center" }}>‹</button>
                       )}
                       <div onClick={e=>{e.stopPropagation(); setViewingFY(isPast?null:null);}}
                         style={{ display:"flex", alignItems:"center", gap:4, padding:"2px 7px", borderRadius:20, background:isPast?`rgba(255,159,10,0.15)`:`${t.accent}15`, border:`1px solid ${isPast?"rgba(255,159,10,0.4)":`${t.accent}30`}`, cursor:"default" }}>
@@ -164,7 +164,7 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
                       </div>
                       {years.length > 1 && (
                         <button onClick={e=>{e.stopPropagation();cycleYear(1);}} disabled={activeFY===currentFY}
-                          style={{ background:"none", border:"none", cursor:activeFY===currentFY?"default":"pointer", color:activeFY===currentFY?t.border:t.textSub, fontSize:10, padding:"0 1px", lineHeight:1, opacity:activeFY===currentFY?0.3:1 }}>›</button>
+                          style={{ background:"none", border:"none", cursor:activeFY===currentFY?"default":"pointer", color:activeFY===currentFY?t.border:t.textSub, fontSize:12, padding:"4px 6px", lineHeight:1, opacity:activeFY===currentFY?0.3:1, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center" }}>›</button>
                       )}
                     </div>
                   );
