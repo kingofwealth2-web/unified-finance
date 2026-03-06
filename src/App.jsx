@@ -287,6 +287,7 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
               data={app.data} t={t} fmt={app.fmt}
               isSuperAdmin={isSuperAdmin} openModal={app.openModal}
               orgName={orgName} session={session}
+              handleDeleteUser={(id, name) => withConfirm("Delete User", `Remove ${name}? Their account will be permanently deleted.`, "Delete", () => { app.handleDeleteUser(id, name); })}
               setEditingPaymentType={app.setEditingPaymentType}
               handleDeletePaymentType={(id) => confirmDeletePaymentType(id, app.data?.paymentTypes?.find(p=>p.id===id)?.name)}
               setEditingExpenseCategory={app.setEditingExpenseCategory}

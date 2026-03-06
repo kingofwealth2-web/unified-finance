@@ -3,7 +3,8 @@ import { fyLabel } from "../../constants.js";
 
 export function SettingsTab({ data, t, fmt, isSuperAdmin, openModal, orgName, session,
   setEditingPaymentType, handleDeletePaymentType,
-  setEditingExpenseCategory, handleDeleteExpenseCategory }) {
+  setEditingExpenseCategory, handleDeleteExpenseCategory,
+  handleDeleteUser }) {
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:24 }}>
@@ -59,6 +60,9 @@ export function SettingsTab({ data, t, fmt, isSuperAdmin, openModal, orgName, se
                   {user.role==="super_admin"?"Super Admin":"Admin"}
                 </span>
                 {user.id===session?.user?.id && <span style={{ fontSize:11, color:t.textSub, fontStyle:"italic" }}>You</span>}
+                {isSuperAdmin && user.id!==session?.user?.id && user.role!=="super_admin" && (
+                  <Btn size="sm" variant="danger" t={t} onClick={()=>handleDeleteUser(user.id, user.full_name||user.email)}>Delete</Btn>
+                )}
               </div>
             </div>
           ))}
