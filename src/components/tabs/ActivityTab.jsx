@@ -54,7 +54,7 @@ export function ActivityTab({
                 const hasDateFilter = activityDateFrom || activityDateTo;
       
                 if (showPrintView) return createPortal(
-                  <div style={{ position:"fixed", inset:0, background:"white", zIndex:9999, overflowY:"auto", padding:"24px" }}>
+                  <div style={{ position:"fixed", inset:0, background:t.bg, zIndex:9999, overflowY:"auto", padding:"24px" }}>
                     <div className="no-print" style={{ marginBottom:20, display:"flex", gap:10 }}>
                       <Btn t={t} onClick={()=>{ window.print(); }} variant="secondary">🖨 Print</Btn>
                       <Btn t={t} onClick={()=>setShowPrintView(false)} variant="secondary">← Back</Btn>
@@ -92,7 +92,7 @@ export function ActivityTab({
                         </thead>
                         <tbody>
                           {filtered.map((item,i)=>(
-                            <tr key={item.id} style={{ borderBottom:"1px solid #F2F2F7", background:i%2===0?"white":"#FAFAFA" }}>
+                            <tr key={item.id} style={{ borderBottom:"1px solid #F2F2F7", background:"transparent" }}>
                               <td style={{ padding:"10px 12px", color:"#636366", whiteSpace:"nowrap" }}>{item.time}</td>
                               <td style={{ padding:"10px 12px" }}>
                                 <span style={{ fontSize:11, fontWeight:600, padding:"2px 8px", borderRadius:6, background:item.positive?"rgba(52,199,89,0.12)":"rgba(255,55,95,0.1)", color:item.positive?"#34C759":"#FF375F" }}>

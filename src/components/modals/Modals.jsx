@@ -141,10 +141,6 @@ export function Modals({
                 <div style={{ position:"fixed", inset:0, zIndex:9997, display:"flex", alignItems:"center", justifyContent:"center", padding:24, animation:"fadeIn 0.2s ease" }}>
                   <style>{`
                     @keyframes bulkIn { from { opacity:0; transform:scale(0.97) } to { opacity:1; transform:scale(1) } }
-                    .bulk-scroll::-webkit-scrollbar { width:3px; }
-                    .bulk-scroll::-webkit-scrollbar-track { background:transparent; }
-                    .bulk-scroll::-webkit-scrollbar-thumb { background:rgba(128,128,128,0.2); border-radius:99px; }
-                    .bulk-scroll::-webkit-scrollbar-thumb:hover { background:rgba(128,128,128,0.4); }
                   `}</style>
                   {/* Backdrop */}
                   <div onClick={closeModal} style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.6)", backdropFilter:"blur(8px)" }}/>
