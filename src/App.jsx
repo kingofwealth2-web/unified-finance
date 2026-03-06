@@ -16,7 +16,7 @@ import { Modals }         from "./components/modals/Modals.jsx";
 const ACTIVITY_PAGE_SIZE = 20;
 
 export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
-  const app = useAppData({ session, currentOrg });
+  const app = useAppData({ session, currentOrg, orgRole });
   const { t, isDark, toggleTheme, activeTab, setActiveTab, navItems,
           orgName, loading, isSuperAdmin, visible } = app;
   const [collapsed, setCollapsed] = useState(false);

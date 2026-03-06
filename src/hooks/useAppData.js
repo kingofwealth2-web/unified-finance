@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient.js";
 import { makeFmt, light, dark, buildMonthly, buildTimeline, fyLabel } from "../constants.js";
 
-export function useAppData({ session, currentOrg }) {
+export function useAppData({ session, currentOrg, orgRole: initialOrgRole }) {
   const [activeTab, setActiveTab] = useState("overview");
   const [isDark, setIsDark] = useState(() => localStorage.getItem("unified-theme") === "dark");
   const t = isDark ? dark : light;
@@ -89,7 +89,7 @@ export function useAppData({ session, currentOrg }) {
       }
 
       const me = (profiles||[]).find(p=>p.id===session?.user?.id);
-      setUserRole(me?.role || "admin");
+      setUserRole(me?.role || initialOrgRole || "admin");
 
       const fmtLocal = makeFmt(org?.currency||"USD");
       const now = new Date();

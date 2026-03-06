@@ -238,17 +238,8 @@ export function CreateOrgModal({ session, onCreated, onClose }) {
         .insert({ org_id: newOrg.id, user_id: session.user.id, role: "super_admin" });
       if (memErr) throw memErr;
 
-      // Upsert profile for this org — safe if profile already exists for this (id, org_id)
-      const { error: profErr } = await supabase
-        .from("profiles")
-        .upsert({
-          id: session.user.id,
-          org_id: newOrg.id,
-          full_name: session.user.user_metadata?.full_name || session.user.email,
-          role: "super_admin",
-          status: "active",
-        }, { onConflict: "id,org_id" });
-      if (profErr) throw profErr;
+      // Profile row not needed at org creation — role comes from org_members
+      // A profile will be created when the user first accesses the org
 
       onCreated(newOrg);
     } catch(err) { setError(err.message); } finally { setLoading(false); }
