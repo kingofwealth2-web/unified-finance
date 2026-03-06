@@ -113,7 +113,7 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
 
       {/* ── Sidebar ── */}
       <div style={{
-        position:"fixed", left:0, top:0, bottom:0,
+        position:"fixed", left:0, top: isMobile ? 56 : 0, bottom:0,
         width: isMobile ? 260 : SW,
         background:t.sidebar, backdropFilter:"blur(40px)",
         borderRight:`1px solid ${t.border}`,
