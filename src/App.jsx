@@ -293,6 +293,12 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
               handleDeletePaymentType={(id) => confirmDeletePaymentType(id, app.data?.paymentTypes?.find(p=>p.id===id)?.name)}
               setEditingExpenseCategory={app.setEditingExpenseCategory}
               handleDeleteExpenseCategory={(id) => confirmDeleteExpenseCategory(id, app.data?.expenseCategories?.find(c=>c.id===id)?.name)}
+              onStartNewYear={() => withConfirm(
+                "Start New Financial Year",
+                `This will archive FY${app.data?.org?.financial_year_start} and start FY${(app.data?.org?.financial_year_start||0)+1}. Your current balance of ${app.fmt(app.data?.totalBalance||0)} becomes the new opening balance. This cannot be undone.`,
+                "Start New Year",
+                () => app.handleStartNewYear()
+              )}
             />
           )}
 

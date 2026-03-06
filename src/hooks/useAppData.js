@@ -72,15 +72,19 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole }) {
     setLoading(true);
     try {
       const orgId = currentOrg.id;
+      // Get org first to know the current financial year
+      const { data: orgRowsFirst } = await supabase.from("org_settings").select("*").eq("id", orgId).limit(1);
+      const currentFY = orgRowsFirst?.[0]?.financial_year_start || new Date().getFullYear();
+
       const [{ data: profiles }, { data: contributions }, { data: categories }, { data: expenses }, { data: paymentTypes }, { data: orgRows }, { data: auditRows }, { data: incomeRows }] = await Promise.all([
         supabase.from("profiles").select("*").eq("org_id", orgId).order("created_at",{ascending:false}),
-        supabase.from("contributions").select("*, profiles(full_name), payment_types(name,color)").eq("org_id", orgId).order("created_at",{ascending:false}),
+        supabase.from("contributions").select("*, profiles(full_name), payment_types(name,color)").eq("org_id", orgId).eq("financial_year", currentFY).order("created_at",{ascending:false}),
         supabase.from("expense_categories").select("*").eq("org_id", orgId).order("created_at",{ascending:false}),
-        supabase.from("expenses").select("*, expense_categories(name,color)").eq("org_id", orgId).order("created_at",{ascending:false}),
+        supabase.from("expenses").select("*, expense_categories(name,color)").eq("org_id", orgId).eq("financial_year", currentFY).order("created_at",{ascending:false}),
         supabase.from("payment_types").select("*").eq("org_id", orgId).order("created_at",{ascending:false}),
         supabase.from("org_settings").select("*").eq("id", orgId).limit(1),
         supabase.from("audit_log").select("*").eq("org_id", orgId).order("created_at",{ascending:false}).limit(200),
-        supabase.from("income_sources").select("*").eq("org_id", orgId).order("created_at",{ascending:false}),
+        supabase.from("income_sources").select("*").eq("org_id", orgId).eq("financial_year", currentFY).order("created_at",{ascending:false}),
       ]);
 
       const org = orgRows?.[0] || null;
@@ -194,7 +198,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole }) {
   async function handleAddContribution(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
     try {
-      const {error}=await supabase.from("contributions").insert({member_id:newContribution.member_id,amount:Number(newContribution.amount),payment_type_id:newContribution.payment_type_id||null,note:newContribution.note,type:"other",org_id:currentOrg.id,created_at:newContribution.date?new Date(newContribution.date).toISOString():new Date().toISOString()});
+      const {error}=await supabase.from("contributions").insert({member_id:newContribution.member_id,amount:Number(newContribution.amount),payment_type_id:newContribution.payment_type_id||null,note:newContribution.note,type:"other",org_id:currentOrg.id,financial_year:data.org?.financial_year_start||new Date().getFullYear(),created_at:newContribution.date?new Date(newContribution.date).toISOString():new Date().toISOString()});
       if(error)throw error;
       const memberName = data.allPeople.find(p=>p.id===newContribution.member_id)?.full_name||"Member";
       await logAudit("create","contribution",null,memberName,`Recorded contribution of ${newContribution.amount} for ${memberName}`,null,{amount:newContribution.amount,note:newContribution.note});
@@ -204,7 +208,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole }) {
   async function handleAddExpense(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
     try {
-      const {error}=await supabase.from("expenses").insert({category_id:newExpense.category_id,amount:Number(newExpense.amount),label:newExpense.label,recorded_by:session?.user?.id,org_id:currentOrg.id,created_at:newExpense.date?new Date(newExpense.date).toISOString():new Date().toISOString()});
+      const {error}=await supabase.from("expenses").insert({category_id:newExpense.category_id,amount:Number(newExpense.amount),label:newExpense.label,recorded_by:session?.user?.id,org_id:currentOrg.id,financial_year:data.org?.financial_year_start||new Date().getFullYear(),created_at:newExpense.date?new Date(newExpense.date).toISOString():new Date().toISOString()});
       if(error)throw error;
       const catName = data.categories?.find(c=>c.id===newExpense.category_id)?.name||"Expense";
       await logAudit("create","expense",null,null,`Recorded expense: ${newExpense.label} (${newExpense.amount}) under ${catName}`,null,{amount:newExpense.amount,label:newExpense.label});
@@ -262,6 +266,35 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole }) {
     await logAudit("delete","expense_category",id,null,`Deleted expense category: ${cat?.label||id}`,{name:cat?.label},null);
     fetchAllData();
   }
+  async function handleStartNewYear() {
+    try {
+      const org = data.org;
+      if (!org) return;
+      const newYear = (org.financial_year_start || new Date().getFullYear()) + 1;
+      const closingBalance = data.totalBalance || 0;
+
+      const { error } = await supabase.from("org_settings").update({
+        financial_year_start: newYear,
+        opening_balance: closingBalance,
+        updated_by: session?.user?.id,
+        updated_at: new Date().toISOString(),
+      }).eq("id", org.id);
+
+      if (error) throw error;
+
+      await logAudit("edit","org",org.id,null,
+        `Started new financial year FY${newYear}. Opening balance: ${closingBalance}`,
+        { financial_year_start: org.financial_year_start, opening_balance: org.opening_balance },
+        { financial_year_start: newYear, opening_balance: closingBalance }
+      );
+
+      fetchAllData();
+      const currency = data.org?.currency || "USD";
+      const fmtBalance = new Intl.NumberFormat("en-US",{style:"currency",currency,maximumFractionDigits:0}).format(closingBalance);
+      toast(`FY${newYear} started — opening balance set to ${fmtBalance}`);
+    } catch(err) { alert(err.message); }
+  }
+
   async function handleSaveOrg(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
     try {
@@ -364,6 +397,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole }) {
         source:newIncome.source||null, note:newIncome.note||null,
         date:newIncome.date||new Date().toISOString().slice(0,10),
         recorded_by:session?.user?.id, org_id:currentOrg.id,
+        financial_year:data.org?.financial_year_start||new Date().getFullYear(),
       });
       if(error)throw error;
       await logAudit("create","income",null,null,`Recorded income: ${newIncome.label} (${newIncome.amount})`,null,{label:newIncome.label,amount:newIncome.amount});
@@ -398,6 +432,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole }) {
           note: bulkContributions.note || null,
           type: "other",
           org_id: currentOrg.id,
+          financial_year: data.org?.financial_year_start || new Date().getFullYear(),
           created_at: bulkContributions.date ? new Date(bulkContributions.date).toISOString() : new Date().toISOString(),
         }));
       if (entries.length === 0) { setFormError("No amounts entered."); setFormLoading(false); return; }
@@ -526,7 +561,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole }) {
     handleAddPaymentType, handleAddExpenseCategory,
     handleEditPaymentType, handleDeletePaymentType,
     handleEditExpenseCategory, handleDeleteExpenseCategory,
-    handleSaveOrg, handleEditPerson, handleDeletePerson, handleDeactivatePerson,
+    handleStartNewYear, handleSaveOrg, handleEditPerson, handleDeletePerson, handleDeactivatePerson,
     handleEditContribution, handleDeleteContribution,
     handleEditExpenseEntry, handleDeleteExpenseEntry,
     handleAddIncome, handleEditIncome, handleDeleteIncomeSource,

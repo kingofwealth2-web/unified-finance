@@ -1,13 +1,28 @@
 import { Card, Btn, Avatar, EmptyState } from "../ui/index.jsx";
 import { fyLabel } from "../../constants.js";
+import { fyLabel } from "../../constants.js";
 
 export function SettingsTab({ data, t, fmt, isSuperAdmin, openModal, orgName, session,
   setEditingPaymentType, handleDeletePaymentType,
   setEditingExpenseCategory, handleDeleteExpenseCategory,
-  handleDeleteUser }) {
+  handleDeleteUser, onStartNewYear }) {
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:24 }}>
+
+      {isSuperAdmin && (
+        <Card t={t} style={{ animation:"slideUp 0.3s ease", border:`1px solid ${t.accent}30`, background:`${t.accent}06` }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <div>
+              <h3 style={{ fontSize:15, fontWeight:700, margin:0, color:t.text }}>Financial Year</h3>
+              <p style={{ fontSize:13, color:t.textSub, margin:"4px 0 0" }}>
+                Currently in <strong style={{ color:t.accent }}>{data.org ? fyLabel(data.org.financial_year_start, data.org.financial_year_format) : "—"}</strong> · Closing balance will become next year's opening balance
+              </p>
+            </div>
+            <Btn t={t} onClick={onStartNewYear} variant="secondary">Start New Year →</Btn>
+          </div>
+        </Card>
+      )}
 
       <Card t={t} style={{ animation:"slideUp 0.3s ease" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 }}>
