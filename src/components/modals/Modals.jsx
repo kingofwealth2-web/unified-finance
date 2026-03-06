@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Modal, Field, Input, Textarea, Select, Btn, ColorPicker } from "../ui/index.jsx";
 import { CURRENCIES } from "../../constants.js";
@@ -24,6 +24,25 @@ export function Modals({
 }) {
   const [memberSearch, setMemberSearch] = useState("");
   const [bulkSearch, setBulkSearch] = useState("");
+  const [isDirty, setIsDirty] = useState(false);
+
+  // Reset dirty flag whenever modal changes (new modal opened)
+  useEffect(() => { setIsDirty(false); }, [modal]);
+
+  // Mark form as dirty on any field change
+  const markDirty = () => setIsDirty(true);
+
+  // Guard close — warn if form has unsaved changes
+  const safeClose = () => {
+    if (isDirty) {
+      if (!window.confirm("You have unsaved changes. Close anyway?")) return;
+    }
+    setIsDirty(false);
+    closeModal();
+  };
+
+  // Clean close — used by submit handlers (no dirty check needed)
+  const cleanClose = () => { setIsDirty(false); closeModal(); };
   const iStyle = (t) => ({ width:"100%", padding:"11px 14px", borderRadius:10, border:`1px solid ${t.borderStrong}`, fontSize:14, color:t.text, background:t.inputBg, outline:"none", boxSizing:"border-box", fontFamily:"inherit", transition:"border-color 0.15s" });
   const filteredMembers = (data.allPeople||[]).filter(p =>
     p.role === "member" &&
@@ -35,8 +54,8 @@ export function Modals({
     <>
       {/* ── MODALS ── */}
               {modal==="editOrg"&&orgForm&&(
-                <Modal title="Organisation Settings" onClose={closeModal} t={t}>
-                  <form onSubmit={handleSaveOrg}>
+                <Modal title="Organisation Settings" onClose={safeClose} t={t}>
+                  <form onSubmit={handleSaveOrg} onInput={markDirty}>
                     <Field label="Organisation Name" t={t}><Input t={t} value={orgForm.name} onChange={e=>setOrgForm({...orgForm,name:e.target.value})} required/></Field>
                     <Field label="Address" t={t}><Textarea t={t} value={orgForm.address} onChange={e=>setOrgForm({...orgForm,address:e.target.value})} placeholder="Street, City, Country"/></Field>
                     <div className="grid-2" style={{ gap:12 }}>
@@ -54,50 +73,50 @@ export function Modals({
                     </Field>
                     {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
                     <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
-                      <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
+                      <Btn variant="secondary" t={t} type="button" onClick={safeClose}>Cancel</Btn>
                       <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Saving...":"Save Changes"}</Btn>
                     </div>
                   </form>
                 </Modal>
               )}
               {modal==="addUser"&&(
-                <Modal title="Add New User" onClose={closeModal} t={t}>
-                  <form onSubmit={handleAddUser}>
+                <Modal title="Add New User" onClose={safeClose} t={t}>
+                  <form onSubmit={handleAddUser} onInput={markDirty}>
                     <Field label="Full Name" t={t}><Input t={t} value={newUser.full_name} onChange={e=>setNewUser({...newUser,full_name:e.target.value})} placeholder="John Doe" required/></Field>
                     <Field label="Email" t={t}><Input t={t} type="email" value={newUser.email} onChange={e=>setNewUser({...newUser,email:e.target.value})} placeholder="john@example.com" required/></Field>
                     <Field label="Password" t={t}><Input t={t} type="password" value={newUser.password} onChange={e=>setNewUser({...newUser,password:e.target.value})} placeholder="Min. 6 characters" required minLength={6}/></Field>
                     <Field label="Role" t={t}><Select t={t} value={newUser.role} onChange={e=>setNewUser({...newUser,role:e.target.value})}><option value="admin">Admin (Manager)</option><option value="super_admin">Super Admin (Owner)</option></Select></Field>
                     {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
                     <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
-                      <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
+                      <Btn variant="secondary" t={t} type="button" onClick={safeClose}>Cancel</Btn>
                       <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Creating...":"Create User"}</Btn>
                     </div>
                   </form>
                 </Modal>
               )}
               {modal==="addPerson"&&(
-                <Modal title="Add Person" onClose={closeModal} t={t}>
-                  <form onSubmit={handleAddPerson}>
+                <Modal title="Add Person" onClose={safeClose} t={t}>
+                  <form onSubmit={handleAddPerson} onInput={markDirty}>
                     <Field label="Full Name" t={t}><Input t={t} value={newPerson.full_name} onChange={e=>setNewPerson({...newPerson,full_name:e.target.value})} placeholder="Jane Doe" required/></Field>
                     <Field label="Status" t={t}><Select t={t} value={newPerson.status} onChange={e=>setNewPerson({...newPerson,status:e.target.value})}><option value="active">Active</option><option value="inactive">Inactive</option></Select></Field>
                     <Field label="Monthly Target (optional)" t={t}><Input t={t} type="number" min="0" step="0.01" value={newPerson.monthly_target||""} onChange={e=>setNewPerson({...newPerson,monthly_target:e.target.value})} placeholder="e.g. 100"/></Field>
                     {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
                     <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
-                      <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
+                      <Btn variant="secondary" t={t} type="button" onClick={safeClose}>Cancel</Btn>
                       <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Saving...":"Add Person"}</Btn>
                     </div>
                   </form>
                 </Modal>
               )}
               {modal==="addContribution"&&(
-                <Modal title="Record Contribution" onClose={()=>{closeModal();setMemberSearch("");}} t={t}>
-                  <form onSubmit={handleAddContribution}>
+                <Modal title="Record Contribution" onClose={()=>{safeClose();setMemberSearch("");}} t={t}>
+                  <form onSubmit={handleAddContribution} onInput={markDirty}>
                     <Field label="Person" t={t}>
                       <div style={{ position:"relative" }}>
                         <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:t.textSub, fontSize:13, pointerEvents:"none" }}>🔍</span>
                         <input
                           value={memberSearch}
-                          onChange={e=>setMemberSearch(e.target.value)}
+                          onChange={e=>{markDirty();setMemberSearch(e.target.value)}}
                           placeholder="Search members..."
                           style={{ ...iStyle(t), paddingLeft:34 }}
                           autoComplete="off"
@@ -131,7 +150,7 @@ export function Modals({
                     <Field label="Date" t={t}><Input t={t} type="date" value={newContribution.date} onChange={e=>setNewContribution({...newContribution,date:e.target.value})} required/></Field>
                     {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
                     <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
-                      <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
+                      <Btn variant="secondary" t={t} type="button" onClick={safeClose}>Cancel</Btn>
                       <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Saving...":"Record"}</Btn>
                     </div>
                   </form>
@@ -143,7 +162,7 @@ export function Modals({
                     @keyframes bulkIn { from { opacity:0; transform:scale(0.97) } to { opacity:1; transform:scale(1) } }
                   `}</style>
                   {/* Backdrop */}
-                  <div onClick={closeModal} style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.6)", backdropFilter:"blur(8px)" }}/>
+                  <div onClick={safeClose} style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.6)", backdropFilter:"blur(8px)" }}/>
                   {/* Panel */}
                   <div style={{ position:"relative", width:"100%", maxWidth:560, maxHeight:"90vh", background:t.surface, borderRadius:24, border:`1px solid ${t.border}`, display:"flex", flexDirection:"column", animation:"bulkIn 0.25s cubic-bezier(0.34,1.2,0.64,1)", boxShadow:"0 32px 80px rgba(0,0,0,0.5)" }}>
 
@@ -154,7 +173,7 @@ export function Modals({
                           <h2 style={{ fontSize:20, fontWeight:700, margin:0, color:t.text, letterSpacing:"-0.4px" }}>Bulk Add Contributions</h2>
                           <p style={{ fontSize:13, color:t.textSub, margin:"4px 0 0" }}>Enter amounts for each member, leave blank to skip</p>
                         </div>
-                        <button onClick={closeModal} style={{ background:"none", border:"none", color:t.textSub, fontSize:22, cursor:"pointer", lineHeight:1, padding:4, marginTop:-4 }}>×</button>
+                        <button onClick={safeClose} style={{ background:"none", border:"none", color:t.textSub, fontSize:22, cursor:"pointer", lineHeight:1, padding:4, marginTop:-4 }}>×</button>
                       </div>
                       {/* Payment type + note + date */}
                       <div style={{ display:"flex", gap:12 }}>
@@ -179,7 +198,7 @@ export function Modals({
                         <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", fontSize:13, color:t.textSub, pointerEvents:"none" }}>🔍</span>
                         <input
                           value={bulkSearch}
-                          onChange={e=>setBulkSearch(e.target.value)}
+                          onChange={e=>{markDirty();setBulkSearch(e.target.value)}}
                           placeholder="Search members..."
                           style={{ width:"100%", padding:"10px 14px 10px 34px", borderRadius:10, border:`1px solid ${t.borderStrong}`, background:t.surfaceAlt, color:t.text, fontSize:14, outline:"none", boxSizing:"border-box", fontFamily:"inherit" }}
                         />
@@ -225,8 +244,8 @@ export function Modals({
                         ) : null;
                       })()}
                       {formError&&<p style={{ fontSize:13, color:"#FF375F", margin:"0 0 12px" }}>{formError}</p>}
-                      <form onSubmit={handleBulkAddContributions} style={{ display:"flex", gap:10 }}>
-                        <Btn variant="secondary" t={t} type="button" onClick={closeModal} style={{ flex:1 }}>Cancel</Btn>
+                      <form onSubmit={handleBulkAddContributions} onInput={markDirty} style={{ display:"flex", gap:10 }}>
+                        <Btn variant="secondary" t={t} type="button" onClick={safeClose} style={{ flex:1 }}>Cancel</Btn>
                         <Btn t={t} type="submit" disabled={formLoading} style={{ flex:2 }}>{formLoading?"Saving...":"Record All"}</Btn>
                       </form>
                     </div>
@@ -235,75 +254,75 @@ export function Modals({
                 document.body
               )}
               {modal==="addExpense"&&(
-                <Modal title="Record Expense" onClose={closeModal} t={t}>
-                  <form onSubmit={handleAddExpense}>
+                <Modal title="Record Expense" onClose={safeClose} t={t}>
+                  <form onSubmit={handleAddExpense} onInput={markDirty}>
                     <Field label="Category" t={t}><Select t={t} value={newExpense.category_id} onChange={e=>setNewExpense({...newExpense,category_id:e.target.value})} required><option value="">Select category...</option>{data.expenses.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</Select></Field>
                     <Field label="Amount" t={t}><Input t={t} type="number" min="1" step="0.01" value={newExpense.amount} onChange={e=>setNewExpense({...newExpense,amount:e.target.value})} placeholder="0.00" required/></Field>
                     <Field label="Description" t={t}><Input t={t} value={newExpense.label} onChange={e=>setNewExpense({...newExpense,label:e.target.value})} placeholder="What was this for?" required/></Field>
                     <Field label="Date" t={t}><Input t={t} type="date" value={newExpense.date} onChange={e=>setNewExpense({...newExpense,date:e.target.value})} required/></Field>
                     {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
                     <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
-                      <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
+                      <Btn variant="secondary" t={t} type="button" onClick={safeClose}>Cancel</Btn>
                       <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Saving...":"Record"}</Btn>
                     </div>
                   </form>
                 </Modal>
               )}
               {modal==="addPaymentType"&&(
-                <Modal title="New Payment Type" onClose={closeModal} t={t}>
-                  <form onSubmit={handleAddPaymentType}>
+                <Modal title="New Payment Type" onClose={safeClose} t={t}>
+                  <form onSubmit={handleAddPaymentType} onInput={markDirty}>
                     <Field label="Name" t={t}><Input t={t} value={newPaymentType.name} onChange={e=>setNewPaymentType({...newPaymentType,name:e.target.value})} placeholder="e.g. Monthly Dues, Annual Levy" required/></Field>
                     <Field label="Description (optional)" t={t}><Textarea t={t} value={newPaymentType.description} onChange={e=>setNewPaymentType({...newPaymentType,description:e.target.value})} placeholder="Brief description..."/></Field>
                     <Field label="Goal Amount (optional)" t={t}><Input t={t} type="number" min="0" step="0.01" value={newPaymentType.goal} onChange={e=>setNewPaymentType({...newPaymentType,goal:e.target.value})} placeholder="e.g. 10000"/></Field>
                     <Field label="Color" t={t}><ColorPicker value={newPaymentType.color} onChange={color=>setNewPaymentType({...newPaymentType,color})}/></Field>
                     {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
                     <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:24 }}>
-                      <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
+                      <Btn variant="secondary" t={t} type="button" onClick={safeClose}>Cancel</Btn>
                       <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Creating...":"Create"}</Btn>
                     </div>
                   </form>
                 </Modal>
               )}
               {modal==="addExpenseCategory"&&(
-                <Modal title="New Expense Category" onClose={closeModal} t={t}>
-                  <form onSubmit={handleAddExpenseCategory}>
+                <Modal title="New Expense Category" onClose={safeClose} t={t}>
+                  <form onSubmit={handleAddExpenseCategory} onInput={markDirty}>
                     <Field label="Name" t={t}><Input t={t} value={newExpenseCategory.name} onChange={e=>setNewExpenseCategory({...newExpenseCategory,name:e.target.value})} placeholder="e.g. Rent, Salaries" required/></Field>
                     <Field label="Description (optional)" t={t}><Textarea t={t} value={newExpenseCategory.description} onChange={e=>setNewExpenseCategory({...newExpenseCategory,description:e.target.value})} placeholder="Brief description..."/></Field>
                     <Field label="Budget (optional)" t={t}><Input t={t} type="number" min="0" step="0.01" value={newExpenseCategory.budget} onChange={e=>setNewExpenseCategory({...newExpenseCategory,budget:e.target.value})} placeholder="e.g. 50000"/></Field>
                     <Field label="Color" t={t}><ColorPicker value={newExpenseCategory.color} onChange={color=>setNewExpenseCategory({...newExpenseCategory,color})}/></Field>
                     {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
                     <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:24 }}>
-                      <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
+                      <Btn variant="secondary" t={t} type="button" onClick={safeClose}>Cancel</Btn>
                       <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Creating...":"Create"}</Btn>
                     </div>
                   </form>
                 </Modal>
               )}
               {modal==="editPaymentType"&&editingPaymentType&&(
-                <Modal title="Edit Payment Type" onClose={closeModal} t={t}>
-                  <form onSubmit={handleEditPaymentType}>
+                <Modal title="Edit Payment Type" onClose={safeClose} t={t}>
+                  <form onSubmit={handleEditPaymentType} onInput={markDirty}>
                     <Field label="Name" t={t}><Input t={t} value={editingPaymentType.name} onChange={e=>setEditingPaymentType({...editingPaymentType,name:e.target.value})} required/></Field>
                     <Field label="Description (optional)" t={t}><Textarea t={t} value={editingPaymentType.description||""} onChange={e=>setEditingPaymentType({...editingPaymentType,description:e.target.value})}/></Field>
                     <Field label="Goal Amount (optional)" t={t}><Input t={t} type="number" min="0" step="0.01" value={editingPaymentType.goal||""} onChange={e=>setEditingPaymentType({...editingPaymentType,goal:e.target.value})}/></Field>
                     <Field label="Color" t={t}><ColorPicker value={editingPaymentType.color} onChange={color=>setEditingPaymentType({...editingPaymentType,color})}/></Field>
                     {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
                     <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:24 }}>
-                      <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
+                      <Btn variant="secondary" t={t} type="button" onClick={safeClose}>Cancel</Btn>
                       <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Saving...":"Save Changes"}</Btn>
                     </div>
                   </form>
                 </Modal>
               )}
               {modal==="editExpenseCategory"&&editingExpenseCategory&&(
-                <Modal title="Edit Expense Category" onClose={closeModal} t={t}>
-                  <form onSubmit={handleEditExpenseCategory}>
+                <Modal title="Edit Expense Category" onClose={safeClose} t={t}>
+                  <form onSubmit={handleEditExpenseCategory} onInput={markDirty}>
                     <Field label="Name" t={t}><Input t={t} value={editingExpenseCategory.name} onChange={e=>setEditingExpenseCategory({...editingExpenseCategory,name:e.target.value})} required/></Field>
                     <Field label="Description (optional)" t={t}><Textarea t={t} value={editingExpenseCategory.description||""} onChange={e=>setEditingExpenseCategory({...editingExpenseCategory,description:e.target.value})}/></Field>
                     <Field label="Budget (optional)" t={t}><Input t={t} type="number" min="0" step="0.01" value={editingExpenseCategory.budget||""} onChange={e=>setEditingExpenseCategory({...editingExpenseCategory,budget:e.target.value})}/></Field>
                     <Field label="Color" t={t}><ColorPicker value={editingExpenseCategory.color} onChange={color=>setEditingExpenseCategory({...editingExpenseCategory,color})}/></Field>
                     {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
                     <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:24 }}>
-                      <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
+                      <Btn variant="secondary" t={t} type="button" onClick={safeClose}>Cancel</Btn>
                       <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Saving...":"Save Changes"}</Btn>
                     </div>
                   </form>
@@ -312,14 +331,14 @@ export function Modals({
         
         
               {modal==="editPerson"&&editingPerson&&(
-                <Modal title="Edit Person" onClose={closeModal} t={t}>
-                  <form onSubmit={handleEditPerson}>
+                <Modal title="Edit Person" onClose={safeClose} t={t}>
+                  <form onSubmit={handleEditPerson} onInput={markDirty}>
                     <Field label="Full Name" t={t}><Input t={t} value={editingPerson.full_name} onChange={e=>setEditingPerson({...editingPerson,full_name:e.target.value})} required/></Field>
                     <Field label="Status" t={t}><Select t={t} value={editingPerson.status} onChange={e=>setEditingPerson({...editingPerson,status:e.target.value})}><option value="active">Active</option><option value="inactive">Inactive</option></Select></Field>
                     <Field label="Monthly Target (optional)" t={t}><Input t={t} type="number" min="0" step="0.01" value={editingPerson.monthly_target||""} onChange={e=>setEditingPerson({...editingPerson,monthly_target:e.target.value})} placeholder="e.g. 100"/></Field>
                     {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
                     <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
-                      <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
+                      <Btn variant="secondary" t={t} type="button" onClick={safeClose}>Cancel</Btn>
                       <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Saving...":"Save Changes"}</Btn>
                     </div>
                   </form>
@@ -327,8 +346,8 @@ export function Modals({
               )}
         
               {modal==="editContribution"&&editingContribution&&(
-                <Modal title="Edit Contribution" onClose={closeModal} t={t}>
-                  <form onSubmit={handleEditContribution}>
+                <Modal title="Edit Contribution" onClose={safeClose} t={t}>
+                  <form onSubmit={handleEditContribution} onInput={markDirty}>
                     <div style={{ marginBottom:16, padding:"12px 16px", background:t.surfaceAlt, borderRadius:10 }}>
                       <p style={{ fontSize:12, color:t.textSub, margin:0 }}>Editing contribution for</p>
                       <p style={{ fontSize:15, fontWeight:700, color:t.text, margin:"2px 0 0" }}>{editingContribution.member_name}</p>
@@ -339,7 +358,7 @@ export function Modals({
                     <Field label="Date" t={t}><Input t={t} type="date" value={editingContribution.date||""} onChange={e=>setEditingContribution({...editingContribution,date:e.target.value})}/></Field>
                     {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
                     <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
-                      <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
+                      <Btn variant="secondary" t={t} type="button" onClick={safeClose}>Cancel</Btn>
                       <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Saving...":"Save Changes"}</Btn>
                     </div>
                   </form>
@@ -347,15 +366,15 @@ export function Modals({
               )}
         
               {modal==="editExpenseEntry"&&editingExpenseEntry&&(
-                <Modal title="Edit Expense" onClose={closeModal} t={t}>
-                  <form onSubmit={handleEditExpenseEntry}>
+                <Modal title="Edit Expense" onClose={safeClose} t={t}>
+                  <form onSubmit={handleEditExpenseEntry} onInput={markDirty}>
                     <Field label="Description" t={t}><Input t={t} value={editingExpenseEntry.label} onChange={e=>setEditingExpenseEntry({...editingExpenseEntry,label:e.target.value})} required/></Field>
                     <Field label="Amount" t={t}><Input t={t} type="number" min="1" step="0.01" value={editingExpenseEntry.amount} onChange={e=>setEditingExpenseEntry({...editingExpenseEntry,amount:e.target.value})} required/></Field>
                     <Field label="Category" t={t}><Select t={t} value={editingExpenseEntry.category_id} onChange={e=>setEditingExpenseEntry({...editingExpenseEntry,category_id:e.target.value})} required><option value="">Select category...</option>{data.expenses.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</Select></Field>
                     <Field label="Date" t={t}><Input t={t} type="date" value={editingExpenseEntry.date||""} onChange={e=>setEditingExpenseEntry({...editingExpenseEntry,date:e.target.value})}/></Field>
                     {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
                     <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
-                      <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
+                      <Btn variant="secondary" t={t} type="button" onClick={safeClose}>Cancel</Btn>
                       <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Saving...":"Save Changes"}</Btn>
                     </div>
                   </form>
@@ -363,8 +382,8 @@ export function Modals({
               )}
 
               {modal==="addIncome"&&(
-                <Modal title="Record Income" onClose={closeModal} t={t}>
-                  <form onSubmit={handleAddIncome}>
+                <Modal title="Record Income" onClose={safeClose} t={t}>
+                  <form onSubmit={handleAddIncome} onInput={markDirty}>
                     <Field label="Description" t={t}><Input t={t} value={newIncome.label} onChange={e=>setNewIncome({...newIncome,label:e.target.value})} placeholder="e.g. Annual fundraiser proceeds" required/></Field>
                     <Field label="Amount" t={t}><Input t={t} type="number" min="0.01" step="0.01" value={newIncome.amount} onChange={e=>setNewIncome({...newIncome,amount:e.target.value})} placeholder="0.00" required/></Field>
                     <Field label="Source (optional)" t={t}><Input t={t} value={newIncome.source} onChange={e=>setNewIncome({...newIncome,source:e.target.value})} placeholder="e.g. Donation, Grant, Investment, Interest"/></Field>
@@ -372,7 +391,7 @@ export function Modals({
                     <Field label="Date" t={t}><Input t={t} type="date" value={newIncome.date} onChange={e=>setNewIncome({...newIncome,date:e.target.value})} required/></Field>
                     {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
                     <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
-                      <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
+                      <Btn variant="secondary" t={t} type="button" onClick={safeClose}>Cancel</Btn>
                       <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Saving...":"Record"}</Btn>
                     </div>
                   </form>
@@ -380,8 +399,8 @@ export function Modals({
               )}
 
               {modal==="editIncome"&&editingIncomeSource&&(
-                <Modal title="Edit Income" onClose={closeModal} t={t}>
-                  <form onSubmit={handleEditIncome}>
+                <Modal title="Edit Income" onClose={safeClose} t={t}>
+                  <form onSubmit={handleEditIncome} onInput={markDirty}>
                     <Field label="Description" t={t}><Input t={t} value={editingIncomeSource.label} onChange={e=>setEditingIncomeSource({...editingIncomeSource,label:e.target.value})} required/></Field>
                     <Field label="Amount" t={t}><Input t={t} type="number" min="0.01" step="0.01" value={editingIncomeSource.amount} onChange={e=>setEditingIncomeSource({...editingIncomeSource,amount:e.target.value})} required/></Field>
                     <Field label="Source (optional)" t={t}><Input t={t} value={editingIncomeSource.source} onChange={e=>setEditingIncomeSource({...editingIncomeSource,source:e.target.value})} placeholder="e.g. Donation, Grant, Investment"/></Field>
@@ -389,7 +408,7 @@ export function Modals({
                     <Field label="Date" t={t}><Input t={t} type="date" value={editingIncomeSource.date||""} onChange={e=>setEditingIncomeSource({...editingIncomeSource,date:e.target.value})}/></Field>
                     {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
                     <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
-                      <Btn variant="secondary" t={t} type="button" onClick={closeModal}>Cancel</Btn>
+                      <Btn variant="secondary" t={t} type="button" onClick={safeClose}>Cancel</Btn>
                       <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Saving...":"Save Changes"}</Btn>
                     </div>
                   </form>
