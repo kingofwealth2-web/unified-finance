@@ -397,8 +397,8 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       const {error}=await supabase.from("income_sources").insert({
         label:newIncome.label, amount:Number(newIncome.amount),
         source:newIncome.source||null, note:newIncome.note||null,
-        date:newIncome.date||new Date().toISOString().slice(0,10),
-        recorded_by:session?.user?.id, org_id:currentOrg.id,
+        created_at:newIncome.date?new Date(newIncome.date).toISOString():new Date().toISOString(),
+        org_id:currentOrg.id,
         financial_year:data.org?.financial_year_start||new Date().getFullYear(),
       });
       if(error)throw error;
@@ -413,7 +413,6 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       const {error}=await supabase.from("income_sources").update({
         label:editingIncomeSource.label, amount:Number(editingIncomeSource.amount),
         source:editingIncomeSource.source||null, note:editingIncomeSource.note||null,
-        date:editingIncomeSource.date||null,
       }).eq("id",editingIncomeSource.id);
       if(error)throw error;
       await logAudit("edit","income",editingIncomeSource.id,null,`Edited income: ${editingIncomeSource.label}`,null,{label:editingIncomeSource.label,amount:editingIncomeSource.amount});
