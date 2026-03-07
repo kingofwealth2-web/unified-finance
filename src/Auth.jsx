@@ -66,6 +66,15 @@ export default function Auth() {
 
   // Detect password reset token or error in URL on mount
   useEffect(() => {
+    // Primary: listen for Supabase auth events (most reliable)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setView("reset");
+        setError(null);
+      }
+    });
+
+    // Fallback: check URL hash directly
     const hash = window.location.hash;
     if (hash.includes("type=recovery")) {
       setView("reset");
@@ -76,13 +85,7 @@ export default function Auth() {
       setView("forgot");
       setError("Reset link is invalid or has already been used. Please request a new one.");
     }
-    // Also listen for Supabase auth events in case token arrives async
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setView("reset");
-        setError(null);
-      }
-    });
+
     return () => subscription.unsubscribe();
   }, []);
 
