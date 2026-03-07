@@ -122,14 +122,15 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
         return {id:pt.id,name:pt.name,description:pt.description,total,goal:Number(pt.goal||0),color:pt.color||"#0071E3",members};
       });
 
-      const cA=(contributions||[]).slice(0,6).map(c=>({id:`c-${c.id}`,name:c.profiles?.full_name||"Member",action:c.payment_types?.name||"Contribution",amount:`+${fmtLocal(c.amount)}`,time:new Date(c.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"}),positive:true}));
-      const eA=(expenses||[]).slice(0,6).map(e=>({id:`e-${e.id}`,name:e.expense_categories?.name||"Expense",action:e.label,amount:`-${fmtLocal(e.amount)}`,time:new Date(e.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"}),positive:false}));
+      const cA=(contributions||[]).slice(0,6).map(c=>({id:`c-${c.id}`,name:c.profiles?.full_name||"Member",action:c.payment_types?.name||"Contribution",amount:`+${fmtLocal(c.amount)}`,time:new Date(c.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"}),positive:true,_date:new Date(c.created_at)}));
+      const eA=(expenses||[]).slice(0,6).map(e=>({id:`e-${e.id}`,name:e.expense_categories?.name||"Expense",action:e.label,amount:`-${fmtLocal(e.amount)}`,time:new Date(e.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"}),positive:false,_date:new Date(e.created_at)}));
+      const iA=(incomeRows||[]).slice(0,6).map(i=>({id:`i-${i.id}`,name:i.source||"Other Income",action:i.label||"Income",amount:`+${fmtLocal(i.amount)}`,time:new Date(i.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"}),positive:true,_date:new Date(i.created_at)}));
       const totalC=(contributions||[]).reduce((s,c)=>s+Number(c.amount),0);
       const totalE=(expenses||[]).reduce((s,e)=>s+Number(e.amount),0);
 
       const openingBalance = Number(org?.opening_balance || 0);
       const totalBalance = totalC - totalE + openingBalance;
-      setData({ totalBalance, totalContributions:totalC, totalExpenses:totalE, people, expenses:expenseData, recentActivity:[...cA,...eA].slice(0,10), users:(profiles||[]).filter(p=>["super_admin","admin"].includes(p.role)), paymentTypes:paymentTypeData, allPeople:profiles||[], org, categories:categories||[], rawContributions:contributions||[], rawExpenses:expenses||[], rawIncome:incomeRows||[], allTimeContributions:allTimeContribs||[] });
+      setData({ totalBalance, totalContributions:totalC, totalExpenses:totalE, people, expenses:expenseData, recentActivity:[...cA,...eA,...iA].sort((a,b)=>b._date-a._date).slice(0,10), users:(profiles||[]).filter(p=>["super_admin","admin"].includes(p.role)), paymentTypes:paymentTypeData, allPeople:profiles||[], org, categories:categories||[], rawContributions:contributions||[], rawExpenses:expenses||[], rawIncome:incomeRows||[], allTimeContributions:allTimeContribs||[] });
       setAuditLog(auditRows || []);
     } catch(err) { console.error(err); } finally { setLoading(false); }
   }
@@ -526,7 +527,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
   const totalActualThisMonth = data.people.reduce((s,p)=>s+(p.thisMonth||0),0);
   const orgName = data.org?.name || "Unified";
   const fyText = data.org ? fyLabel(data.org.financial_year_start, data.org.financial_year_format) : "";
-  const monthlyData = buildMonthly(data.rawContributions, data.rawExpenses);
+  const monthlyData = buildMonthly(data.rawContributions, data.rawExpenses, data.rawIncome);
   const timelineData = buildTimeline(data.rawContributions);
 
   const navItems = [

@@ -28,7 +28,7 @@ export const dark = {
 
 export const fyLabel = (start, format) => format === "split" ? `${start}/${start+1}` : `${start}`;
 
-export function buildMonthly(contributions, expenses) {
+export function buildMonthly(contributions, expenses, income) {
   const months = {};
   for (let i = 5; i >= 0; i--) {
     const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
@@ -37,6 +37,7 @@ export function buildMonthly(contributions, expenses) {
   }
   (contributions||[]).forEach(c=>{const d=new Date(c.created_at);const k=`${d.getFullYear()}-${d.getMonth()}`;if(months[k])months[k].income+=Number(c.amount);});
   (expenses||[]).forEach(e=>{const d=new Date(e.created_at);const k=`${d.getFullYear()}-${d.getMonth()}`;if(months[k])months[k].expense+=Number(e.amount);});
+  (income||[]).forEach(i=>{const d=new Date(i.created_at);const k=`${d.getFullYear()}-${d.getMonth()}`;if(months[k])months[k].income+=Number(i.amount);});
   return Object.values(months);
 }
 

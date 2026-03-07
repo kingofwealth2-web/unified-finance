@@ -38,7 +38,8 @@ export function OverviewTab({
     const d = new Date(e.created_at);
     return d.getFullYear() === viewYear && d.getMonth() === viewMonth;
   });
-  const monthIncome = monthContribs.reduce((s,c) => s + Number(c.amount), 0);
+  const monthOtherIncome = (data.rawIncome||[]).filter(i => { const d=new Date(i.created_at); return d.getFullYear()===viewYear && d.getMonth()===viewMonth; });
+  const monthIncome = monthContribs.reduce((s,c) => s + Number(c.amount), 0) + monthOtherIncome.reduce((s,i) => s + Number(i.amount), 0);
   const monthExpTotal = monthExpenses.reduce((s,e) => s + Number(e.amount), 0);
   const monthNet = monthIncome - monthExpTotal;
 
@@ -49,6 +50,7 @@ export function OverviewTab({
   const monthTxns = [
     ...monthContribs.map(c => ({ id:`c-${c.id}`, name:c.profiles?.full_name||"Member", action:c.payment_types?.name||"Contribution", amount:Number(c.amount), date:c.created_at, positive:true, raw:c })),
     ...monthExpenses.map(e => ({ id:`e-${e.id}`, name:e.expense_categories?.name||"Expense", action:e.label, amount:Number(e.amount), date:e.created_at, positive:false, raw:e })),
+    ...monthOtherIncome.map(i => ({ id:`i-${i.id}`, name:i.source||"Other Income", action:i.label||"Income", amount:Number(i.amount), date:i.created_at, positive:true, raw:i })),
   ].sort((a,b) => new Date(b.date) - new Date(a.date));
 
   const currentMonth = new Date().toLocaleString("en-US",{month:"long"});
@@ -76,7 +78,8 @@ export function OverviewTab({
     const d = new Date(e.created_at);
     return d >= fyStartDate && d < fyEndDate;
   });
-  const ytdIncome   = ytdContribs.reduce((s,c) => s + Number(c.amount), 0);
+  const ytdOtherIncome = (data.rawIncome||[]).filter(i => { const d=new Date(i.created_at); return d>=fyStartDate && d<fyEndDate; });
+  const ytdIncome   = ytdContribs.reduce((s,c) => s + Number(c.amount), 0) + ytdOtherIncome.reduce((s,i) => s + Number(i.amount), 0);
   const ytdExpTotal = ytdExpenses.reduce((s,e) => s + Number(e.amount), 0);
   const ytdNet      = ytdIncome - ytdExpTotal;
   const fyLabelText = fyLabel(fyStart, fyFormat);
@@ -100,6 +103,13 @@ export function OverviewTab({
         e.note || "",
         e.amount,
         new Date(e.created_at).toLocaleDateString("en-US"),
+      ]),
+      ...monthOtherIncome.map(i => [
+        "Other Income",
+        i.label || "Income",
+        i.source || "",
+        i.amount,
+        new Date(i.created_at).toLocaleDateString("en-US"),
       ]),
       [],
       ["", "", "Total Income",  monthIncome,   ""],
@@ -137,6 +147,14 @@ export function OverviewTab({
           <td style="text-align:right;font-weight:700;color:#FF375F">-${fmt(e.amount)}</td>
           <td style="color:#888">${new Date(e.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</td>
         </tr>`),
+      ...monthOtherIncome.map(i => `
+        <tr>
+          <td style="color:#30D158;font-weight:600">Other Income</td>
+          <td>${i.label || "Income"}</td>
+          <td>${i.source || "—"}</td>
+          <td style="text-align:right;font-weight:700;color:#30D158">+${fmt(i.amount)}</td>
+          <td style="color:#888">${new Date(i.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</td>
+        </tr>`),
     ].join("");
 
     win.document.write(`<!DOCTYPE html><html><head><title>${monthLabel} Report</title>
@@ -160,7 +178,7 @@ export function OverviewTab({
         <div class="stat" style="background:rgba(52,199,89,0.1)">
           <p class="label" style="color:#34C759">Income</p>
           <p class="value" style="color:#34C759">${fmt(monthIncome)}</p>
-          <p style="font-size:11px;color:#34C759;margin:2px 0 0;opacity:.7">${monthContribs.length} transactions</p>
+          <p style="font-size:11px;color:#34C759;margin:2px 0 0;opacity:.7">${monthContribs.length + monthOtherIncome.length} transactions</p>
         </div>
         <div class="stat" style="background:rgba(255,55,95,0.1)">
           <p class="label" style="color:#FF375F">Expenses</p>
@@ -363,7 +381,7 @@ export function OverviewTab({
                         <div key={s.label} style={{ padding:"14px 16px", borderRadius:14, background:s.bg, opacity:monthVisible?1:0, transform:monthVisible?"translateY(0)":"translateY(8px)", transition:`opacity 0.2s ease ${i*0.05}s, transform 0.2s ease ${i*0.05}s` }}>
                           <p style={{ fontSize:11, fontWeight:600, color:s.color, margin:"0 0 4px", textTransform:"uppercase", letterSpacing:"0.06em" }}>{s.label}</p>
                           <p style={{ fontSize:20, fontWeight:700, color:s.color, margin:0, letterSpacing:"-0.5px" }}>{fmt(s.value)}</p>
-                          <p style={{ fontSize:11, color:s.color, margin:"2px 0 0", opacity:0.7 }}>{s.label==="Net"?(monthNet>=0?"surplus":"deficit"):s.label==="Income"?`${monthContribs.length} transactions`:`${monthExpenses.length} transactions`}</p>
+                          <p style={{ fontSize:11, color:s.color, margin:"2px 0 0", opacity:0.7 }}>{s.label==="Net"?(monthNet>=0?"surplus":"deficit"):s.label==="Income"?`${monthContribs.length + monthOtherIncome.length} transactions`:`${monthExpenses.length} transactions`}</p>
                         </div>
                       ))}
                     </div>
