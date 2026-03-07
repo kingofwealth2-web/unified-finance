@@ -11,6 +11,7 @@ function Root() {
   const [checking, setChecking] = useState(true)
   const [currentOrg, setCurrentOrg] = useState(null)
   const [orgRole, setOrgRole] = useState(null)
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false)
   const switchedRef = useRef(false)
 
   // Scope sessionStorage keys to user so different users don't share org
@@ -24,10 +25,15 @@ function Root() {
       setChecking(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsPasswordRecovery(true)
+        setSession(session)
+        return
+      }
       setSession(session)
       // Clear org when user signs out
-      if (!session) { setCurrentOrg(null); setOrgRole(null); switchedRef.current = false; }
+      if (!session) { setCurrentOrg(null); setOrgRole(null); switchedRef.current = false; setIsPasswordRecovery(false); }
     })
 
     return () => subscription.unsubscribe()
@@ -63,7 +69,7 @@ function Root() {
 
   if (checking) return null
 
-  if (!session) return <Auth />
+  if (!session || isPasswordRecovery) return <Auth isPasswordRecovery={isPasswordRecovery} onPasswordReset={() => setIsPasswordRecovery(false)} />
 
   if (!currentOrg) return (
     <OrgPicker
