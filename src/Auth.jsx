@@ -64,13 +64,26 @@ export default function Auth() {
     return () => clearTimeout(tm);
   }, []);
 
-  // Detect password reset token in URL on mount
+  // Detect password reset token or error in URL on mount
   useEffect(() => {
     const hash = window.location.hash;
     if (hash.includes("type=recovery")) {
       setView("reset");
-      // Supabase handles the session automatically from the URL hash
+    } else if (hash.includes("error=access_denied") && hash.includes("otp_expired")) {
+      setView("forgot");
+      setError("This reset link has expired. Please request a new one.");
+    } else if (hash.includes("error=")) {
+      setView("forgot");
+      setError("Reset link is invalid or has already been used. Please request a new one.");
     }
+    // Also listen for Supabase auth events in case token arrives async
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setView("reset");
+        setError(null);
+      }
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   function switchView(v) {
