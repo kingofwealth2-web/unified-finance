@@ -190,27 +190,85 @@ export function PeopleTab({
                               <td style="padding:9px 12px;color:#666">${c.note||"—"}</td>
                               <td style="padding:9px 12px;text-align:right;font-weight:600">${data.org?.currency||""} ${Number(c.amount).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
                             </tr>`).join("");
+                          const memberSince = memberReport.created_at ? `Member since ${new Date(memberReport.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}` : "";
+                          const period = reportFilters.from||reportFilters.to ? `${reportFilters.from||"Start"} — ${reportFilters.to||"Today"}` : "All time";
                           const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${memberReport.name} — Statement</title>
-                            <style>body{font-family:-apple-system,sans-serif;color:#1C1C1E;padding:20px;margin:0}@page{margin:20mm}</style>
-                            </head><body>
-                            <div style="border-bottom:2px solid #1C1C1E;padding-bottom:12px;margin-bottom:24px">
-                              <p style="font-size:12px;color:#666;margin:0 0 4px">${data.org?.name||""}</p>
-                              <h1 style="font-size:22px;font-weight:700;margin:0 0 4px">${memberReport.name} — Contribution Statement</h1>
-                              <p style="font-size:12px;color:#666;margin:0">${memberReport.created_at?`Member since ${new Date(memberReport.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})} · `:""}Printed ${new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}${reportFilters.from||reportFilters.to?` · ${reportFilters.from||"Start"} to ${reportFilters.to||"Today"}`:""}</p>
+                            <style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  @page{margin:14mm 16mm;}
+  body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#111827;font-size:13px;line-height:1.5;}
+  .doc-header{background:linear-gradient(135deg,#1e1f2e 0%,#2d2f4a 100%);color:#fff;padding:28px 32px 24px;position:relative;overflow:hidden;}
+  .doc-header::before{content:'';position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(79,110,247,0.18);pointer-events:none;}
+  .doc-header::after{content:'';position:absolute;bottom:-30px;left:30%;width:120px;height:120px;border-radius:50%;background:rgba(45,216,138,0.1);pointer-events:none;}
+  .doc-org{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.5);margin-bottom:5px;}
+  .doc-title{font-size:22px;font-weight:800;letter-spacing:-0.5px;color:#fff;margin-bottom:4px;}
+  .doc-meta{font-size:11px;color:rgba(255,255,255,0.5);display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;}
+  .doc-logo{position:absolute;right:32px;top:50%;transform:translateY(-50%);width:44px;height:44px;background:rgba(79,110,247,0.25);border:1px solid rgba(79,110,247,0.45);border-radius:13px;display:flex;align-items:center;justify-content:center;}
+  .body-wrap{padding:20px 32px 24px;}
+  .stat-row{display:grid;gap:10px;margin:0 0 24px;}
+  .stat-card{padding:14px 18px;border-radius:10px;border:1px solid #e5e7eb;}
+  .stat-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;}
+  .stat-value{font-size:20px;font-weight:800;letter-spacing:-0.5px;line-height:1.1;}
+  .stat-sub{font-size:10px;margin-top:3px;opacity:0.75;}
+  .c-green .stat-label{color:#059669;}.c-green{background:#f0fdf4;border-color:#bbf7d0;}.c-green .stat-value{color:#047857;}.c-green .stat-sub{color:#047857;}
+  .c-red .stat-label{color:#dc2626;}.c-red{background:#fff1f2;border-color:#fecdd3;}.c-red .stat-value{color:#b91c1c;}.c-red .stat-sub{color:#b91c1c;}
+  .c-blue .stat-label{color:#2563eb;}.c-blue{background:#eff6ff;border-color:#bfdbfe;}.c-blue .stat-value{color:#1d4ed8;}.c-blue .stat-sub{color:#1d4ed8;}
+  .c-purple .stat-label{color:#7c3aed;}.c-purple{background:#f5f3ff;border-color:#ddd6fe;}.c-purple .stat-value{color:#6d28d9;}
+  .section-head{display:flex;align-items:center;gap:8px;margin:22px 0 10px;}
+  .section-bar{width:3px;height:15px;border-radius:2px;background:linear-gradient(180deg,#4F6EF7,#2dd88a);flex-shrink:0;}
+  .section-head h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#374151;}
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  thead tr{background:#f9fafb;}
+  th{padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.06em;border-bottom:1px solid #e5e7eb;}
+  td{padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#374151;vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  tfoot td{background:#f9fafb;font-weight:700;color:#111827;border-top:1px solid #e5e7eb;border-bottom:none;padding:9px 12px;}
+  .amt{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;}
+  .amt-g{color:#047857;}.amt-r{color:#b91c1c;}.amt-b{color:#1d4ed8;}
+  .tag{display:inline-block;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:600;}
+  .tag-g{background:#dcfce7;color:#15803d;}.tag-r{background:#fee2e2;color:#b91c1c;}.tag-b{background:#dbeafe;color:#1d4ed8;}.tag-gray{background:#f3f4f6;color:#4b5563;}
+  .rank-1{color:#b45309;font-weight:800;}.rank-2{color:#6b7280;font-weight:700;}.rank-3{color:#92400e;font-weight:700;}
+  .goal-bg{height:5px;background:#e5e7eb;border-radius:99px;overflow:hidden;margin:3px 0 2px;}
+  .goal-fill{height:100%;border-radius:99px;}
+  .doc-footer{margin-top:24px;padding-top:12px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;font-size:10px;color:#9ca3af;}
+  @media print{.doc-header,.stat-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+</style></head><body>
+                            <div class="doc-header">
+                              <div class="doc-logo"><svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M2 8h5M9 8h5M8 2v5M8 9v5" stroke="white" stroke-width="2" stroke-linecap="round"/></svg></div>
+                              <div class="doc-org">${data.org?.name||""}</div>
+                              <div class="doc-title">${memberReport.name}</div>
+                              <div class="doc-meta">
+                                <span>Contribution Statement</span>
+                                ${memberSince?`<span>${memberSince}</span>`:""}
+                                <span>Period: ${period}</span>
+                                <span>Printed ${new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}</span>
+                              </div>
                             </div>
-                            <table style="width:100%;border-collapse:collapse;font-size:13px">
-                              <thead><tr style="background:#F5F5F7">
-                                <th style="padding:8px 12px;text-align:left;font-size:11px;color:#666;text-transform:uppercase">Date</th>
-                                <th style="padding:8px 12px;text-align:left;font-size:11px;color:#666;text-transform:uppercase">Payment Type</th>
-                                <th style="padding:8px 12px;text-align:left;font-size:11px;color:#666;text-transform:uppercase">Note</th>
-                                <th style="padding:8px 12px;text-align:right;font-size:11px;color:#666;text-transform:uppercase">Amount</th>
-                              </tr></thead>
-                              <tbody>${rows}</tbody>
-                              <tfoot><tr style="background:#F5F5F7;font-weight:700">
-                                <td colspan="3" style="padding:9px 12px">Total (${filtered.length} records)</td>
-                                <td style="padding:9px 12px;text-align:right">${data.org?.currency||""} ${filteredTotal.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
-                              </tr></tfoot>
-                            </table>
+                            <div class="body-wrap">
+                              <div class="stat-row" style="grid-template-columns:repeat(2,1fr)">
+                                <div class="stat-card c-blue">
+                                  <div class="stat-label">Total Contributed</div>
+                                  <div class="stat-value">${data.org?.currency||""} ${filteredTotal.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+                                  <div class="stat-sub">${period}</div>
+                                </div>
+                                <div class="stat-card c-green">
+                                  <div class="stat-label">Records</div>
+                                  <div class="stat-value">${filtered.length}</div>
+                                  <div class="stat-sub">contributions in period</div>
+                                </div>
+                              </div>
+                              <div class="section-head"><div class="section-bar"></div><h2>Contribution History</h2></div>
+                              <table>
+                                <thead><tr><th>Date</th><th>Payment Type</th><th>Note</th><th class="amt">Amount</th></tr></thead>
+                                <tbody>${rows}</tbody>
+                                <tfoot><tr><td colspan="3">Total (${filtered.length} records)</td><td class="amt">${data.org?.currency||""} ${filteredTotal.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td></tr></tfoot>
+                              </table>
+                              <div class="doc-footer">
+                                <span>${data.org?.name||""} · Confidential</span>
+                                <span>Unified Finance</span>
+                              </div>
+                            </div>
                             </body></html>`;
                           const w = window.open("","_blank","width=900,height=700");
                           w.document.write(html); w.document.close(); w.focus();

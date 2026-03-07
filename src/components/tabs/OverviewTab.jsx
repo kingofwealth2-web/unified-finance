@@ -158,44 +158,87 @@ export function OverviewTab({
         </tr>`),
     ].join("");
 
-    win.document.write(`<!DOCTYPE html><html><head><title>${monthLabel} Report</title>
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${monthLabel} — Monthly Report</title>
       <style>
-        body { font-family: -apple-system, sans-serif; padding: 40px; color: #1C1C1E; }
-        h1 { font-size: 24px; font-weight: 700; margin: 0 0 4px; }
-        p.sub { color: #8E8E93; font-size: 13px; margin: 0 0 32px; }
-        .stats { display: flex; gap: 20px; margin-bottom: 32px; }
-        .stat { flex: 1; padding: 16px 20px; border-radius: 12px; }
-        .stat .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; margin: 0 0 4px; }
-        .stat .value { font-size: 22px; font-weight: 700; margin: 0; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th { text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #8E8E93; padding: 8px 12px; border-bottom: 2px solid #E5E5EA; }
-        td { padding: 10px 12px; border-bottom: 1px solid #F2F2F7; }
-        tr:last-child td { border-bottom: none; }
-        @media print { body { padding: 20px; } }
-      </style></head><body>
-      <h1>${data.org?.name || "Organisation"}</h1>
-      <p class="sub">Monthly Report · ${monthLabel}</p>
-      <div class="stats">
-        <div class="stat" style="background:rgba(52,199,89,0.1)">
-          <p class="label" style="color:#34C759">Income</p>
-          <p class="value" style="color:#34C759">${fmt(monthIncome)}</p>
-          <p style="font-size:11px;color:#34C759;margin:2px 0 0;opacity:.7">${monthContribs.length + monthOtherIncome.length} transactions</p>
-        </div>
-        <div class="stat" style="background:rgba(255,55,95,0.1)">
-          <p class="label" style="color:#FF375F">Expenses</p>
-          <p class="value" style="color:#FF375F">${fmt(monthExpTotal)}</p>
-          <p style="font-size:11px;color:#FF375F;margin:2px 0 0;opacity:.7">${monthExpenses.length} transactions</p>
-        </div>
-        <div class="stat" style="background:${ytdNet>=0?"rgba(0,113,227,0.1)":"rgba(255,55,95,0.08)"}">
-          <p class="label" style="color:${monthNet>=0?"#0071E3":"#FF375F"}">Net</p>
-          <p class="value" style="color:${monthNet>=0?"#0071E3":"#FF375F"}">${fmt(monthNet)}</p>
-          <p style="font-size:11px;color:${monthNet>=0?"#0071E3":"#FF375F"};margin:2px 0 0;opacity:.7">${monthNet>=0?"surplus":"deficit"}</p>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  @page{margin:14mm 16mm;}
+  body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#111827;font-size:13px;line-height:1.5;}
+  .doc-header{background:linear-gradient(135deg,#1e1f2e 0%,#2d2f4a 100%);color:#fff;padding:28px 32px 24px;position:relative;overflow:hidden;}
+  .doc-header::before{content:'';position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(79,110,247,0.18);pointer-events:none;}
+  .doc-header::after{content:'';position:absolute;bottom:-30px;left:30%;width:120px;height:120px;border-radius:50%;background:rgba(45,216,138,0.1);pointer-events:none;}
+  .doc-org{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.5);margin-bottom:5px;}
+  .doc-title{font-size:22px;font-weight:800;letter-spacing:-0.5px;color:#fff;margin-bottom:4px;}
+  .doc-meta{font-size:11px;color:rgba(255,255,255,0.5);display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;}
+  .doc-logo{position:absolute;right:32px;top:50%;transform:translateY(-50%);width:44px;height:44px;background:rgba(79,110,247,0.25);border:1px solid rgba(79,110,247,0.45);border-radius:13px;display:flex;align-items:center;justify-content:center;}
+  .body-wrap{padding:20px 32px 24px;}
+  .stat-row{display:grid;gap:10px;margin:0 0 24px;}
+  .stat-card{padding:14px 18px;border-radius:10px;border:1px solid #e5e7eb;}
+  .stat-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;}
+  .stat-value{font-size:20px;font-weight:800;letter-spacing:-0.5px;line-height:1.1;}
+  .stat-sub{font-size:10px;margin-top:3px;opacity:0.75;}
+  .c-green .stat-label{color:#059669;}.c-green{background:#f0fdf4;border-color:#bbf7d0;}.c-green .stat-value{color:#047857;}.c-green .stat-sub{color:#047857;}
+  .c-red .stat-label{color:#dc2626;}.c-red{background:#fff1f2;border-color:#fecdd3;}.c-red .stat-value{color:#b91c1c;}.c-red .stat-sub{color:#b91c1c;}
+  .c-blue .stat-label{color:#2563eb;}.c-blue{background:#eff6ff;border-color:#bfdbfe;}.c-blue .stat-value{color:#1d4ed8;}.c-blue .stat-sub{color:#1d4ed8;}
+  .c-purple .stat-label{color:#7c3aed;}.c-purple{background:#f5f3ff;border-color:#ddd6fe;}.c-purple .stat-value{color:#6d28d9;}
+  .section-head{display:flex;align-items:center;gap:8px;margin:22px 0 10px;}
+  .section-bar{width:3px;height:15px;border-radius:2px;background:linear-gradient(180deg,#4F6EF7,#2dd88a);flex-shrink:0;}
+  .section-head h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#374151;}
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  thead tr{background:#f9fafb;}
+  th{padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.06em;border-bottom:1px solid #e5e7eb;}
+  td{padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#374151;vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  tfoot td{background:#f9fafb;font-weight:700;color:#111827;border-top:1px solid #e5e7eb;border-bottom:none;padding:9px 12px;}
+  .amt{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;}
+  .amt-g{color:#047857;}.amt-r{color:#b91c1c;}.amt-b{color:#1d4ed8;}
+  .tag{display:inline-block;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:600;}
+  .tag-g{background:#dcfce7;color:#15803d;}.tag-r{background:#fee2e2;color:#b91c1c;}.tag-b{background:#dbeafe;color:#1d4ed8;}.tag-gray{background:#f3f4f6;color:#4b5563;}
+  .rank-1{color:#b45309;font-weight:800;}.rank-2{color:#6b7280;font-weight:700;}.rank-3{color:#92400e;font-weight:700;}
+  .goal-bg{height:5px;background:#e5e7eb;border-radius:99px;overflow:hidden;margin:3px 0 2px;}
+  .goal-fill{height:100%;border-radius:99px;}
+  .doc-footer{margin-top:24px;padding-top:12px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;font-size:10px;color:#9ca3af;}
+  @media print{
+    .doc-header,.stat-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  }
+</style></head><body>
+      <div class="doc-header">
+        <div class="doc-logo"><svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M2 8h5M9 8h5M8 2v5M8 9v5" stroke="white" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="doc-org">${data.org?.name || "Organisation"}</div>
+        <div class="doc-title">Monthly Report</div>
+        <div class="doc-meta">
+          <span>${monthLabel}</span>
+          <span>Generated ${new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}</span>
         </div>
       </div>
-      <table>
-        <thead><tr><th>Type</th><th>Name</th><th>Category / Note</th><th style="text-align:right">Amount</th><th>Date</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
+      <div class="body-wrap">
+        <div class="stat-row" style="grid-template-columns:repeat(3,1fr)">
+          <div class="stat-card c-green">
+            <div class="stat-label">Income</div>
+            <div class="stat-value">${fmt(monthIncome)}</div>
+            <div class="stat-sub">${monthContribs.length + monthOtherIncome.length} transactions</div>
+          </div>
+          <div class="stat-card c-red">
+            <div class="stat-label">Expenses</div>
+            <div class="stat-value">${fmt(monthExpTotal)}</div>
+            <div class="stat-sub">${monthExpenses.length} transactions</div>
+          </div>
+          <div class="stat-card ${monthNet>=0?"c-blue":"c-red"}">
+            <div class="stat-label">Net</div>
+            <div class="stat-value">${fmt(monthNet)}</div>
+            <div class="stat-sub">${monthNet>=0?"Surplus":"Deficit"}</div>
+          </div>
+        </div>
+        <div class="section-head"><div class="section-bar"></div><h2>Transaction Breakdown</h2></div>
+        <table>
+          <thead><tr><th>Type</th><th>Name</th><th>Category / Note</th><th class="amt">Amount</th><th>Date</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div class="doc-footer">
+          <span>${data.org?.name || ""} · Confidential</span>
+          <span>${monthLabel} · Unified Finance</span>
+        </div>
+      </div>
       <script>window.onload=()=>{window.print();}</script>
       </body></html>`);
     win.document.close();

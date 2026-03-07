@@ -93,88 +93,128 @@ export function FinancialSummaryTab({
       ...(openingBalance > 0 ? [{ label: "Opening Balance", value: fmt(openingBalance), color: "#8E8E93" }] : []),
     ];
 
+    const colorMap = { "#34C759":"c-green", "#30D158":"c-green", "#0071E3":"c-blue", "#FF375F":"c-red", "#8E8E93":"c-purple" };
     const statCardsHtml = statCards.map(s => `
-      <div style="padding:14px 18px;background:#F2F2F7;border-radius:10px">
-        <p style="font-size:10px;font-weight:700;color:#8E8E93;text-transform:uppercase;letter-spacing:0.06em;margin:0 0 4px">${s.label}</p>
-        <p style="font-size:20px;font-weight:700;color:${s.color};margin:0;letter-spacing:-0.5px">${s.value}</p>
+      <div class="stat-card ${colorMap[s.color]||'c-blue'}">
+        <div class="stat-label">${s.label}</div>
+        <div class="stat-value">${s.value}</div>
       </div>`).join("");
 
     const paymentTypeRows = byPaymentType.map(pt => `
-      <tr style="border-bottom:1px solid #F0F0F5">
-        <td style="padding:8px 12px;display:flex;align-items:center;gap:8px">
-          <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${pt.color}"></span>${pt.name}
-        </td>
-        <td style="padding:8px 12px;text-align:center;color:#636366">${pt.count}</td>
-        <td style="padding:8px 12px;text-align:right;font-weight:600">${fmt(pt.total)}</td>
-        <td style="padding:8px 12px;text-align:right;color:#636366">${totalContribs>0?Math.round((pt.total/totalContribs)*100):0}%</td>
+      <tr>
+        <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${pt.color};margin-right:7px;vertical-align:middle"></span>${pt.name}</td>
+        <td style="text-align:center;color:#6b7280">${pt.count}</td>
+        <td class="amt amt-g">${fmt(pt.total)}</td>
+        <td class="amt" style="color:#6b7280">${totalContribs>0?Math.round((pt.total/totalContribs)*100):0}%</td>
       </tr>`).join("");
 
     const expenseCatRows = byExpenseCategory.map(c => `
-      <tr style="border-bottom:1px solid #F0F0F5">
-        <td style="padding:8px 12px">${c.name}</td>
-        <td style="padding:8px 12px;text-align:center;color:#636366">${c.count}</td>
-        <td style="padding:8px 12px;text-align:right;font-weight:600;color:#FF375F">${fmt(c.total)}</td>
-        <td style="padding:8px 12px;text-align:right;color:#636366">${totalExpenses>0?Math.round((c.total/totalExpenses)*100):0}%</td>
+      <tr>
+        <td>${c.name}</td>
+        <td style="text-align:center;color:#6b7280">${c.count}</td>
+        <td class="amt amt-r">${fmt(c.total)}</td>
+        <td class="amt" style="color:#6b7280">${totalExpenses>0?Math.round((c.total/totalExpenses)*100):0}%</td>
       </tr>`).join("");
 
     const incomeSourceRows = Object.entries(byIncomeSource).map(([src, v]) => `
-      <tr style="border-bottom:1px solid #F0F0F5">
-        <td style="padding:8px 12px">${src}</td>
-        <td style="padding:8px 12px;text-align:center;color:#636366">${v.count}</td>
-        <td style="padding:8px 12px;text-align:right;font-weight:600;color:#34C759">${fmt(v.total)}</td>
-        <td style="padding:8px 12px;text-align:right;color:#636366">${totalIncome>0?Math.round((v.total/totalIncome)*100):0}%</td>
+      <tr>
+        <td>${src}</td>
+        <td style="text-align:center;color:#6b7280">${v.count}</td>
+        <td class="amt amt-g">${fmt(v.total)}</td>
+        <td class="amt" style="color:#6b7280">${totalIncome>0?Math.round((v.total/totalIncome)*100):0}%</td>
       </tr>`).join("");
 
     const topContribRows = topContributors.map((m, ri) => `
-      <tr style="border-bottom:1px solid #F0F0F5;background:${ri%2===0?"#FAFAFA":"white"}">
-        <td style="padding:8px 12px;font-weight:700;color:#8E8E93">${ri+1}</td>
-        <td style="padding:8px 12px;font-weight:500">${m.name}</td>
-        <td style="padding:8px 12px;text-align:center;color:#636366">${m.count}</td>
-        <td style="padding:8px 12px;text-align:right;font-weight:700;color:#34C759">${fmt(m.total)}</td>
+      <tr>
+        <td class="${ri===0?"rank-1":ri===1?"rank-2":ri===2?"rank-3":""}" style="font-weight:700">${ri+1}</td>
+        <td style="font-weight:500">${m.name}</td>
+        <td style="text-align:center;color:#6b7280">${m.count}</td>
+        <td class="amt amt-g">${fmt(m.total)}</td>
       </tr>`).join("");
 
     const section = (title, tableHtml) => tableHtml ? `
-      <div style="margin-bottom:32px;page-break-inside:avoid">
-        <h2 style="font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#636366;margin:0 0 10px;padding-bottom:6px;border-bottom:1px solid #E5E5EA">${title}</h2>
-        <table style="width:100%;border-collapse:collapse;font-size:13px">${tableHtml}</table>
+      <div style="margin-bottom:24px;page-break-inside:avoid">
+        <div class="section-head"><div class="section-bar"></div><h2>${title}</h2></div>
+        <table>${tableHtml}</table>
       </div>` : "";
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
       <title>${orgName} — Financial Summary</title>
       <style>
-        body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:#1C1C1E;padding:24px;margin:0}
-        @page{margin:18mm}
-        table{width:100%;border-collapse:collapse;font-size:13px}
-        th{text-align:left;padding:8px 12px;font-size:10px;font-weight:700;color:#8E8E93;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #E5E5EA}
-      </style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  @page{margin:14mm 16mm;}
+  body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#111827;font-size:13px;line-height:1.5;}
+  .doc-header{background:linear-gradient(135deg,#1e1f2e 0%,#2d2f4a 100%);color:#fff;padding:28px 32px 24px;position:relative;overflow:hidden;}
+  .doc-header::before{content:'';position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(79,110,247,0.18);pointer-events:none;}
+  .doc-header::after{content:'';position:absolute;bottom:-30px;left:30%;width:120px;height:120px;border-radius:50%;background:rgba(45,216,138,0.1);pointer-events:none;}
+  .doc-org{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.5);margin-bottom:5px;}
+  .doc-title{font-size:22px;font-weight:800;letter-spacing:-0.5px;color:#fff;margin-bottom:4px;}
+  .doc-meta{font-size:11px;color:rgba(255,255,255,0.5);display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;}
+  .doc-logo{position:absolute;right:32px;top:50%;transform:translateY(-50%);width:44px;height:44px;background:rgba(79,110,247,0.25);border:1px solid rgba(79,110,247,0.45);border-radius:13px;display:flex;align-items:center;justify-content:center;}
+  .body-wrap{padding:20px 32px 24px;}
+  .stat-row{display:grid;gap:10px;margin:0 0 24px;}
+  .stat-card{padding:14px 18px;border-radius:10px;border:1px solid #e5e7eb;}
+  .stat-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;}
+  .stat-value{font-size:20px;font-weight:800;letter-spacing:-0.5px;line-height:1.1;}
+  .stat-sub{font-size:10px;margin-top:3px;opacity:0.75;}
+  .c-green .stat-label{color:#059669;}.c-green{background:#f0fdf4;border-color:#bbf7d0;}.c-green .stat-value{color:#047857;}.c-green .stat-sub{color:#047857;}
+  .c-red .stat-label{color:#dc2626;}.c-red{background:#fff1f2;border-color:#fecdd3;}.c-red .stat-value{color:#b91c1c;}.c-red .stat-sub{color:#b91c1c;}
+  .c-blue .stat-label{color:#2563eb;}.c-blue{background:#eff6ff;border-color:#bfdbfe;}.c-blue .stat-value{color:#1d4ed8;}.c-blue .stat-sub{color:#1d4ed8;}
+  .c-purple .stat-label{color:#7c3aed;}.c-purple{background:#f5f3ff;border-color:#ddd6fe;}.c-purple .stat-value{color:#6d28d9;}
+  .section-head{display:flex;align-items:center;gap:8px;margin:22px 0 10px;}
+  .section-bar{width:3px;height:15px;border-radius:2px;background:linear-gradient(180deg,#4F6EF7,#2dd88a);flex-shrink:0;}
+  .section-head h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#374151;}
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  thead tr{background:#f9fafb;}
+  th{padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.06em;border-bottom:1px solid #e5e7eb;}
+  td{padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#374151;vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  tfoot td{background:#f9fafb;font-weight:700;color:#111827;border-top:1px solid #e5e7eb;border-bottom:none;padding:9px 12px;}
+  .amt{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;}
+  .amt-g{color:#047857;}.amt-r{color:#b91c1c;}.amt-b{color:#1d4ed8;}
+  .tag{display:inline-block;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:600;}
+  .tag-g{background:#dcfce7;color:#15803d;}.tag-r{background:#fee2e2;color:#b91c1c;}.tag-b{background:#dbeafe;color:#1d4ed8;}.tag-gray{background:#f3f4f6;color:#4b5563;}
+  .rank-1{color:#b45309;font-weight:800;}.rank-2{color:#6b7280;font-weight:700;}.rank-3{color:#92400e;font-weight:700;}
+  .goal-bg{height:5px;background:#e5e7eb;border-radius:99px;overflow:hidden;margin:3px 0 2px;}
+  .goal-fill{height:100%;border-radius:99px;}
+  .doc-footer{margin-top:24px;padding-top:12px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;font-size:10px;color:#9ca3af;}
+  @media print{.doc-header,.stat-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+</style>
       </head><body>
-      <div style="border-bottom:2px solid #1C1C1E;padding-bottom:16px;margin-bottom:24px">
-        <h1 style="font-size:24px;font-weight:700;margin:0 0 4px;letter-spacing:-0.5px">${orgName}</h1>
-        <p style="font-size:13px;color:#636366;margin:0">Financial Summary · ${periodLabel} · Generated ${new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}</p>
+      <div class="doc-header">
+        <div class="doc-logo"><svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M2 8h5M9 8h5M8 2v5M8 9v5" stroke="white" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="doc-org">${orgName}</div>
+        <div class="doc-title">Financial Summary</div>
+        <div class="doc-meta">
+          <span>${periodLabel}</span>
+          <span>Generated ${new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}</span>
+        </div>
       </div>
+      <div class="body-wrap">
+        <div class="stat-row" style="grid-template-columns:repeat(3,1fr)">
+          ${statCardsHtml}
+        </div>
 
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:32px">
-        ${statCardsHtml}
-      </div>
+        ${byPaymentType.length > 0 ? section("Member Contributions by Payment Type",
+          `<thead><tr><th>Payment Type</th><th style="text-align:center">Records</th><th class="amt">Amount</th><th class="amt">Share</th></tr></thead><tbody>${paymentTypeRows}</tbody>
+           <tfoot><tr><td colspan="2">Total</td><td class="amt">${fmt(totalContribs)}</td><td class="amt">100%</td></tr></tfoot>`) : ""}
 
-      ${byPaymentType.length > 0 ? section("Member Contributions by Payment Type",
-        `<thead><tr><th>Payment Type</th><th style="text-align:center">Records</th><th style="text-align:right">Amount</th><th style="text-align:right">Share</th></tr></thead><tbody>${paymentTypeRows}</tbody>
-         <tfoot><tr style="font-weight:700;background:#F5F5F7"><td colspan="2" style="padding:8px 12px">Total</td><td style="padding:8px 12px;text-align:right">${fmt(totalContribs)}</td><td style="padding:8px 12px;text-align:right">100%</td></tr></tfoot>`) : ""}
+        ${Object.keys(byIncomeSource).length > 0 ? section("Other Income by Source",
+          `<thead><tr><th>Source</th><th style="text-align:center">Records</th><th class="amt">Amount</th><th class="amt">Share</th></tr></thead><tbody>${incomeSourceRows}</tbody>
+           <tfoot><tr><td colspan="2">Total</td><td class="amt">${fmt(totalIncome)}</td><td class="amt">100%</td></tr></tfoot>`) : ""}
 
-      ${Object.keys(byIncomeSource).length > 0 ? section("Other Income by Source",
-        `<thead><tr><th>Source</th><th style="text-align:center">Records</th><th style="text-align:right">Amount</th><th style="text-align:right">Share</th></tr></thead><tbody>${incomeSourceRows}</tbody>
-         <tfoot><tr style="font-weight:700;background:#F5F5F7"><td colspan="2" style="padding:8px 12px">Total</td><td style="padding:8px 12px;text-align:right">${fmt(totalIncome)}</td><td style="padding:8px 12px;text-align:right">100%</td></tr></tfoot>`) : ""}
+        ${byExpenseCategory.length > 0 ? section("Expenses by Category",
+          `<thead><tr><th>Category</th><th style="text-align:center">Records</th><th class="amt">Amount</th><th class="amt">Share</th></tr></thead><tbody>${expenseCatRows}</tbody>
+           <tfoot><tr><td colspan="2">Total</td><td class="amt">${fmt(totalExpenses)}</td><td class="amt">100%</td></tr></tfoot>`) : ""}
 
-      ${byExpenseCategory.length > 0 ? section("Expenses by Category",
-        `<thead><tr><th>Category</th><th style="text-align:center">Records</th><th style="text-align:right">Amount</th><th style="text-align:right">Share</th></tr></thead><tbody>${expenseCatRows}</tbody>
-         <tfoot><tr style="font-weight:700;background:#F5F5F7"><td colspan="2" style="padding:8px 12px">Total</td><td style="padding:8px 12px;text-align:right">${fmt(totalExpenses)}</td><td style="padding:8px 12px;text-align:right">100%</td></tr></tfoot>`) : ""}
+        ${topContributors.length > 0 ? section("Top Contributors",
+          `<thead><tr><th>#</th><th>Member</th><th style="text-align:center">Records</th><th class="amt">Total</th></tr></thead><tbody>${topContribRows}</tbody>`) : ""}
 
-      ${topContributors.length > 0 ? section("Top Contributors",
-        `<thead><tr><th>#</th><th>Member</th><th style="text-align:center">Records</th><th style="text-align:right">Total</th></tr></thead><tbody>${topContribRows}</tbody>`) : ""}
-
-      <div style="border-top:2px solid #1C1C1E;padding-top:12px;margin-top:8px;display:flex;justify-content:space-between;font-size:12px;color:#636366">
-        <span>${orgName} · Confidential</span>
-        <span>Net: <strong style="color:${net>=0?"#34C759":"#FF375F"}">${fmt(net)}</strong></span>
+        <div class="doc-footer">
+          <span>${orgName} · Confidential</span>
+          <span>Net: <strong style="color:${net>=0?"#047857":"#b91c1c"}">${fmt(net)}</strong> · Unified Finance</span>
+        </div>
       </div>
     </body></html>`;
 
