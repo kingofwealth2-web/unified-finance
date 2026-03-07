@@ -144,7 +144,7 @@ export function Modals({
                       )}
                       <input type="hidden" value={newContribution.member_id} required/>
                     </Field>
-                    <Field label="Payment Type" t={t}><Select t={t} value={newContribution.payment_type_id} onChange={e=>setNewContribution({...newContribution,payment_type_id:e.target.value})}><option value="">Select type...</option>{data.paymentTypes.map(pt=><option key={pt.id} value={pt.id}>{pt.name}</option>)}</Select></Field>
+                    <Field label="Payment Type" t={t}><Select t={t} value={newContribution.payment_type_id} onChange={e=>setNewContribution({...newContribution,payment_type_id:e.target.value})} required><option value="">Select type...</option>{data.paymentTypes.map(pt=><option key={pt.id} value={pt.id}>{pt.name}</option>)}</Select></Field>
                     <Field label="Amount" t={t}><Input t={t} type="number" min="1" step="0.01" value={newContribution.amount} onChange={e=>setNewContribution({...newContribution,amount:e.target.value})} placeholder="0.00" required/></Field>
                     <Field label="Note (optional)" t={t}><Textarea t={t} value={newContribution.note} onChange={e=>setNewContribution({...newContribution,note:e.target.value})} placeholder="Any notes..."/></Field>
                     <Field label="Date" t={t}><Input t={t} type="date" value={newContribution.date} onChange={e=>setNewContribution({...newContribution,date:e.target.value})} required/></Field>
