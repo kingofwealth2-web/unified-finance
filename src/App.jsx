@@ -138,7 +138,7 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
             <div onClick={collapsed&&!isMobile?()=>setCollapsed(false):undefined} style={{ width:34, height:34, borderRadius:10, background:t.heroGrad, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 12px rgba(0,113,227,0.35)", flexShrink:0, cursor:collapsed&&!isMobile?"pointer":"default" }} title={collapsed&&!isMobile?"Expand sidebar":""}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8h5M9 8h5M8 2v5M8 9v5" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
             </div>
-            {(!collapsed || isMobile) && (
+            {(isMobile || !collapsed) && (
               <div style={{ minWidth:0 }}>
                 <div style={{ fontSize:15, fontWeight:700, letterSpacing:"-0.3px", color:t.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{orgName}</div>
                 {fyText && (() => {
@@ -267,6 +267,7 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
               handleDeleteContribution={confirmDeleteContribution}
               setEditingContribution={app.setEditingContribution}
               handleDeactivatePerson={app.handleDeactivatePerson}
+              isViewingPastYear={isViewingPastYear}
             />
           )}
 
@@ -281,6 +282,7 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
               setEditingContribution={app.setEditingContribution}
               handleDeleteContribution={confirmDeleteContribution}
               setBulkContributions={app.setBulkContributions}
+              isViewingPastYear={isViewingPastYear}
             />
           )}
 
@@ -289,7 +291,10 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
               data={app.data} t={t} fmt={app.fmt}
               isSuperAdmin={isSuperAdmin} openModal={app.openModal}
               setEditingExpenseCategory={app.setEditingExpenseCategory}
-              handleDeleteExpenseCategory={(id) => confirmDeleteExpenseCategory(id, app.data?.expenseCategories?.find(c=>c.id===id)?.name)}
+              handleDeleteExpenseCategory={(id) => confirmDeleteExpenseCategory(id, app.data?.expenses?.find(c=>c.id===id)?.label)}
+              setEditingExpenseEntry={app.setEditingExpenseEntry}
+              handleDeleteExpenseEntry={confirmDeleteExpenseEntry}
+              isViewingPastYear={isViewingPastYear}
             />
           )}
 
@@ -299,6 +304,7 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
               isSuperAdmin={isSuperAdmin} openModal={app.openModal}
               setEditingIncomeSource={app.setEditingIncomeSource}
               handleDeleteIncomeSource={app.handleDeleteIncomeSource}
+              isViewingPastYear={isViewingPastYear}
             />
           )}
 

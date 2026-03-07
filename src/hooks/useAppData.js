@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabaseClient.js";
 import { toast } from "../components/ui/index.jsx";
 import { makeFmt, light, dark, buildMonthly, buildTimeline, fyLabel } from "../constants.js";
@@ -9,7 +9,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
   const t = isDark ? dark : light;
   const toggleTheme = () => { const n = !isDark; setIsDark(n); localStorage.setItem("unified-theme", n?"dark":"light"); };
 
-  const [data, setData] = useState({ totalBalance:0, totalContributions:0, totalExpenses:0, people:[], expenses:[], recentActivity:[], users:[], paymentTypes:[], allPeople:[], org:null, rawContributions:[], rawExpenses:[] });
+  const [data, setData] = useState({ totalBalance:0, totalContributions:0, totalIncome:0, totalExpenses:0, people:[], expenses:[], recentActivity:[], users:[], paymentTypes:[], allPeople:[], org:null, rawContributions:[], rawExpenses:[] });
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState(null);
   const [fmt, setFmt] = useState(() => makeFmt("USD"));
@@ -62,6 +62,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
   const [auditLoading, setAuditLoading] = useState(false);
 
   const [visible, setVisible] = useState(false);
+  const initialLoadDone = useRef(false);
   useEffect(() => { setVisible(false); const timer = setTimeout(() => setVisible(true), 30); return () => clearTimeout(timer); }, [activeTab]);
   useEffect(() => { if(currentOrg?.id) fetchAllData(); }, [currentOrg?.id, viewingFY]);
 
@@ -69,7 +70,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
   const closeModal = () => { setModal(null); setEditingPaymentType(null); setEditingExpenseCategory(null); setEditingPerson(null); };
 
   async function fetchAllData() {
-    setLoading(true);
+    if (!initialLoadDone.current) setLoading(true);
     try {
       const orgId = currentOrg.id;
       // Get org first to know the current financial year
@@ -127,12 +128,13 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       const iA=(incomeRows||[]).slice(0,6).map(i=>({id:`i-${i.id}`,name:i.source||"Other Income",action:i.label||"Income",amount:`+${fmtLocal(i.amount)}`,time:new Date(i.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"}),positive:true,_date:new Date(i.created_at)}));
       const totalC=(contributions||[]).reduce((s,c)=>s+Number(c.amount),0);
       const totalE=(expenses||[]).reduce((s,e)=>s+Number(e.amount),0);
+      const totalI=(incomeRows||[]).reduce((s,i)=>s+Number(i.amount),0);
 
       const openingBalance = Number(org?.opening_balance || 0);
-      const totalBalance = totalC - totalE + openingBalance;
-      setData({ totalBalance, totalContributions:totalC, totalExpenses:totalE, people, expenses:expenseData, recentActivity:[...cA,...eA,...iA].sort((a,b)=>b._date-a._date).slice(0,10), users:(profiles||[]).filter(p=>["super_admin","admin"].includes(p.role)), paymentTypes:paymentTypeData, allPeople:profiles||[], org, categories:categories||[], rawContributions:contributions||[], rawExpenses:expenses||[], rawIncome:incomeRows||[], allTimeContributions:allTimeContribs||[] });
+      const totalBalance = totalC + totalI - totalE + openingBalance;
+      setData({ totalBalance, totalContributions:totalC, totalIncome:totalI, totalExpenses:totalE, people, expenses:expenseData, recentActivity:[...cA,...eA,...iA].sort((a,b)=>b._date-a._date).slice(0,10), users:(profiles||[]).filter(p=>["super_admin","admin"].includes(p.role)), paymentTypes:paymentTypeData, allPeople:profiles||[], org, categories:categories||[], rawContributions:contributions||[], rawExpenses:expenses||[], rawIncome:incomeRows||[], allTimeContributions:allTimeContribs||[] });
       setAuditLog(auditRows || []);
-    } catch(err) { console.error(err); } finally { setLoading(false); }
+    } catch(err) { console.error(err); } finally { setLoading(false); initialLoadDone.current = true; }
   }
 
   async function handleDeleteUser(userId, userName) {
@@ -155,7 +157,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Failed to delete user");
       await logAudit("delete","user",userId,userName,`Deleted user ${userName}`,{full_name:userName},null);
-      fetchAllData(); toast(`${userName} removed`);
+      toast(`${userName} removed`); fetchAllData();
     } catch(err) { alert(err.message); }
   }
 
@@ -186,7 +188,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       if (!response.ok) throw new Error(result.error || "Failed to create user");
 
       await logAudit("create","user",result.user_id,newUser.full_name,`Created user ${newUser.full_name} (${newUser.email})`,null,{email:newUser.email,role:newUser.role});
-      closeModal(); setNewUser({full_name:"",email:"",password:"",role:"admin"}); fetchAllData(); toast("User created successfully");
+      closeModal(); setNewUser({full_name:"",email:"",password:"",role:"admin"}); toast("User created successfully"); fetchAllData();
     } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleAddPerson(e) {
@@ -195,7 +197,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       const {error}=await supabase.from("profiles").insert({id:crypto.randomUUID(),full_name:newPerson.full_name,role:"member",status:newPerson.status,monthly_target:newPerson.monthly_target?Number(newPerson.monthly_target):0,org_id:currentOrg.id});
       if(error)throw error;
       await logAudit("create","person",null,newPerson.full_name,`Added person ${newPerson.full_name}`,null,{full_name:newPerson.full_name,status:newPerson.status});
-      closeModal(); setNewPerson({full_name:"",status:"active",monthly_target:""}); fetchAllData(); toast("Member added");
+      closeModal(); setNewPerson({full_name:"",status:"active",monthly_target:""}); toast("Member added"); fetchAllData();
     } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleAddContribution(e) {
@@ -205,7 +207,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       if(error)throw error;
       const memberName = data.allPeople.find(p=>p.id===newContribution.member_id)?.full_name||"Member";
       await logAudit("create","contribution",null,memberName,`Recorded contribution of ${newContribution.amount} for ${memberName}`,null,{amount:newContribution.amount,note:newContribution.note});
-      closeModal(); setNewContribution({member_id:"",amount:"",payment_type_id:"",note:""}); fetchAllData(); toast("Contribution recorded");
+      closeModal(); setNewContribution({member_id:"",amount:"",payment_type_id:"",note:""}); toast("Contribution recorded"); fetchAllData();
     } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleAddExpense(e) {
@@ -215,7 +217,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       if(error)throw error;
       const catName = data.categories?.find(c=>c.id===newExpense.category_id)?.name||"Expense";
       await logAudit("create","expense",null,null,`Recorded expense: ${newExpense.label} (${newExpense.amount}) under ${catName}`,null,{amount:newExpense.amount,label:newExpense.label});
-      closeModal(); setNewExpense({category_id:"",amount:"",label:""}); fetchAllData(); toast("Expense recorded");
+      closeModal(); setNewExpense({category_id:"",amount:"",label:""}); toast("Expense recorded"); fetchAllData();
     } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleAddPaymentType(e) {
@@ -224,7 +226,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       const {error}=await supabase.from("payment_types").insert({name:newPaymentType.name,description:newPaymentType.description||null,goal:newPaymentType.goal?Number(newPaymentType.goal):null,color:newPaymentType.color,created_by:session?.user?.id,org_id:currentOrg.id});
       if(error)throw error;
       await logAudit("create","payment_type",null,null,`Created payment type: ${newPaymentType.name}`,null,{name:newPaymentType.name,goal:newPaymentType.goal});
-      closeModal(); setNewPaymentType({name:"",description:"",goal:"",color:"#0071E3"}); fetchAllData(); toast("Payment type created");
+      closeModal(); setNewPaymentType({name:"",description:"",goal:"",color:"#0071E3"}); toast("Payment type created"); fetchAllData();
     } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleAddExpenseCategory(e) {
@@ -233,7 +235,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       const {error}=await supabase.from("expense_categories").insert({name:newExpenseCategory.name,description:newExpenseCategory.description||null,budget:newExpenseCategory.budget?Number(newExpenseCategory.budget):0,color:newExpenseCategory.color,created_by:session?.user?.id,org_id:currentOrg.id});
       if(error)throw error;
       await logAudit("create","expense_category",null,null,`Created expense category: ${newExpenseCategory.name}`,null,{name:newExpenseCategory.name,budget:newExpenseCategory.budget});
-      closeModal(); setNewExpenseCategory({name:"",description:"",budget:"",color:"#0071E3"}); fetchAllData(); toast("Expense category created");
+      closeModal(); setNewExpenseCategory({name:"",description:"",budget:"",color:"#0071E3"}); toast("Expense category created"); fetchAllData();
     } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleEditPaymentType(e) {
@@ -243,14 +245,14 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       const {error}=await supabase.from("payment_types").update({name:editingPaymentType.name,description:editingPaymentType.description||null,goal:editingPaymentType.goal?Number(editingPaymentType.goal):null,color:editingPaymentType.color}).eq("id",editingPaymentType.id);
       if(error)throw error;
       await logAudit("edit","payment_type",editingPaymentType.id,null,`Edited payment type: ${editingPaymentType.name}`,{name:old?.name,goal:old?.goal},{name:editingPaymentType.name,goal:editingPaymentType.goal});
-      closeModal(); fetchAllData(); toast("Payment type updated");
+      closeModal(); toast("Payment type updated"); fetchAllData();
     } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleDeletePaymentType(id) {
     const pt = data.paymentTypes.find(p=>p.id===id);
     await supabase.from("payment_types").delete().eq("id",id);
     await logAudit("delete","payment_type",id,null,`Deleted payment type: ${pt?.name||id}`,{name:pt?.name},null);
-    fetchAllData();
+    toast("Payment type deleted"); fetchAllData();
   }
   async function handleEditExpenseCategory(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
@@ -259,7 +261,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       const {error}=await supabase.from("expense_categories").update({name:editingExpenseCategory.name,description:editingExpenseCategory.description||null,budget:editingExpenseCategory.budget?Number(editingExpenseCategory.budget):0,color:editingExpenseCategory.color}).eq("id",editingExpenseCategory.id);
       if(error)throw error;
       await logAudit("edit","expense_category",editingExpenseCategory.id,null,`Edited expense category: ${editingExpenseCategory.name}`,{name:old?.label,budget:old?.budget},{name:editingExpenseCategory.name,budget:editingExpenseCategory.budget});
-      closeModal(); fetchAllData(); toast("Expense category updated");
+      closeModal(); toast("Expense category updated"); fetchAllData();
     } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleDeleteExpenseCategory(id) {
@@ -267,7 +269,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
     await supabase.from("expenses").delete().eq("category_id",id);
     await supabase.from("expense_categories").delete().eq("id",id);
     await logAudit("delete","expense_category",id,null,`Deleted expense category: ${cat?.label||id}`,{name:cat?.label},null);
-    fetchAllData();
+    toast("Category deleted"); fetchAllData();
   }
   async function handleStartNewYear() {
     try {
@@ -304,7 +306,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       const {error}=await supabase.from("org_settings").update({...orgForm,financial_year_start:Number(orgForm.financial_year_start),opening_balance:orgForm.opening_balance?Number(orgForm.opening_balance):0,updated_by:session?.user?.id,updated_at:new Date().toISOString()}).eq("id",data.org?.id);
       if(error)throw error;
       await logAudit("edit","org",data.org?.id,null,`Updated organisation settings`,{name:data.org?.name},{name:orgForm.name,currency:orgForm.currency});
-      closeModal(); fetchAllData(); toast("Organisation settings saved");
+      closeModal(); toast("Organisation settings saved"); fetchAllData();
     } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
 
@@ -319,7 +321,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       }).eq("id", editingPerson.id);
       if (error) throw error;
       await logAudit("edit","person",editingPerson.id,editingPerson.full_name,`Edited person: ${editingPerson.full_name}`,{full_name:old?.full_name,status:old?.status},{full_name:editingPerson.full_name,status:editingPerson.status});
-      closeModal(); fetchAllData(); toast("Member updated");
+      closeModal(); toast("Member updated"); fetchAllData();
     } catch(err) { setFormError(err.message); } finally { setFormLoading(false); }
   }
 
@@ -328,7 +330,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
     const person = data.allPeople.find(p=>p.id===id);
     await supabase.from("profiles").update({ status: newStatus }).eq("id", id);
     await logAudit("edit","person",id,person?.full_name,`${newStatus==="active"?"Activated":"Deactivated"} person: ${person?.full_name||id}`,{status:currentStatus},{status:newStatus});
-    fetchAllData();
+    toast(newStatus === "active" ? "Member activated" : "Member deactivated"); fetchAllData();
   }
 
   async function handleDeletePerson(id) {
@@ -336,7 +338,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
     await supabase.from("contributions").delete().eq("member_id", id);
     await supabase.from("profiles").delete().eq("id", id);
     await logAudit("delete","person",id,person?.full_name,`Deleted person: ${person?.full_name||id}`,{full_name:person?.full_name},null);
-    fetchAllData();
+    toast("Member deleted"); fetchAllData();
   }
 
   function exportToCSV(filename, headers, rows) {
@@ -389,7 +391,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
     const item = (data.rawIncome||[]).find(i=>i.id===id);
     await supabase.from("income_sources").delete().eq("id", id);
     await logAudit("delete","income",id,null,`Deleted income: ${item?.label||id}`,{label:item?.label,amount:item?.amount},null);
-    fetchAllData();
+    toast("Income deleted"); fetchAllData();
   }
 
   async function handleAddIncome(e) {
@@ -404,7 +406,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       });
       if(error)throw error;
       await logAudit("create","income",null,null,`Recorded income: ${newIncome.label} (${newIncome.amount})`,null,{label:newIncome.label,amount:newIncome.amount});
-      closeModal(); setNewIncome({label:"",amount:"",source:"",note:"",date:new Date().toISOString().slice(0,10)}); fetchAllData(); toast("Income recorded");
+      closeModal(); setNewIncome({label:"",amount:"",source:"",note:"",date:new Date().toISOString().slice(0,10)}); toast("Income recorded"); fetchAllData();
     } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
 
@@ -417,7 +419,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       }).eq("id",editingIncomeSource.id);
       if(error)throw error;
       await logAudit("edit","income",editingIncomeSource.id,null,`Edited income: ${editingIncomeSource.label}`,null,{label:editingIncomeSource.label,amount:editingIncomeSource.amount});
-      closeModal(); fetchAllData(); toast("Income updated");
+      closeModal(); toast("Income updated"); fetchAllData();
     } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
 
@@ -441,7 +443,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       const {error} = await supabase.from("contributions").insert(entries);
       if(error) throw error;
       await logAudit("create","contribution",null,null,`Bulk recorded ${entries.length} contributions`,null,{count:entries.length});
-      closeModal(); setBulkContributions(null); fetchAllData(); toast("Bulk contributions saved");
+      closeModal(); setBulkContributions(null); toast("Bulk contributions saved"); fetchAllData();
     } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
 
@@ -474,7 +476,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
         { amount: old?.amount, note: old?.note },
         { amount: editingContribution.amount, note: editingContribution.note }
       );
-      closeModal(); fetchAllData(); toast("Contribution updated");
+      closeModal(); toast("Contribution updated"); fetchAllData();
     } catch(err) { setFormError(err.message); } finally { setFormLoading(false); }
   }
 
@@ -484,7 +486,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       `Deleted contribution of ${c.amount} for ${c.profiles?.full_name || "Member"}`,
       { amount: c.amount }, null
     );
-    fetchAllData();
+    toast("Contribution deleted"); fetchAllData();
   }
 
   // ── Edit expense entry ─────────────────────────────────────────
@@ -504,7 +506,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
         { amount: old?.amount, label: old?.label },
         { amount: editingExpenseEntry.amount, label: editingExpenseEntry.label }
       );
-      closeModal(); fetchAllData();
+      closeModal(); toast("Expense updated"); fetchAllData();
     } catch(err) { setFormError(err.message); } finally { setFormLoading(false); }
   }
 
@@ -514,7 +516,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       `Deleted expense: ${ex.label} (${ex.amount})`,
       { amount: ex.amount, label: ex.label }, null
     );
-    fetchAllData();
+    toast("Expense deleted"); fetchAllData();
   }
 
   const isSuperAdmin = userRole === "super_admin";

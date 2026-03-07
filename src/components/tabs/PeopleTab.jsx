@@ -6,6 +6,7 @@ import { ContributorBars } from "../Charts.jsx";
 export function PeopleTab({
   data, t, fmt, isSuperAdmin, openModal,
   setEditingPerson, handleDeletePerson, handleDeleteContribution, handleDeactivatePerson,
+  setEditingContribution, isViewingPastYear,
 }) {
   const [peopleSearch, setPeopleSearch] = useState("");
   const [selectedMember, setSelectedMember] = useState(null);
@@ -68,7 +69,7 @@ export function PeopleTab({
                       <h3 style={{ fontSize:15, fontWeight:700, margin:0, color:t.text }}>{data.people.length} People</h3>
                       <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
                         <Btn t={t} onClick={exportPeopleReport} variant="secondary" style={{ fontSize:12 }}>↓ Export</Btn>
-                        <Btn t={t} onClick={()=>openModal("addPerson")}>+ Add Person</Btn>
+                        {!isViewingPastYear && <Btn t={t} onClick={()=>openModal("addPerson")}>+ Add Person</Btn>}
                       </div>
                     </div>
                     {/* Search */}
@@ -99,9 +100,11 @@ export function PeopleTab({
                               </div>
                               <span style={{ fontSize:11, fontWeight:600, padding:"4px 10px", borderRadius:20, background:p.status==="Active"?"rgba(52,199,89,0.12)":"rgba(142,142,147,0.12)", color:p.status==="Active"?"#34C759":"#8E8E93" }}>{p.status}</span>
                               <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-                                <Btn size="sm" variant="secondary" t={t} onClick={e=>{e.stopPropagation();setEditingPerson({id:p.id,full_name:p.name,status:p.status==="Active"?"active":"inactive",monthly_target:p.target||""});openModal("editPerson");}}>Edit</Btn>
-                                <Btn size="sm" variant="secondary" t={t} onClick={e=>{e.stopPropagation();handleDeactivatePerson(p.id,p.status);}}>{p.status==="Active"?"Deactivate":"Activate"}</Btn>
-                                <Btn size="sm" variant="danger" t={t} onClick={e=>{e.stopPropagation();handleDeletePerson(p.id);}}>Delete</Btn>
+                                {!isViewingPastYear && <>
+                                  <Btn size="sm" variant="secondary" t={t} onClick={e=>{e.stopPropagation();setEditingPerson({id:p.id,full_name:p.name,status:p.status==="Active"?"active":"inactive",monthly_target:p.target||""});openModal("editPerson");}}>Edit</Btn>
+                                  <Btn size="sm" variant="secondary" t={t} onClick={e=>{e.stopPropagation();handleDeactivatePerson(p.id,p.status);}}>{p.status==="Active"?"Deactivate":"Activate"}</Btn>
+                                  {isSuperAdmin && <Btn size="sm" variant="danger" t={t} onClick={e=>{e.stopPropagation();handleDeletePerson(p.id);}}>Delete</Btn>}
+                                </>}
                               </div>
                             </div>
                           </div>

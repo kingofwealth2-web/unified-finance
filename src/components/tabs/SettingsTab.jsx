@@ -74,6 +74,11 @@ export function SettingsTab({ data, t, fmt, isSuperAdmin, openModal, orgName, se
                   {user.role==="super_admin"?"Super Admin":"Admin"}
                 </span>
                 {user.id===session?.user?.id && <span style={{ fontSize:11, color:t.textSub, fontStyle:"italic" }}>You</span>}
+                {user.id===session?.user?.id && (
+                  <Btn size="sm" variant="secondary" t={t} onClick={()=>{ const name = window.prompt("Update your display name:", user.full_name||""); if(name && name.trim()) { import("../../lib/supabaseClient.js").then(({supabase})=>supabase.from("profiles").update({full_name:name.trim()}).eq("id",user.id).then(()=>window.location.reload())); } }}>
+                    Edit Name
+                  </Btn>
+                )}
                 {isSuperAdmin && user.id!==session?.user?.id && user.role!=="super_admin" && (
                   <Btn size="sm" variant="danger" t={t} onClick={()=>handleDeleteUser(user.id, user.full_name||user.email)}>Delete</Btn>
                 )}

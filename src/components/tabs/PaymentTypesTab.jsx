@@ -7,7 +7,7 @@ export function PaymentTypesTab({
   expandedPaymentType, setExpandedPaymentType,
   setEditingPaymentType, handleDeletePaymentType,
   setEditingContribution, handleDeleteContribution,
-  setBulkContributions,
+  setBulkContributions, isViewingPastYear,
 }) {
   const currency = data.org?.currency || "";
   const [ptView, setPtView] = useState({});
@@ -136,9 +136,11 @@ export function PaymentTypesTab({
     <div>
       <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:20, gap:10 }}>
         <Btn t={t} onClick={()=>triggerPrint("all")} variant="secondary">🖨 Print All</Btn>
-        <Btn t={t} onClick={()=>openModal("addContribution")} variant="secondary">+ Record Payment</Btn>
-        <Btn t={t} onClick={()=>{ setBulkContributions({ payment_type_id:"", note:"", date:new Date().toISOString().slice(0,10), amounts:{} }); openModal("bulkContribution"); }} variant="secondary">+ Bulk Add</Btn>
-        {isSuperAdmin&&<Btn t={t} onClick={()=>openModal("addPaymentType")}>+ New Payment Type</Btn>}
+        {!isViewingPastYear && <>
+          <Btn t={t} onClick={()=>openModal("addContribution")} variant="secondary">+ Record Payment</Btn>
+          <Btn t={t} onClick={()=>{ setBulkContributions({ payment_type_id:"", note:"", date:new Date().toISOString().slice(0,10), amounts:{} }); openModal("bulkContribution"); }} variant="secondary">+ Bulk Add</Btn>
+          {isSuperAdmin&&<Btn t={t} onClick={()=>openModal("addPaymentType")}>+ New Payment Type</Btn>}
+        </>}
       </div>
 
       {data.paymentTypes.length>0&&(
@@ -230,10 +232,12 @@ export function PaymentTypesTab({
                             const filteredMembers = memberSearch.trim()
                               ? pt.members.map((m, ri) => ({ m, ri })).filter(({ m }) => m.name.toLowerCase().includes(memberSearch.toLowerCase()))
                               : pt.members.map((m, ri) => ({ m, ri }));
-                            return filteredMembers.length===0
-                              ? <p style={{ fontSize:13, color:t.textSub, margin:0, textAlign:"center", padding:"8px 0" }}>{memberSearch ? `No members matching "${memberSearch}".` : "No contributions recorded yet."}</p>
-                              : <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                                  {filteredMembers.map(({ m, ri })=>{
+                            if (filteredMembers.length === 0) {
+                              return <p style={{ fontSize:13, color:t.textSub, margin:0, textAlign:"center", padding:"8px 0" }}>{memberSearch ? `No members matching "${memberSearch}".` : "No contributions recorded yet."}</p>;
+                            }
+                            return (
+                              <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                                {filteredMembers.map(({ m, ri })=>{
                                   const pct2=Math.round((m.total/pt.total)*100);
                                   // Medal is based on original rank (ri) — always preserved regardless of filtering
                                   const medal = ri===0?{label:"1",bg:"linear-gradient(135deg,#FFD700,#FFA500)",color:"#7A4F00",shadow:"0 2px 8px rgba(255,180,0,0.5)"}
@@ -262,6 +266,7 @@ export function PaymentTypesTab({
                                   );
                                 })}
                               </div>
+                            );
                           })()}
                         </div>
                       )}
@@ -273,7 +278,7 @@ export function PaymentTypesTab({
                             const filteredContribs = memberSearch.trim()
                               ? contributions.filter(c => (c.profiles?.full_name||"Unknown").toLowerCase().includes(memberSearch.toLowerCase()))
                               : contributions;
-                            return (filteredContribs.length===0
+                            return filteredContribs.length===0
                               ? <p style={{ fontSize:13, color:t.textSub, margin:0, textAlign:"center", padding:"8px 0" }}>{memberSearch ? `No contributions matching "${memberSearch}".` : "No contributions recorded yet."}</p>
                               : <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
                                   {filteredContribs.map((c,ci)=>{
@@ -305,7 +310,7 @@ export function PaymentTypesTab({
                                     </div>
                                   );
                                   })}
-                              </div>)
+                              </div>;
                           })()}
                         </div>
                       )}

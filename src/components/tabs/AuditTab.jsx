@@ -31,6 +31,8 @@ export function AuditTab({ auditLog, t }) {
                   </div>
                   <p style={{ fontSize:11, color:t.textSub, margin:0, flexShrink:0, whiteSpace:"nowrap" }}>
                     {new Date(entry.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}
+                    {" · "}
+                    {new Date(entry.created_at).toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})}
                   </p>
                 </div>
               </div>
