@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Card, ChartCard, Btn, EmptyState } from "../ui/index.jsx";
-import { DonutChart } from "../ui/Charts.jsx";
+import { DonutChart } from "../Charts.jsx";
 
 export function ExpensesTab({
   data, t, fmt, isSuperAdmin, openModal,
