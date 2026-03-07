@@ -40,9 +40,9 @@ const features = [
   },
 ];
 
-export default function Auth() {
+export default function Auth({ isPasswordRecovery = false, onPasswordReset = () => {} }) {
   // ── view: "login" | "signup" | "forgot" | "reset"
-  const [view, setView]               = useState("login");
+  const [view, setView]               = useState(isPasswordRecovery ? "reset" : "login");
 
   // shared fields
   const [email, setEmail]             = useState("");
@@ -154,6 +154,7 @@ export default function Auth() {
       setSuccess("Password updated! Redirecting to sign in…");
       setTimeout(() => {
         window.location.hash = "";
+        onPasswordReset();
         switchView("login");
       }, 2000);
     }
