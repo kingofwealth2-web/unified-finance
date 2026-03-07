@@ -7,6 +7,7 @@ export function OverviewTab({
   data, t, fmt, monthlyData, timelineData, isSuperAdmin, openModal,
   setActiveTab, setEditingContribution, handleDeleteContribution,
   setEditingExpenseEntry, handleDeleteExpenseEntry,
+  setEditingIncomeSource, handleDeleteIncomeSource,
 }) {
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
@@ -490,9 +491,12 @@ export function OverviewTab({
                           </div>
                           <div className="row-actions" style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
                             <span style={{ fontSize:15, fontWeight:700, color:item.positive?"#34C759":"#FF375F" }}>{item.amount}</span>
-                            {item.positive?(
+                            {item.id.startsWith("c-")?(
                               <><Btn size="sm" variant="secondary" t={t} onClick={()=>{const c=data.rawContributions.find(r=>`c-${r.id}`===item.id);if(c){setEditingContribution({id:c.id,member_name:c.profiles?.full_name||"",amount:c.amount,payment_type_id:c.payment_type_id||"",note:c.note||"",date:c.created_at?new Date(c.created_at).toISOString().slice(0,10):new Date().toISOString().slice(0,10)});openModal("editContribution");}}}>Edit</Btn>
                               <Btn size="sm" variant="danger" t={t} onClick={()=>{const c=data.rawContributions.find(r=>`c-${r.id}`===item.id);if(c)handleDeleteContribution(c);}}>Del</Btn></>
+                            ):item.id.startsWith("i-")?(
+                              <><Btn size="sm" variant="secondary" t={t} onClick={()=>{const inc=(data.rawIncome||[]).find(r=>`i-${r.id}`===item.id);if(inc){setEditingIncomeSource({id:inc.id,label:inc.label||"",amount:inc.amount,source:inc.source||"",note:inc.note||""});openModal("editIncome");}}}>Edit</Btn>
+                              <Btn size="sm" variant="danger" t={t} onClick={()=>{const inc=(data.rawIncome||[]).find(r=>`i-${r.id}`===item.id);if(inc)handleDeleteIncomeSource(inc.id);}}>Del</Btn></>
                             ):(
                               <><Btn size="sm" variant="secondary" t={t} onClick={()=>{const ex=data.rawExpenses.find(r=>`e-${r.id}`===item.id);if(ex){setEditingExpenseEntry({id:ex.id,label:ex.label,amount:ex.amount,category_id:ex.category_id||""});openModal("editExpenseEntry");}}}>Edit</Btn>
                               <Btn size="sm" variant="danger" t={t} onClick={()=>{const ex=data.rawExpenses.find(r=>`e-${r.id}`===item.id);if(ex)handleDeleteExpenseEntry(ex);}}>Del</Btn></>
