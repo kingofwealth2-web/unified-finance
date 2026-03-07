@@ -78,7 +78,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       const currentFY = orgRowsFirst?.[0]?.financial_year_start || new Date().getFullYear();
       const activeFY = viewingFY ?? currentFY;
 
-      const [{ data: profiles }, { data: contributions }, { data: categories }, { data: expenses }, { data: paymentTypes }, { data: orgRows }, { data: auditRows }, { data: incomeRows }, { data: allTimeContribs }] = await Promise.all([
+      const [{ data: profiles }, { data: contributions }, { data: categories }, { data: expenses }, { data: paymentTypes }, { data: orgRows }, { data: auditRows }, { data: incomeRows }, { data: allTimeContribs }, { data: myOwnProfile }] = await Promise.all([
         supabase.from("profiles").select("*").eq("org_id", orgId).order("created_at",{ascending:false}),
         supabase.from("contributions").select("*, profiles(full_name), payment_types(name,color)").eq("org_id", orgId).eq("financial_year", activeFY).order("created_at",{ascending:false}),
         supabase.from("expense_categories").select("*").eq("org_id", orgId).order("created_at",{ascending:false}),
@@ -88,7 +88,14 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
         supabase.from("audit_log").select("*").eq("org_id", orgId).order("created_at",{ascending:false}).limit(200),
         supabase.from("income_sources").select("*").eq("org_id", orgId).eq("financial_year", activeFY).order("created_at",{ascending:false}),
         supabase.from("contributions").select("*, profiles(full_name), payment_types(name,color)").eq("org_id", orgId).order("created_at",{ascending:false}),
+        supabase.from("profiles").select("*").eq("id", session?.user?.id||"").limit(1),
       ]);
+
+      // Ensure the current logged-in user's profile is always present (SA may have different org_id)
+      const allProfiles = [...(profiles||[])];
+      if (myOwnProfile?.[0] && !allProfiles.find(p=>p.id===myOwnProfile[0].id)) {
+        allProfiles.push(myOwnProfile[0]);
+      }
 
       const org = orgRows?.[0] || null;
       if (org) {
@@ -96,13 +103,13 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
         setOrgForm({ name:org.name, address:org.address||"", contact_email:org.contact_email||"", contact_phone:org.contact_phone||"", currency:org.currency||"USD", financial_year_format:org.financial_year_format||"single", financial_year_start:org.financial_year_start||new Date().getFullYear() });
       }
 
-      const me = (profiles||[]).find(p=>p.id===session?.user?.id);
+      const me = (allProfiles||[]).find(p=>p.id===session?.user?.id);
       setUserRole(me?.role || initialOrgRole || "admin");
 
       const fmtLocal = makeFmt(org?.currency||"USD");
       const now = new Date();
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const people = (profiles||[]).filter(p=>p.role==="member").map(p=>{
+      const people = (allProfiles||[]).filter(p=>p.role==="member").map(p=>{
         const total=(contributions||[]).filter(c=>c.member_id===p.id).reduce((s,c)=>s+Number(c.amount),0);
         const thisMonth=(contributions||[]).filter(c=>c.member_id===p.id&&new Date(c.created_at)>=monthStart).reduce((s,c)=>s+Number(c.amount),0);
         const last=(contributions||[]).find(c=>c.member_id===p.id);
@@ -132,7 +139,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
 
       const openingBalance = Number(org?.opening_balance || 0);
       const totalBalance = totalC + totalI - totalE + openingBalance;
-      setData({ totalBalance, totalContributions:totalC, totalIncome:totalI, totalExpenses:totalE, people, expenses:expenseData, recentActivity:[...cA,...eA,...iA].sort((a,b)=>b._date-a._date).slice(0,10), users:(profiles||[]).filter(p=>["super_admin","admin"].includes(p.role)), paymentTypes:paymentTypeData, allPeople:profiles||[], org, categories:categories||[], rawContributions:contributions||[], rawExpenses:expenses||[], rawIncome:incomeRows||[], allTimeContributions:allTimeContribs||[] });
+      setData({ totalBalance, totalContributions:totalC, totalIncome:totalI, totalExpenses:totalE, people, expenses:expenseData, recentActivity:[...cA,...eA,...iA].sort((a,b)=>b._date-a._date).slice(0,10), users:(allProfiles||[]).filter(p=>["super_admin","admin"].includes(p.role)), paymentTypes:paymentTypeData, allPeople:allProfiles||[], org, categories:categories||[], rawContributions:contributions||[], rawExpenses:expenses||[], rawIncome:incomeRows||[], allTimeContributions:allTimeContribs||[] });
       setAuditLog(auditRows || []);
     } catch(err) { console.error(err); } finally { setLoading(false); initialLoadDone.current = true; }
   }

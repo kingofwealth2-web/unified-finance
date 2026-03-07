@@ -106,7 +106,7 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
       `}</style>
 
       {/* ── Mobile top bar ── */}
-      <div className="mobile-topbar" style={{ display:"none", position:"fixed", top:0, left:0, right:0, height:56, background:t.sidebar, backdropFilter:"blur(40px)", borderBottom:`1px solid ${t.border}`, alignItems:"center", justifyContent:"space-between", padding:"0 16px", zIndex:200 }}>
+      <div className="mobile-topbar" style={{ display:"none", position:"fixed", top:0, left:0, right:0, height:56, background:t.sidebar, backdropFilter:"blur(40px)", borderBottom:`1px solid ${t.border}`, alignItems:"center", justifyContent:"space-between", padding:"0 16px", zIndex:200, visibility: mobileOpen ? "hidden" : "visible" }}>
         <button onClick={()=>setMobileOpen(true)} style={{ background:"none", border:"none", cursor:"pointer", color:t.text, fontSize:22, padding:4, display:"flex", alignItems:"center", justifyContent:"center" }}>☰</button>
         <div style={{ fontSize:15, fontWeight:700, color:t.text, letterSpacing:"-0.3px" }}>{orgName}</div>
         <button onClick={toggleTheme} style={{ background:"none", border:"none", cursor:"pointer", fontSize:18, padding:4 }}>{isDark?"☀️":"🌙"}</button>
@@ -125,7 +125,7 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
         borderRight:`1px solid ${t.border}`,
         display:"flex", flexDirection:"column", padding:"0 0 28px",
         paddingTop: isMobile ? "env(safe-area-inset-top, 28px)" : "28px",
-        zIndex: isMobile ? 160 : 100,
+        zIndex: isMobile ? 220 : 100,
         transition: isMobile ? "transform 0.3s cubic-bezier(0.4,0,0.2,1)" : "width 0.3s cubic-bezier(0.4,0,0.2,1), background 0.3s",
         transform: isMobile ? (mobileOpen ? "translateX(0)" : "translateX(-100%)") : "translateX(0)",
         overflow:"hidden",
