@@ -54,6 +54,7 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
   const confirmDeletePerson = (id, name) => withConfirm("Delete Person", `Remove ${name || "this person"} and all their contributions? This cannot be undone.`, "Delete", () => { app.handleDeletePerson(id); toast(`${name || "Person"} deleted`); });
   const confirmDeletePaymentType = (id, name) => withConfirm("Delete Payment Type", `Remove "${name || "this payment type"}"? This cannot be undone.`, "Delete", () => { app.handleDeletePaymentType(id); toast("Payment type deleted"); });
   const confirmDeleteExpenseCategory = (id, name) => withConfirm("Delete Category", `Remove "${name || "this category"}" and all its expenses? This cannot be undone.`, "Delete", () => { app.handleDeleteExpenseCategory(id); toast("Category deleted"); });
+  const confirmDeleteIncomeSource = (id, label) => withConfirm("Delete Income", `Remove "${label || "this income entry"}"? This cannot be undone.`, "Delete", () => app.handleDeleteIncomeSource(id));
 
   // ── User profile ──
   const myProfile = (app.data.users||[]).find(u => u.id === session?.user?.id);
@@ -389,7 +390,7 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
               setEditingExpenseEntry={app.setEditingExpenseEntry}
               handleDeleteExpenseEntry={confirmDeleteExpenseEntry}
               setEditingIncomeSource={app.setEditingIncomeSource}
-              handleDeleteIncomeSource={app.handleDeleteIncomeSource}
+              handleDeleteIncomeSource={(id) => { const inc=(app.data.rawIncome||[]).find(i=>i.id===id); confirmDeleteIncomeSource(id, inc?.label); }}
             />
           )}
 
@@ -438,7 +439,7 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
               data={app.data} t={t} fmt={app.fmt}
               isSuperAdmin={isSuperAdmin} openModal={app.openModal}
               setEditingIncomeSource={app.setEditingIncomeSource}
-              handleDeleteIncomeSource={app.handleDeleteIncomeSource}
+              handleDeleteIncomeSource={(id) => { const inc=(app.data.rawIncome||[]).find(i=>i.id===id); confirmDeleteIncomeSource(id, inc?.label); }}
               isViewingPastYear={isViewingPastYear}
             />
           )}

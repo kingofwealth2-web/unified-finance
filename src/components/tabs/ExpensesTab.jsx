@@ -101,7 +101,7 @@ export function ExpensesTab({
                               <span style={{ fontSize:14, fontWeight:700, color:"#FF375F" }}>-{fmt(entry.amount)}</span>
                               {!isViewingPastYear && (
                                 <>
-                                  <Btn size="sm" variant="secondary" t={t} onClick={()=>{setEditingExpenseEntry({id:entry.id,label:entry.label,amount:entry.amount,category_id:entry.category_id||""});openModal("editExpenseEntry");}}>Edit</Btn>
+                                  <Btn size="sm" variant="secondary" t={t} onClick={()=>{setEditingExpenseEntry({id:entry.id,label:entry.label,amount:entry.amount,category_id:entry.category_id||"",date:entry.created_at?new Date(entry.created_at).toISOString().slice(0,10):new Date().toISOString().slice(0,10)});openModal("editExpenseEntry");}}>Edit</Btn>
                                   <Btn size="sm" variant="danger" t={t} onClick={()=>handleDeleteExpenseEntry(entry)}>Del</Btn>
                                 </>
                               )}

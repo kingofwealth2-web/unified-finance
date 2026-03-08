@@ -4,6 +4,7 @@ import { DonutChart } from "../Charts.jsx";
 export function IncomeTab({
   data, t, fmt, isSuperAdmin, openModal,
   setEditingIncomeSource, handleDeleteIncomeSource,
+  isViewingPastYear,
 }) {
   // Group by source for donut chart
   const bySource = (data.rawIncome||[]).reduce((acc, item) => {
@@ -24,7 +25,7 @@ export function IncomeTab({
           <p style={{ fontSize:11, color:t.textSub, margin:0, textTransform:"uppercase", letterSpacing:"0.06em", fontWeight:600 }}>Total Non-Member Income</p>
           <p style={{ fontSize:28, fontWeight:700, margin:"2px 0 0", color:t.accent, letterSpacing:"-1px" }}>{fmt(total)}</p>
         </div>
-        <Btn t={t} onClick={()=>openModal("addIncome")}>+ Record Income</Btn>
+        {!isViewingPastYear && <Btn t={t} onClick={()=>openModal("addIncome")}>+ Record Income</Btn>}
       </div>
 
       {chartData.length > 0 && (
@@ -52,10 +53,10 @@ export function IncomeTab({
                   </div>
                   <div style={{ display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
                     <p style={{ fontSize:15, fontWeight:700, margin:0, color:"#34C759" }}>{fmt(item.amount)}</p>
-                    {isSuperAdmin && (
+                    {!isViewingPastYear && (
                       <div style={{ display:"flex", gap:6 }}>
                         <Btn size="sm" variant="secondary" t={t} onClick={()=>{ setEditingIncomeSource({ id:item.id, label:item.label, amount:item.amount, source:item.source||"", note:item.note||"", date:item.created_at?new Date(item.created_at).toISOString().slice(0,10):new Date().toISOString().slice(0,10) }); openModal("editIncome"); }}>Edit</Btn>
-                        <Btn size="sm" variant="danger" t={t} onClick={()=>handleDeleteIncomeSource(item.id)}>Delete</Btn>
+                        {isSuperAdmin && <Btn size="sm" variant="danger" t={t} onClick={()=>handleDeleteIncomeSource(item.id)}>Delete</Btn>}
                       </div>
                     )}
                   </div>

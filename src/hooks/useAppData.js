@@ -17,8 +17,8 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
   const [modal, setModal] = useState(null);
   const [newUser, setNewUser] = useState({ full_name:"", email:"", password:"", role:"admin" });
   const [newPerson, setNewPerson] = useState({ full_name:"", status:"active", monthly_target:"" });
-  const [newContribution, setNewContribution] = useState({ member_id:"", amount:"", payment_type_id:"", note:"" });
-  const [newExpense, setNewExpense] = useState({ category_id:"", amount:"", label:"" });
+  const [newContribution, setNewContribution] = useState({ member_id:"", amount:"", payment_type_id:"", note:"", date: new Date().toISOString().slice(0,10) });
+  const [newExpense, setNewExpense] = useState({ category_id:"", amount:"", label:"", date: new Date().toISOString().slice(0,10) });
   const [newPaymentType, setNewPaymentType] = useState({ name:"", description:"", goal:"", color:"#0071E3" });
   const [newExpenseCategory, setNewExpenseCategory] = useState({ name:"", description:"", budget:"", color:"#0071E3" });
   const [editingPaymentType, setEditingPaymentType] = useState(null);
@@ -214,7 +214,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       if(error)throw error;
       const memberName = data.allPeople.find(p=>p.id===newContribution.member_id)?.full_name||"Member";
       await logAudit("create","contribution",null,memberName,`Recorded contribution of ${newContribution.amount} for ${memberName}`,null,{amount:newContribution.amount,note:newContribution.note});
-      closeModal(); setNewContribution({member_id:"",amount:"",payment_type_id:"",note:""}); toast("Contribution recorded"); fetchAllData();
+      closeModal(); setNewContribution({member_id:"",amount:"",payment_type_id:"",note:"",date:new Date().toISOString().slice(0,10)}); toast("Contribution recorded"); fetchAllData();
     } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleAddExpense(e) {
@@ -224,7 +224,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       if(error)throw error;
       const catName = data.categories?.find(c=>c.id===newExpense.category_id)?.name||"Expense";
       await logAudit("create","expense",null,null,`Recorded expense: ${newExpense.label} (${newExpense.amount}) under ${catName}`,null,{amount:newExpense.amount,label:newExpense.label});
-      closeModal(); setNewExpense({category_id:"",amount:"",label:""}); toast("Expense recorded"); fetchAllData();
+      closeModal(); setNewExpense({category_id:"",amount:"",label:"",date:new Date().toISOString().slice(0,10)}); toast("Expense recorded"); fetchAllData();
     } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleAddPaymentType(e) {
@@ -259,7 +259,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
     const pt = data.paymentTypes.find(p=>p.id===id);
     await supabase.from("payment_types").delete().eq("id",id);
     await logAudit("delete","payment_type",id,null,`Deleted payment type: ${pt?.name||id}`,{name:pt?.name},null);
-    toast("Payment type deleted"); fetchAllData();
+    fetchAllData();
   }
   async function handleEditExpenseCategory(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
@@ -276,7 +276,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
     await supabase.from("expenses").delete().eq("category_id",id);
     await supabase.from("expense_categories").delete().eq("id",id);
     await logAudit("delete","expense_category",id,null,`Deleted expense category: ${cat?.label||id}`,{name:cat?.label},null);
-    toast("Category deleted"); fetchAllData();
+    fetchAllData();
   }
   async function handleStartNewYear() {
     try {
@@ -345,7 +345,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
     await supabase.from("contributions").delete().eq("member_id", id);
     await supabase.from("profiles").delete().eq("id", id);
     await logAudit("delete","person",id,person?.full_name,`Deleted person: ${person?.full_name||id}`,{full_name:person?.full_name},null);
-    toast("Member deleted"); fetchAllData();
+    fetchAllData();
   }
 
   function exportToCSV(filename, headers, rows) {
@@ -423,6 +423,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       const {error}=await supabase.from("income_sources").update({
         label:editingIncomeSource.label, amount:Number(editingIncomeSource.amount),
         source:editingIncomeSource.source||null, note:editingIncomeSource.note||null,
+        ...(editingIncomeSource.date ? { created_at: new Date(editingIncomeSource.date).toISOString() } : {}),
       }).eq("id",editingIncomeSource.id);
       if(error)throw error;
       await logAudit("edit","income",editingIncomeSource.id,null,`Edited income: ${editingIncomeSource.label}`,null,{label:editingIncomeSource.label,amount:editingIncomeSource.amount});
@@ -475,6 +476,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
         amount: Number(editingContribution.amount),
         payment_type_id: editingContribution.payment_type_id || null,
         note: editingContribution.note,
+        ...(editingContribution.date ? { created_at: new Date(editingContribution.date).toISOString() } : {}),
       }).eq("id", editingContribution.id);
       if (error) throw error;
       await logAudit("edit", "contribution", editingContribution.id,
@@ -493,7 +495,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       `Deleted contribution of ${c.amount} for ${c.profiles?.full_name || "Member"}`,
       { amount: c.amount }, null
     );
-    toast("Contribution deleted"); fetchAllData();
+    fetchAllData();
   }
 
   // ── Edit expense entry ─────────────────────────────────────────
@@ -505,6 +507,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
         amount: Number(editingExpenseEntry.amount),
         label: editingExpenseEntry.label,
         category_id: editingExpenseEntry.category_id,
+        ...(editingExpenseEntry.date ? { created_at: new Date(editingExpenseEntry.date).toISOString() } : {}),
       }).eq("id", editingExpenseEntry.id);
       if (error) throw error;
       await logAudit("edit", "expense", editingExpenseEntry.id,
@@ -523,7 +526,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       `Deleted expense: ${ex.label} (${ex.amount})`,
       { amount: ex.amount, label: ex.label }, null
     );
-    toast("Expense deleted"); fetchAllData();
+    fetchAllData();
   }
 
   const isSuperAdmin = userRole === "super_admin";
