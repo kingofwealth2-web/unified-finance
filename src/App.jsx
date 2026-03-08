@@ -388,6 +388,8 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
               handleDeleteContribution={confirmDeleteContribution}
               setEditingExpenseEntry={app.setEditingExpenseEntry}
               handleDeleteExpenseEntry={confirmDeleteExpenseEntry}
+              setEditingIncomeSource={app.setEditingIncomeSource}
+              handleDeleteIncomeSource={app.handleDeleteIncomeSource}
             />
           )}
 
