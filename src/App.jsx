@@ -57,15 +57,18 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
 
   // ── User profile ──
   const myProfile = (app.data.users||[]).find(u => u.id === session?.user?.id);
-  const displayName = myProfile?.full_name || session?.user?.email?.split("@")[0] || "You";
+  const [localDisplayName, setLocalDisplayName] = useState(null);
+  const displayName = localDisplayName || myProfile?.full_name || session?.user?.email?.split("@")[0] || "You";
 
   const handleSaveName = async () => {
     if (!nameValue.trim()) return;
     setNameSaving(true);
     await supabase.from("profiles").update({ full_name: nameValue.trim() }).eq("id", session?.user?.id);
+    setLocalDisplayName(nameValue.trim()); // update instantly in UI
     setNameSaving(false);
     setEditingName(false);
-    toast("Name updated"); app.fetchAllData ? app.fetchAllData() : window.location.reload();
+    toast("Name updated");
+    if (app.fetchAllData) app.fetchAllData(); // sync in background
   };
 
   const fyText = app.data.org?.financial_year_start
@@ -278,34 +281,35 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
             </div>
           )}
 
-          {/* ── Switch Org button ── */}
+          {/* ── Switch Org + Sign Out — side by side ── */}
           {(!collapsed || isMobile) ? (
-            <button
-              onClick={onSwitchOrg}
-              style={{ display:"flex", alignItems:"center", gap:10, width:"100%", padding:"10px 14px", borderRadius:12, border:`1px solid ${t.border}`, background:"none", color:t.textSub, fontSize:13, fontWeight:500, cursor:"pointer", textAlign:"left", transition:"all 0.15s ease" }}
-              onMouseEnter={e=>{ e.currentTarget.style.background=t.surfaceAlt; e.currentTarget.style.color=t.text; }}
-              onMouseLeave={e=>{ e.currentTarget.style.background="none"; e.currentTarget.style.color=t.textSub; }}
-            >
-              <span style={{ width:28, height:28, borderRadius:8, background:t.surfaceAlt, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>⇄</span>
-              <span>Switch Organisation</span>
-            </button>
+            <div style={{ display:"flex", gap:6 }}>
+              <button
+                onClick={onSwitchOrg}
+                title="Switch organisation"
+                style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"8px 10px", borderRadius:10, border:`1px solid ${t.border}`, background:"none", color:t.textSub, fontSize:12, fontWeight:500, cursor:"pointer", transition:"all 0.15s ease" }}
+                onMouseEnter={e=>{ e.currentTarget.style.background=t.surfaceAlt; e.currentTarget.style.color=t.text; }}
+                onMouseLeave={e=>{ e.currentTarget.style.background="none"; e.currentTarget.style.color=t.textSub; }}
+              >
+                <span style={{ fontSize:14 }}>⇄</span>
+                <span>Switch</span>
+              </button>
+              <button
+                onClick={()=>supabase.auth.signOut()}
+                title="Sign out"
+                style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"8px 10px", borderRadius:10, border:"1px solid rgba(255,55,95,0.2)", background:"rgba(255,55,95,0.04)", color:"#FF375F", fontSize:12, fontWeight:500, cursor:"pointer", transition:"all 0.15s ease" }}
+                onMouseEnter={e=>{ e.currentTarget.style.background="rgba(255,55,95,0.1)"; e.currentTarget.style.borderColor="rgba(255,55,95,0.4)"; }}
+                onMouseLeave={e=>{ e.currentTarget.style.background="rgba(255,55,95,0.04)"; e.currentTarget.style.borderColor="rgba(255,55,95,0.2)"; }}
+              >
+                <span style={{ fontSize:14 }}>↪</span>
+                <span>Sign Out</span>
+              </button>
+            </div>
           ) : (
-            <button onClick={onSwitchOrg} title="Switch organisation" style={{ width:"100%", padding:"10px 0", background:"none", border:"none", cursor:"pointer", color:t.textSub, fontSize:18, display:"flex", alignItems:"center", justifyContent:"center", borderRadius:10, transition:"all 0.15s" }}>⇄</button>
-          )}
-
-          {/* ── Sign Out button ── */}
-          {(!collapsed || isMobile) ? (
-            <button
-              onClick={()=>supabase.auth.signOut()}
-              style={{ display:"flex", alignItems:"center", gap:10, width:"100%", padding:"10px 14px", borderRadius:12, border:"1px solid rgba(255,55,95,0.2)", background:"rgba(255,55,95,0.04)", color:"#FF375F", fontSize:13, fontWeight:500, cursor:"pointer", textAlign:"left", transition:"all 0.15s ease" }}
-              onMouseEnter={e=>{ e.currentTarget.style.background="rgba(255,55,95,0.1)"; e.currentTarget.style.borderColor="rgba(255,55,95,0.4)"; }}
-              onMouseLeave={e=>{ e.currentTarget.style.background="rgba(255,55,95,0.04)"; e.currentTarget.style.borderColor="rgba(255,55,95,0.2)"; }}
-            >
-              <span style={{ width:28, height:28, borderRadius:8, background:"rgba(255,55,95,0.1)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>↪</span>
-              <span>Sign Out</span>
-            </button>
-          ) : (
-            <button onClick={()=>supabase.auth.signOut()} title="Sign out" style={{ width:"100%", padding:"10px 0", background:"rgba(255,55,95,0.06)", border:"1px solid rgba(255,55,95,0.15)", cursor:"pointer", color:"#FF375F", fontSize:16, display:"flex", alignItems:"center", justifyContent:"center", borderRadius:10, transition:"all 0.15s" }}>↪</button>
+            <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+              <button onClick={onSwitchOrg} title="Switch organisation" style={{ width:"100%", padding:"8px 0", background:"none", border:"none", cursor:"pointer", color:t.textSub, fontSize:16, display:"flex", alignItems:"center", justifyContent:"center", borderRadius:8 }}>⇄</button>
+              <button onClick={()=>supabase.auth.signOut()} title="Sign out" style={{ width:"100%", padding:"8px 0", background:"rgba(255,55,95,0.06)", border:"1px solid rgba(255,55,95,0.15)", cursor:"pointer", color:"#FF375F", fontSize:14, display:"flex", alignItems:"center", justifyContent:"center", borderRadius:8 }}>↪</button>
+            </div>
           )}
         </div>
       </div>
