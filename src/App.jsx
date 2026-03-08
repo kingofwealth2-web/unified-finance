@@ -64,21 +64,29 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
   const handleSaveName = async () => {
     if (!nameValue.trim()) return;
     setNameSaving(true);
-    // Upsert: super_admins may have no profiles row (org creation doesn't insert one).
-    // A plain update silently affects 0 rows, so the name reverts on reload.
-    await supabase.from("profiles").upsert({
-      id: session?.user?.id,
-      full_name: nameValue.trim(),
-      org_id: currentOrg.id,
-      role: orgRole,
-      email: session?.user?.email,
-      status: "active",
-    }, { onConflict: "id,org_id" });
+    // Try update first. If 0 rows affected (super_admin has no profiles row yet),
+    // insert one. PK is just `id`, not composite — onConflict:"id,org_id" doesn't work.
+    const { data: updated } = await supabase
+      .from("profiles")
+      .update({ full_name: nameValue.trim() })
+      .eq("id", session?.user?.id)
+      .select("id");
+    if (!updated || updated.length === 0) {
+      // No profile row exists yet (org creator path) — insert one
+      await supabase.from("profiles").insert({
+        id: session?.user?.id,
+        full_name: nameValue.trim(),
+        email: session?.user?.email,
+        role: orgRole,
+        org_id: currentOrg.id,
+        status: "active",
+      });
+    }
     setLocalDisplayName(nameValue.trim()); // instant UI patch while fetch runs
     setNameSaving(false);
     setEditingName(false);
     toast("Name updated");
-    if (app.fetchAllData) app.fetchAllData(); // refresh so myProfile reflects new name
+    if (app.fetchAllData) app.fetchAllData(); // sync myProfile in background
   };
 
   const fyText = app.data.org?.financial_year_start
