@@ -64,12 +64,21 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
   const handleSaveName = async () => {
     if (!nameValue.trim()) return;
     setNameSaving(true);
-    await supabase.from("profiles").update({ full_name: nameValue.trim() }).eq("id", session?.user?.id);
-    setLocalDisplayName(nameValue.trim()); // update instantly in UI
+    // Upsert: super_admins may have no profiles row (org creation doesn't insert one).
+    // A plain update silently affects 0 rows, so the name reverts on reload.
+    await supabase.from("profiles").upsert({
+      id: session?.user?.id,
+      full_name: nameValue.trim(),
+      org_id: currentOrg.id,
+      role: orgRole,
+      email: session?.user?.email,
+      status: "active",
+    }, { onConflict: "id,org_id" });
+    setLocalDisplayName(nameValue.trim()); // instant UI patch while fetch runs
     setNameSaving(false);
     setEditingName(false);
     toast("Name updated");
-    if (app.fetchAllData) app.fetchAllData(); // sync in background
+    if (app.fetchAllData) app.fetchAllData(); // refresh so myProfile reflects new name
   };
 
   const fyText = app.data.org?.financial_year_start
