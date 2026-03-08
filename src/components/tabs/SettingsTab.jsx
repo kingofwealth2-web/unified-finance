@@ -1,6 +1,5 @@
 import { Card, Btn, Avatar, EmptyState } from "../ui/index.jsx";
 import { fyLabel } from "../../constants.js";
-import { supabase } from "../../lib/supabaseClient.js";
 
 export function SettingsTab({ data, t, fmt, isSuperAdmin, openModal, orgName, session,
   setEditingPaymentType, handleDeletePaymentType,
@@ -75,11 +74,6 @@ export function SettingsTab({ data, t, fmt, isSuperAdmin, openModal, orgName, se
                   {user.role==="super_admin"?"Super Admin":"Admin"}
                 </span>
                 {user.id===session?.user?.id && <span style={{ fontSize:11, color:t.textSub, fontStyle:"italic" }}>You</span>}
-                {user.id===session?.user?.id && (
-                  <Btn size="sm" variant="secondary" t={t} onClick={async ()=>{ const name = window.prompt("Update your display name:", user.full_name||""); if(name && name.trim()) { await supabase.from("profiles").update({full_name:name.trim()}).eq("id",user.id); window.location.reload(); } }}>
-                    Edit Name
-                  </Btn>
-                )}
                 {isSuperAdmin && user.id!==session?.user?.id && user.role!=="super_admin" && (
                   <Btn size="sm" variant="danger" t={t} onClick={()=>handleDeleteUser(user.id, user.full_name||user.email)}>Delete</Btn>
                 )}

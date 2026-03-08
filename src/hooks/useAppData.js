@@ -581,5 +581,6 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
     bulkContributions, setBulkContributions,
     exportFinancialReport, exportDateFrom, setExportDateFrom, exportDateTo, setExportDateTo,
     fmt: makeFmt(data.org?.currency || 'USD'),
+    fetchAllData,
   };
 }

@@ -23,6 +23,10 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState("");
+  const [nameSaving, setNameSaving] = useState(false);
 
   useEffect(() => {
     const handler = () => {
@@ -50,6 +54,19 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
   const confirmDeletePerson = (id, name) => withConfirm("Delete Person", `Remove ${name || "this person"} and all their contributions? This cannot be undone.`, "Delete", () => { app.handleDeletePerson(id); toast(`${name || "Person"} deleted`); });
   const confirmDeletePaymentType = (id, name) => withConfirm("Delete Payment Type", `Remove "${name || "this payment type"}"? This cannot be undone.`, "Delete", () => { app.handleDeletePaymentType(id); toast("Payment type deleted"); });
   const confirmDeleteExpenseCategory = (id, name) => withConfirm("Delete Category", `Remove "${name || "this category"}" and all its expenses? This cannot be undone.`, "Delete", () => { app.handleDeleteExpenseCategory(id); toast("Category deleted"); });
+
+  // ── User profile ──
+  const myProfile = (app.data.users||[]).find(u => u.id === session?.user?.id);
+  const displayName = myProfile?.full_name || session?.user?.email?.split("@")[0] || "You";
+
+  const handleSaveName = async () => {
+    if (!nameValue.trim()) return;
+    setNameSaving(true);
+    await supabase.from("profiles").update({ full_name: nameValue.trim() }).eq("id", session?.user?.id);
+    setNameSaving(false);
+    setEditingName(false);
+    toast("Name updated"); app.fetchAllData ? app.fetchAllData() : window.location.reload();
+  };
 
   const fyText = app.data.org?.financial_year_start
     ? `FY ${app.data.org.financial_year_start}`
@@ -192,37 +209,149 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
           ))}
         </nav>
 
-        <div style={{ padding:"0 8px", display:"flex", flexDirection:"column", gap:8, flexShrink:0 }}>
+        <div style={{ padding:"0 8px", display:"flex", flexDirection:"column", gap:6, flexShrink:0 }}>
+          {/* Theme toggle */}
           {!isMobile && (
-          <button onClick={toggleTheme} title={isDark?"Light mode":"Dark mode"} style={{ background:"none", border:"none", cursor:"pointer", color:t.textSub, fontSize:18, padding:"8px 12px", textAlign:collapsed&&!isMobile?"center":"left", borderRadius:8, width:"100%" }}>
-            {isDark?"☀️":"🌙"}
-          </button>
+            <button onClick={toggleTheme} title={isDark?"Light mode":"Dark mode"} style={{ background:"none", border:"none", cursor:"pointer", color:t.textSub, fontSize:18, padding:"8px 12px", textAlign:collapsed&&!isMobile?"center":"left", borderRadius:8, width:"100%", transition:"color 0.15s" }}>
+              {isDark?"☀️":"🌙"}
+            </button>
           )}
-          <div style={{ display:"flex", alignItems:"center", gap:collapsed&&!isMobile?0:10, padding:"10px 12px", borderRadius:12, background:t.surfaceAlt, border:`1px solid ${t.border}`, justifyContent:collapsed&&!isMobile?"center":"flex-start" }}>
-            <Avatar name={session?.user?.email||"A"} size={30}/>
+
+          {/* ── Account block ── */}
+          <div
+            onClick={() => { if (!collapsed || isMobile) { setProfileOpen(p=>!p); setEditingName(false); setNameValue(displayName); } }}
+            className="card-hover"
+            style={{ display:"flex", alignItems:"center", gap:(!collapsed||isMobile)?10:0, padding:"10px 12px", borderRadius:14, background:profileOpen?`${t.accent}10`:t.surfaceAlt, border:`1px solid ${profileOpen?`${t.accent}40`:t.border}`, justifyContent:collapsed&&!isMobile?"center":"flex-start", cursor:(!collapsed||isMobile)?"pointer":"default", transition:"all 0.2s ease" }}>
+            <div style={{ position:"relative", flexShrink:0 }}>
+              <Avatar name={displayName} size={32}/>
+              <div style={{ position:"absolute", bottom:0, right:0, width:8, height:8, borderRadius:"50%", background:"#34C759", border:`1.5px solid ${t.surface}` }}/>
+            </div>
             {(!collapsed || isMobile) && (
-              <>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:10, fontWeight:700, color:t.accent, textTransform:"uppercase", letterSpacing:"0.06em" }}>{isSuperAdmin?"Super Admin":"Admin"}</div>
-                  <div style={{ fontSize:11, color:t.textSub, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{session?.user?.email}</div>
-                </div>
-                <button onClick={onSwitchOrg} style={{ background:"none", border:"none", cursor:"pointer", color:t.textMuted, fontSize:14, padding:2 }} title="Switch organisation">⇄</button>
-                <button onClick={()=>supabase.auth.signOut()} style={{ background:"none", border:"none", cursor:"pointer", color:t.textMuted, fontSize:16, padding:2 }} title="Sign out">⎋</button>
-              </>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:13, fontWeight:600, color:t.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{displayName}</div>
+                <div style={{ fontSize:10, fontWeight:700, color:t.accent, textTransform:"uppercase", letterSpacing:"0.06em" }}>{isSuperAdmin?"Super Admin":"Admin"}</div>
+              </div>
+            )}
+            {(!collapsed || isMobile) && (
+              <span style={{ fontSize:12, color:t.textSub, transition:"transform 0.2s", transform:profileOpen?"rotate(180deg)":"rotate(0deg)", flexShrink:0 }}>▾</span>
             )}
           </div>
+
+          {/* ── Profile panel (slides open) ── */}
+          {profileOpen && (!collapsed || isMobile) && (
+            <div style={{ background:t.surface, borderRadius:14, border:`1px solid ${t.border}`, padding:"16px", animation:"slideUp 0.2s ease", boxShadow:t.cardShadow }}>
+              {/* Display name */}
+              <p style={{ fontSize:10, fontWeight:700, color:t.textSub, textTransform:"uppercase", letterSpacing:"0.07em", margin:"0 0 8px" }}>Display Name</p>
+              {editingName ? (
+                <div style={{ display:"flex", gap:6, marginBottom:12 }}>
+                  <input
+                    value={nameValue}
+                    onChange={e=>setNameValue(e.target.value)}
+                    onKeyDown={e=>{ if(e.key==="Enter") handleSaveName(); if(e.key==="Escape") setEditingName(false); }}
+                    autoFocus
+                    style={{ flex:1, padding:"7px 10px", borderRadius:8, border:`1px solid ${t.accent}`, background:t.inputBg||t.surfaceAlt, color:t.text, fontSize:13, outline:"none", fontFamily:"inherit" }}
+                  />
+                  <button onClick={handleSaveName} disabled={nameSaving} style={{ padding:"7px 12px", borderRadius:8, border:"none", background:t.accent, color:"white", fontSize:12, fontWeight:600, cursor:"pointer" }}>
+                    {nameSaving?"...":"Save"}
+                  </button>
+                  <button onClick={()=>setEditingName(false)} style={{ padding:"7px 10px", borderRadius:8, border:`1px solid ${t.border}`, background:"none", color:t.textSub, fontSize:12, cursor:"pointer" }}>✕</button>
+                </div>
+              ) : (
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
+                  <span style={{ fontSize:14, fontWeight:600, color:t.text }}>{displayName}</span>
+                  <button onClick={()=>{ setEditingName(true); setNameValue(displayName); }} style={{ fontSize:11, color:t.accent, background:`${t.accent}12`, border:"none", borderRadius:6, padding:"4px 10px", cursor:"pointer", fontWeight:600 }}>Edit</button>
+                </div>
+              )}
+
+              {/* Role */}
+              <p style={{ fontSize:10, fontWeight:700, color:t.textSub, textTransform:"uppercase", letterSpacing:"0.07em", margin:"0 0 4px" }}>Role</p>
+              <div style={{ marginBottom:12 }}>
+                <span style={{ fontSize:12, fontWeight:700, padding:"4px 10px", borderRadius:20, background:isSuperAdmin?`${t.accent}18`:"rgba(52,199,89,0.1)", color:isSuperAdmin?t.accent:"#34C759", textTransform:"uppercase", letterSpacing:"0.04em" }}>
+                  {isSuperAdmin?"Super Admin":"Admin"}
+                </span>
+              </div>
+
+              {/* Org */}
+              <p style={{ fontSize:10, fontWeight:700, color:t.textSub, textTransform:"uppercase", letterSpacing:"0.07em", margin:"0 0 4px" }}>Organisation</p>
+              <p style={{ fontSize:13, fontWeight:500, color:t.text, margin:"0 0 4px" }}>{orgName}</p>
+              <p style={{ fontSize:11, color:t.textSub, margin:0 }}>{session?.user?.email}</p>
+            </div>
+          )}
+
+          {/* ── Switch Org button ── */}
+          {(!collapsed || isMobile) ? (
+            <button
+              onClick={onSwitchOrg}
+              style={{ display:"flex", alignItems:"center", gap:10, width:"100%", padding:"10px 14px", borderRadius:12, border:`1px solid ${t.border}`, background:"none", color:t.textSub, fontSize:13, fontWeight:500, cursor:"pointer", textAlign:"left", transition:"all 0.15s ease" }}
+              onMouseEnter={e=>{ e.currentTarget.style.background=t.surfaceAlt; e.currentTarget.style.color=t.text; }}
+              onMouseLeave={e=>{ e.currentTarget.style.background="none"; e.currentTarget.style.color=t.textSub; }}
+            >
+              <span style={{ width:28, height:28, borderRadius:8, background:t.surfaceAlt, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>⇄</span>
+              <span>Switch Organisation</span>
+            </button>
+          ) : (
+            <button onClick={onSwitchOrg} title="Switch organisation" style={{ width:"100%", padding:"10px 0", background:"none", border:"none", cursor:"pointer", color:t.textSub, fontSize:18, display:"flex", alignItems:"center", justifyContent:"center", borderRadius:10, transition:"all 0.15s" }}>⇄</button>
+          )}
+
+          {/* ── Sign Out button ── */}
+          {(!collapsed || isMobile) ? (
+            <button
+              onClick={()=>supabase.auth.signOut()}
+              style={{ display:"flex", alignItems:"center", gap:10, width:"100%", padding:"10px 14px", borderRadius:12, border:"1px solid rgba(255,55,95,0.2)", background:"rgba(255,55,95,0.04)", color:"#FF375F", fontSize:13, fontWeight:500, cursor:"pointer", textAlign:"left", transition:"all 0.15s ease" }}
+              onMouseEnter={e=>{ e.currentTarget.style.background="rgba(255,55,95,0.1)"; e.currentTarget.style.borderColor="rgba(255,55,95,0.4)"; }}
+              onMouseLeave={e=>{ e.currentTarget.style.background="rgba(255,55,95,0.04)"; e.currentTarget.style.borderColor="rgba(255,55,95,0.2)"; }}
+            >
+              <span style={{ width:28, height:28, borderRadius:8, background:"rgba(255,55,95,0.1)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>↪</span>
+              <span>Sign Out</span>
+            </button>
+          ) : (
+            <button onClick={()=>supabase.auth.signOut()} title="Sign out" style={{ width:"100%", padding:"10px 0", background:"rgba(255,55,95,0.06)", border:"1px solid rgba(255,55,95,0.15)", cursor:"pointer", color:"#FF375F", fontSize:16, display:"flex", alignItems:"center", justifyContent:"center", borderRadius:10, transition:"all 0.15s" }}>↪</button>
+          )}
         </div>
       </div>
 
       {/* ── Main content ── */}
       <div className="main-content" style={{ marginLeft:SW, padding:"40px 48px", maxWidth:1100, transition:"margin-left 0.3s cubic-bezier(0.4,0,0.2,1)" }}>
         <div style={{ marginBottom:40, animation:"slideUp 0.3s ease" }}>
-          <p style={{ fontSize:13, color:t.textSub, fontWeight:500, marginBottom:4, letterSpacing:"0.02em", textTransform:"uppercase" }}>
-            {new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}
-          </p>
-          <h1 style={{ fontSize:isMobile?24:34, fontWeight:700, letterSpacing:"-0.8px", margin:0, color:t.text }}>
-            {navItems.find(n=>n.id===activeTab)?.label}
-          </h1>
+          {activeTab === "overview" ? (() => {
+            const hour = new Date().getHours();
+            const greetings = [
+              { range:[5,9],   emoji:"🌅", lines:["Early start!", "Rise and shine,", "Up with the sun,"] },
+              { range:[9,12],  emoji:"☀️",  lines:["Good morning,", "Morning,", "Hey,"] },
+              { range:[12,17], emoji:"🌤",  lines:["Good afternoon,", "Afternoon,", "Hey there,"] },
+              { range:[17,21], emoji:"🌆",  lines:["Good evening,", "Evening,", "Hey,"] },
+              { range:[21,24], emoji:"🌙",  lines:["Burning the midnight oil,", "Still at it,", "Night owl energy,"] },
+              { range:[0,5],   emoji:"🌙",  lines:["Burning the midnight oil,", "Still at it,", "Night owl energy,"] },
+            ];
+            const slot = greetings.find(g => hour >= g.range[0] && hour < g.range[1]) || greetings[1];
+            const line = slot.lines[new Date().getDate() % slot.lines.length];
+            const suffixes = [
+              "let's see how things are looking.",
+              "here's what's been happening.",
+              "ready to dig in?",
+              "your numbers are waiting.",
+            ];
+            const suffix = suffixes[new Date().getDay() % suffixes.length];
+            return (
+              <div>
+                <p style={{ fontSize:13, color:t.textSub, fontWeight:500, marginBottom:6, letterSpacing:"0.02em", textTransform:"uppercase" }}>
+                  {new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}
+                </p>
+                <h1 style={{ fontSize:isMobile?22:32, fontWeight:700, letterSpacing:"-0.8px", margin:0, color:t.text, lineHeight:1.2 }}>
+                  {slot.emoji} {line} <span style={{ color:t.accent }}>{displayName}</span> — {suffix}
+                </h1>
+              </div>
+            );
+          })() : (
+            <>
+              <p style={{ fontSize:13, color:t.textSub, fontWeight:500, marginBottom:4, letterSpacing:"0.02em", textTransform:"uppercase" }}>
+                {new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}
+              </p>
+              <h1 style={{ fontSize:isMobile?24:34, fontWeight:700, letterSpacing:"-0.8px", margin:0, color:t.text }}>
+                {navItems.find(n=>n.id===activeTab)?.label}
+              </h1>
+            </>
+          )}
         </div>
 
         {/* ── Viewing past year banner ── */}
