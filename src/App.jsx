@@ -59,20 +59,21 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
   // ── User profile ──
   const myProfile = (app.data.users||[]).find(u => u.id === session?.user?.id);
   const [localDisplayName, setLocalDisplayName] = useState(null);
-  const displayName = localDisplayName || myProfile?.full_name || session?.user?.email?.split("@")[0] || "You";
+  const displayName = localDisplayName || myProfile?.full_name || session?.user?.user_metadata?.full_name || session?.user?.email?.split("@")[0] || "You";
 
   const handleSaveName = async () => {
     if (!nameValue.trim()) return;
     setNameSaving(true);
-    // Try update first. If 0 rows affected (super_admin has no profiles row yet),
-    // insert one. PK is just `id`, not composite — onConflict:"id,org_id" doesn't work.
+    // Write to auth user_metadata — always persists for current user, no RLS issues.
+    // Also attempt profiles table update as a best-effort for display elsewhere.
+    await supabase.auth.updateUser({ data: { full_name: nameValue.trim() } });
+    // Best-effort profiles update (may be blocked by RLS for super_admins with no row)
     const { data: updated } = await supabase
       .from("profiles")
       .update({ full_name: nameValue.trim() })
       .eq("id", session?.user?.id)
       .select("id");
     if (!updated || updated.length === 0) {
-      // No profile row exists yet (org creator path) — insert one
       await supabase.from("profiles").insert({
         id: session?.user?.id,
         full_name: nameValue.trim(),
@@ -80,13 +81,13 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
         role: orgRole,
         org_id: currentOrg.id,
         status: "active",
-      });
+      }).select();
     }
-    setLocalDisplayName(nameValue.trim()); // instant UI patch while fetch runs
+    setLocalDisplayName(nameValue.trim());
     setNameSaving(false);
     setEditingName(false);
     toast("Name updated");
-    if (app.fetchAllData) app.fetchAllData(); // sync myProfile in background
+    if (app.fetchAllData) app.fetchAllData();
   };
 
   const fyText = app.data.org?.financial_year_start
