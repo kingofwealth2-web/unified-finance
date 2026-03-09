@@ -11,8 +11,10 @@ const Avatar = ({ name, size = 36 }) => {
 };
 
 const Modal = ({ title, onClose, children, t }) => createPortal(
-  <div style={{ position:"fixed", inset:0, zIndex:1000, background:"rgba(0,0,0,0.5)", backdropFilter:"blur(8px)", display:"flex", alignItems:"center", justifyContent:"center", padding:20, animation:"fadeIn 0.15s ease" }} onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
-    <div style={{ background:t.surface, borderRadius:24, padding:"36px 40px", width:"100%", maxWidth:460, boxShadow:t.shadow, maxHeight:"90vh", overflowY:"auto", border:`1px solid ${t.border}`, animation:"slideUp 0.2s cubic-bezier(0.34,1.56,0.64,1)" }} onClick={e=>e.stopPropagation()}>
+  <div style={{ position:"fixed", inset:0, zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center", padding:20, animation:"fadeIn 0.15s ease" }}>
+    {/* Backdrop in its own layer — keeps backdropFilter from trapping native <select> dropdowns */}
+    <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.5)", backdropFilter:"blur(8px)" }} onClick={onClose}/>
+    <div style={{ position:"relative", zIndex:1, background:t.surface, borderRadius:24, padding:"36px 40px", width:"100%", maxWidth:460, boxShadow:t.shadow, maxHeight:"90vh", overflowY:"auto", border:`1px solid ${t.border}`, animation:"slideUp 0.2s cubic-bezier(0.34,1.56,0.64,1)" }} onClick={e=>e.stopPropagation()}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:28 }}>
         <h3 style={{ fontSize:18, fontWeight:700, margin:0, letterSpacing:"-0.4px", color:t.text }}>{title}</h3>
         <button onClick={onClose} style={{ background:"none", border:"none", fontSize:22, cursor:"pointer", color:t.textSub, lineHeight:1 }}>×</button>
@@ -132,8 +134,9 @@ const ToastContainer = () => {
 const ConfirmDialog = ({ confirm, onConfirm, onCancel, t }) => {
   if (!confirm) return null;
   return createPortal(
-    <div style={{ position:"fixed", inset:0, zIndex:2000, background:"rgba(0,0,0,0.6)", backdropFilter:"blur(8px)", display:"flex", alignItems:"center", justifyContent:"center", padding:20, animation:"fadeIn 0.15s ease" }} onClick={onCancel}>
-      <div style={{ background:t.surface, borderRadius:20, padding:"28px 32px", width:"100%", maxWidth:380, boxShadow:t.shadow, border:`1px solid ${t.border}`, animation:"slideUp 0.2s cubic-bezier(0.34,1.56,0.64,1)" }} onClick={e=>e.stopPropagation()}>
+    <div style={{ position:"fixed", inset:0, zIndex:2000, display:"flex", alignItems:"center", justifyContent:"center", padding:20, animation:"fadeIn 0.15s ease" }}>
+      <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.6)", backdropFilter:"blur(8px)" }} onClick={onCancel}/>
+      <div style={{ position:"relative", zIndex:1, background:t.surface, borderRadius:20, padding:"28px 32px", width:"100%", maxWidth:380, boxShadow:t.shadow, border:`1px solid ${t.border}`, animation:"slideUp 0.2s cubic-bezier(0.34,1.56,0.64,1)" }} onClick={e=>e.stopPropagation()}>
         <div style={{ textAlign:"center", marginBottom:20 }}>
           <div style={{ width:48, height:48, borderRadius:"50%", background:"rgba(255,55,95,0.1)", border:"1.5px solid rgba(255,55,95,0.3)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 14px", fontSize:22 }}>⚠️</div>
           <h3 style={{ fontSize:17, fontWeight:700, margin:"0 0 8px", color:t.text }}>{confirm.title||"Are you sure?"}</h3>

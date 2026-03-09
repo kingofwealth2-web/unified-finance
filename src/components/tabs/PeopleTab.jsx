@@ -223,8 +223,10 @@ export function PeopleTab({
   .section-head h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#374151;}
   table{width:100%;border-collapse:collapse;font-size:12px;}
   thead tr{background:#f9fafb;}
-  th{padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.06em;border-bottom:1px solid #e5e7eb;}
+  th{padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.06em;border-bottom:1px solid #e5e7eb;white-space:nowrap;}
   td{padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#374151;vertical-align:middle;}
+  th:first-child,td:first-child{width:90px;}
+  th:last-child,td:last-child{width:90px;text-align:right;}
   tr:last-child td{border-bottom:none;}
   tfoot td{background:#f9fafb;font-weight:700;color:#111827;border-top:1px solid #e5e7eb;border-bottom:none;padding:9px 12px;}
   .amt{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;}
@@ -235,7 +237,15 @@ export function PeopleTab({
   .goal-bg{height:5px;background:#e5e7eb;border-radius:99px;overflow:hidden;margin:3px 0 2px;}
   .goal-fill{height:100%;border-radius:99px;}
   .doc-footer{margin-top:24px;padding-top:12px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;font-size:10px;color:#9ca3af;}
-  @media print{.doc-header,.stat-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+  @media print{
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .doc-header,.stat-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .stat-row{display:grid!important;grid-template-columns:repeat(2,1fr)!important;}
+    table{page-break-inside:avoid;}
+    thead{display:table-header-group;}
+    tr{page-break-inside:avoid;}
+    .doc-footer{page-break-inside:avoid;}
+  }
 </style></head><body>
                             <div class="doc-header">
                               <div class="doc-logo"><svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M2 8h5M9 8h5M8 2v5M8 9v5" stroke="white" stroke-width="2" stroke-linecap="round"/></svg></div>
