@@ -134,18 +134,18 @@ export function OverviewTab({
     const rows = [
       ...monthContribs.map(c => `
         <tr>
-          <td style="color:#34C759;font-weight:600">Income</td>
+          <td style="color:${t.positive};font-weight:600">Income</td>
           <td>${c.profiles?.full_name || "Member"}</td>
           <td>${c.payment_types?.name || "—"}</td>
-          <td style="text-align:right;font-weight:700;color:#34C759">+${fmt(c.amount)}</td>
+          <td style="text-align:right;font-weight:700;color:${t.positive}">+${fmt(c.amount)}</td>
           <td style="color:#888">${new Date(c.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</td>
         </tr>`),
       ...monthExpenses.map(e => `
         <tr>
-          <td style="color:#FF375F;font-weight:600">Expense</td>
+          <td style="color:${t.negative};font-weight:600">Expense</td>
           <td>${e.label || e.expense_categories?.name || "Expense"}</td>
           <td>${e.note || "—"}</td>
-          <td style="text-align:right;font-weight:700;color:#FF375F">-${fmt(e.amount)}</td>
+          <td style="text-align:right;font-weight:700;color:${t.negative}">-${fmt(e.amount)}</td>
           <td style="color:#888">${new Date(e.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</td>
         </tr>`),
       ...monthOtherIncome.map(i => `
@@ -328,9 +328,9 @@ export function OverviewTab({
 
                   {/* ── Budget Alerts ── */}
                   {budgetAlerts.length > 0 && (
-                    <Card t={t} style={{ marginBottom:20, animation:"slideUp 0.3s ease", border:`1px solid rgba(255,159,10,0.3)`, background:t.surface }}>
+                    <Card t={t} style={{ marginBottom:20, animation:"slideUp 0.3s ease", border:`1px solid ${t.warning}44`, background:t.surface }}>
                       <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16 }}>
-                        <div style={{ width:32, height:32, borderRadius:10, background:"rgba(255,159,10,0.12)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>⚠️</div>
+                        <div style={{ width:32, height:32, borderRadius:10, background:t.warningBg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>⚠️</div>
                         <div>
                           <h3 style={{ fontSize:15, fontWeight:700, margin:0, color:t.text }}>Budget Alerts</h3>
                           <p style={{ fontSize:12, color:t.textSub, margin:"2px 0 0" }}>{budgetAlerts.length} {budgetAlerts.length===1?"category":"categories"} need attention</p>
@@ -339,8 +339,8 @@ export function OverviewTab({
                       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                         {budgetAlerts.map((exp, i) => {
                           const isOver = exp.pct >= 100;
-                          const color  = isOver ? "#FF375F" : "#FF9F0A";
-                          const bg     = isOver ? "rgba(255,55,95,0.08)" : "rgba(255,159,10,0.08)";
+                          const color  = isOver ? t.negative : t.warning;
+                          const bg     = isOver ? t.negativeBg : t.warningBg;
                           return (
                             <div key={exp.id} style={{ padding:"12px 16px", borderRadius:12, background:bg, border:`1px solid ${color}22`, animation:`slideIn 0.25s ease ${i*0.05}s both` }}>
                               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
@@ -375,9 +375,9 @@ export function OverviewTab({
                     </div>
                     <div className="grid-3" style={{ marginBottom: ytdIncome > 0 || ytdExpTotal > 0 ? 20 : 0 }}>
                       {[
-                        { label:"YTD Income",   value:ytdIncome,   color:"#34C759", bg:"rgba(52,199,89,0.1)" },
-                        { label:"YTD Expenses", value:ytdExpTotal, color:"#FF375F", bg:"rgba(255,55,95,0.1)" },
-                        { label:"YTD Net",      value:ytdNet,      color:ytdNet>=0?"#0071E3":"#FF375F", bg:ytdNet>=0?"rgba(0,113,227,0.1)":"rgba(255,55,95,0.08)" },
+                        { label:"YTD Income",   value:ytdIncome,   color:t.positive, bg:t.positiveBg },
+                        { label:"YTD Expenses", value:ytdExpTotal, color:t.negative, bg:t.negativeBg },
+                        { label:"YTD Net",      value:ytdNet,      color:ytdNet>=0?t.accent:t.negative, bg:ytdNet>=0?`${t.accent}18`:t.negativeBg },
                       ].map((s,i) => (
                         <div key={s.label} style={{ padding:"16px 18px", borderRadius:14, background:s.bg }}>
                           <p style={{ fontSize:11, fontWeight:600, color:s.color, margin:"0 0 4px", textTransform:"uppercase", letterSpacing:"0.06em" }}>{s.label}</p>
@@ -389,10 +389,10 @@ export function OverviewTab({
                       <div>
                         <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
                           <span style={{ fontSize:12, color:t.textSub }}>Income vs Expenses</span>
-                          <span style={{ fontSize:12, fontWeight:600, color:ytdNet>=0?"#34C759":"#FF375F" }}>{ytdNet>=0?"+":""}{fmt(ytdNet)} {ytdNet>=0?"surplus":"deficit"}</span>
+                          <span style={{ fontSize:12, fontWeight:600, color:ytdNet>=0?t.positive:t.negative }}>{ytdNet>=0?"+":""}{fmt(ytdNet)} {ytdNet>=0?"surplus":"deficit"}</span>
                         </div>
                         <div style={{ height:8, background:t.surfaceAlt, borderRadius:99, overflow:"hidden", display:"flex" }}>
-                          <div style={{ height:"100%", width:`${Math.round((ytdIncome/(ytdIncome+ytdExpTotal))*100)}%`, background:"linear-gradient(90deg,#34C759,#30D158)", borderRadius:99, transition:"width 0.9s cubic-bezier(0.34,1.1,0.64,1)", boxShadow:"0 0 8px rgba(52,199,89,0.4)" }}/>
+                          <div style={{ height:"100%", width:`${Math.round((ytdIncome/(ytdIncome+ytdExpTotal))*100)}%`, background:t.positive, borderRadius:99, transition:"width 0.9s cubic-bezier(0.34,1.1,0.64,1)", boxShadow:"none" }}/>
                         </div>
                       </div>
                     )}
@@ -418,9 +418,9 @@ export function OverviewTab({
                     {/* 3 stat chips */}
                     <div className="grid-3" style={{ marginBottom:20 }}>
                       {[
-                        { label:"Income", value:monthIncome, color:"#34C759", bg:"rgba(52,199,89,0.1)" },
-                        { label:"Expenses", value:monthExpTotal, color:"#FF375F", bg:"rgba(255,55,95,0.1)" },
-                        { label:"Net", value:monthNet, color:monthNet>=0?"#0071E3":"#FF375F", bg:monthNet>=0?"rgba(0,113,227,0.1)":"rgba(255,55,95,0.08)" },
+                        { label:"Income", value:monthIncome, color:t.positive, bg:t.positiveBg },
+                        { label:"Expenses", value:monthExpTotal, color:t.negative, bg:t.negativeBg },
+                        { label:"Net", value:monthNet, color:monthNet>=0?t.accent:t.negative, bg:monthNet>=0?`${t.accent}18`:t.negativeBg },
                       ].map((s,i) => (
                         <div key={s.label} style={{ padding:"14px 16px", borderRadius:14, background:s.bg, opacity:monthVisible?1:0, transform:monthVisible?"translateY(0)":"translateY(8px)", transition:`opacity 0.2s ease ${i*0.05}s, transform 0.2s ease ${i*0.05}s` }}>
                           <p style={{ fontSize:11, fontWeight:600, color:s.color, margin:"0 0 4px", textTransform:"uppercase", letterSpacing:"0.06em" }}>{s.label}</p>
@@ -435,10 +435,10 @@ export function OverviewTab({
                       <div style={{ marginBottom:20 }}>
                         <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
                           <span style={{ fontSize:12, color:t.textSub }}>Income vs Expenses</span>
-                          <span style={{ fontSize:12, fontWeight:600, color:monthNet>=0?"#34C759":"#FF375F" }}>{monthNet>=0?"+":""}{fmt(monthNet)}</span>
+                          <span style={{ fontSize:12, fontWeight:600, color:monthNet>=0?t.positive:t.negative }}>{monthNet>=0?"+":""}{fmt(monthNet)}</span>
                         </div>
                         <div style={{ height:8, background:t.surfaceAlt, borderRadius:99, overflow:"hidden", display:"flex" }}>
-                          <div style={{ height:"100%", width:monthVisible?`${Math.round((monthIncome/(monthIncome+monthExpTotal))*100)}%`:"0%", background:"linear-gradient(90deg,#34C759,#30D158)", borderRadius:99, transition:"width 0.8s cubic-bezier(0.34,1.1,0.64,1)", boxShadow:"0 0 8px rgba(52,199,89,0.4)" }}/>
+                          <div style={{ height:"100%", width:monthVisible?`${Math.round((monthIncome/(monthIncome+monthExpTotal))*100)}%`:"0%", background:t.positive, borderRadius:99, transition:"width 0.8s cubic-bezier(0.34,1.1,0.64,1)", boxShadow:"none" }}/>
                         </div>
                       </div>
                     )}
@@ -453,13 +453,13 @@ export function OverviewTab({
                             {monthTxns.map((item,i) => (
                               <div key={item.id} className="row-hover" style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 8px", borderBottom:i<monthTxns.length-1?`1px solid ${t.border}`:"none", borderRadius:8, flexWrap:"wrap", gap:6, opacity:monthVisible?1:0, transform:monthVisible?"translateX(0)":"translateX(-8px)", transition:`opacity 0.2s ease ${Math.min(i*0.03,0.3)}s, transform 0.2s ease ${Math.min(i*0.03,0.3)}s` }}>
                                 <div style={{ display:"flex", alignItems:"center", gap:10, flex:1, minWidth:0 }}>
-                                  <div style={{ width:32, height:32, borderRadius:9, background:item.positive?"rgba(52,199,89,0.12)":"rgba(255,55,95,0.1)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>{item.positive?"↑":"↓"}</div>
+                                  <div style={{ width:32, height:32, borderRadius:9, background:item.positive?t.positiveBg:t.negativeBg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>{item.positive?"↑":"↓"}</div>
                                   <div style={{ minWidth:0 }}>
                                     <p style={{ fontSize:13, fontWeight:600, margin:0, color:t.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.name}</p>
                                     <p style={{ fontSize:11, color:t.textSub, margin:0 }}>{item.action} · {new Date(item.date).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</p>
                                   </div>
                                 </div>
-                                <span style={{ fontSize:14, fontWeight:700, color:item.positive?"#34C759":"#FF375F", flexShrink:0 }}>{item.positive?"+":"-"}{fmt(item.amount)}</span>
+                                <span style={{ fontSize:14, fontWeight:700, color:item.positive?t.positive:t.negative, flexShrink:0 }}>{item.positive?"+":"-"}{fmt(item.amount)}</span>
                               </div>
                             ))}
                           </div>
@@ -481,9 +481,9 @@ export function OverviewTab({
                           <p style={{ fontSize:12, color:t.textSub, margin:"3px 0 0" }}>{currentMonth} - {membersWithTarget.length} members with targets</p>
                         </div>
                         <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-                          <span style={{ fontSize:12, fontWeight:600, padding:"4px 10px", borderRadius:20, background:"rgba(52,199,89,0.12)", color:"#34C759" }}>{onTrack} on track</span>
-                          {behind>0&&<span style={{ fontSize:12, fontWeight:600, padding:"4px 10px", borderRadius:20, background:"rgba(255,159,10,0.12)", color:"#FF9F0A" }}>{behind} behind</span>}
-                          {missed>0&&<span style={{ fontSize:12, fontWeight:600, padding:"4px 10px", borderRadius:20, background:"rgba(255,55,95,0.12)", color:"#FF375F" }}>{missed} missed</span>}
+                          <span style={{ fontSize:12, fontWeight:600, padding:"4px 10px", borderRadius:20, background:t.positiveBg, color:t.positive }}>{onTrack} on track</span>
+                          {behind>0&&<span style={{ fontSize:12, fontWeight:600, padding:"4px 10px", borderRadius:20, background:t.warningBg, color:t.warning }}>{behind} behind</span>}
+                          {missed>0&&<span style={{ fontSize:12, fontWeight:600, padding:"4px 10px", borderRadius:20, background:t.negativeBg, color:t.negative }}>{missed} missed</span>}
                         </div>
                       </div>
                       {totalTargetThisMonth>0&&(
@@ -493,14 +493,14 @@ export function OverviewTab({
                             <span style={{ fontSize:12, fontWeight:700, color:t.text }}>{fmt(totalActualThisMonth)} / {fmt(totalTargetThisMonth)}</span>
                           </div>
                           <div style={{ height:10, background:t.surfaceAlt, borderRadius:99, overflow:"hidden" }}>
-                            <div style={{ height:"100%", width:`${Math.min(Math.round((totalActualThisMonth/totalTargetThisMonth)*100),100)}%`, background:`linear-gradient(90deg,${t.accent},#34C759)`, borderRadius:99, transition:"width 0.9s cubic-bezier(0.34,1.1,0.64,1)", boxShadow:`0 0 10px ${t.accent}55` }}/>
+                            <div style={{ height:"100%", width:`${Math.min(Math.round((totalActualThisMonth/totalTargetThisMonth)*100),100)}%`, background:t.positive, borderRadius:99, transition:"width 0.9s cubic-bezier(0.34,1.1,0.64,1)", boxShadow:"none" }}/>
                           </div>
                         </div>
                       )}
                       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                         {membersWithTarget.map((p,i)=>{
                           const pct=Math.min(Math.round((p.thisMonth/p.target)*100),100);
-                          const clr=p.thisMonth>=p.target?"#34C759":p.thisMonth>0?"#FF9F0A":"#FF375F";
+                          const clr=p.thisMonth>=p.target?t.positive:p.thisMonth>0?t.warning:t.negative;
                           return (
                             <div key={p.id} style={{ animation:`slideIn 0.3s ease ${i*0.05}s both` }}>
                               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:5 }}>
@@ -533,7 +533,7 @@ export function OverviewTab({
                             <div style={{ minWidth:0 }}><p style={{ fontSize:14, fontWeight:500, margin:0, color:t.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.name}</p><p style={{ fontSize:12, color:t.textSub, margin:0 }}>{item.action}</p></div>
                           </div>
                           <div className="row-actions" style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
-                            <span style={{ fontSize:15, fontWeight:700, color:item.positive?"#34C759":"#FF375F" }}>{item.amount}</span>
+                            <span style={{ fontSize:15, fontWeight:700, color:item.positive?t.positive:t.negative }}>{item.amount}</span>
                             {item.id.startsWith("c-")?(
                               <><Btn size="sm" variant="secondary" t={t} onClick={()=>{const c=data.rawContributions.find(r=>`c-${r.id}`===item.id);if(c){setEditingContribution({id:c.id,member_name:c.profiles?.full_name||"",amount:c.amount,payment_type_id:c.payment_type_id||"",note:c.note||"",date:c.created_at?new Date(c.created_at).toISOString().slice(0,10):new Date().toISOString().slice(0,10)});openModal("editContribution");}}}>Edit</Btn>
                               <Btn size="sm" variant="danger" t={t} onClick={()=>{const c=data.rawContributions.find(r=>`c-${r.id}`===item.id);if(c)handleDeleteContribution(c);}}>Del</Btn></>

@@ -102,12 +102,12 @@ function BarChart({ data, fmt, t, height = 220 }) {
     <svg width="100%" viewBox={`0 0 ${svgW} ${height}`} preserveAspectRatio="xMidYMid meet" style={{ overflow: "visible", display: "block" }}>
       <defs>
         <linearGradient id="ig" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#34C759" stopOpacity="1"/>
-          <stop offset="100%" stopColor="#34C759" stopOpacity="0.55"/>
+          <stop offset="0%" stopColor={t.positive} stopOpacity="1"/>
+          <stop offset="100%" stopColor={t.positive} stopOpacity="0.55"/>
         </linearGradient>
         <linearGradient id="eg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#FF375F" stopOpacity="1"/>
-          <stop offset="100%" stopColor="#FF375F" stopOpacity="0.55"/>
+          <stop offset="0%" stopColor={t.negative} stopOpacity="1"/>
+          <stop offset="100%" stopColor={t.negative} stopOpacity="0.55"/>
         </linearGradient>
       </defs>
 
@@ -143,8 +143,8 @@ function BarChart({ data, fmt, t, height = 220 }) {
             {isHov && d.income + d.expense > 0 && (
               <g>
                 <rect x={cx - 38} y={padT - 50} width={76} height={42} fill={t.surface} rx={8} filter="drop-shadow(0 4px 14px rgba(0,0,0,0.22))" stroke={t.border} strokeWidth="1"/>
-                <text x={cx} y={padT - 32} textAnchor="middle" style={{ fill: "#34C759", fontSize: 10, fontWeight: 700, fontFamily: "inherit" }}>+{fmt(d.income)}</text>
-                <text x={cx} y={padT - 16} textAnchor="middle" style={{ fill: "#FF375F", fontSize: 10, fontWeight: 700, fontFamily: "inherit" }}>-{fmt(d.expense)}</text>
+                <text x={cx} y={padT - 32} textAnchor="middle" style={{ fill: t.positive, fontSize: 10, fontWeight: 700, fontFamily: "inherit" }}>+{fmt(d.income)}</text>
+                <text x={cx} y={padT - 16} textAnchor="middle" style={{ fill: t.negative, fontSize: 10, fontWeight: 700, fontFamily: "inherit" }}>-{fmt(d.expense)}</text>
               </g>
             )}
             <text x={cx} y={height - padB + 14} textAnchor="middle" style={{ fill: t.textSub, fontSize: 10, fontFamily: "inherit" }}>{d.label}</text>
@@ -152,9 +152,9 @@ function BarChart({ data, fmt, t, height = 220 }) {
         );
       })}
 
-      <rect x={svgW - padR - 108} y={padT + 2} width={8} height={8} fill="#34C759" rx={2}/>
+      <rect x={svgW - padR - 108} y={padT + 2} width={8} height={8} fill={t.positive} rx={2}/>
       <text x={svgW - padR - 96} y={padT + 9} style={{ fill: t.textSub, fontSize: 9, fontFamily: "inherit" }}>Income</text>
-      <rect x={svgW - padR - 52} y={padT + 2} width={8} height={8} fill="#FF375F" rx={2}/>
+      <rect x={svgW - padR - 52} y={padT + 2} width={8} height={8} fill={t.negative} rx={2}/>
       <text x={svgW - padR - 40} y={padT + 9} style={{ fill: t.textSub, fontSize: 9, fontFamily: "inherit" }}>Expenses</text>
     </svg>
   );

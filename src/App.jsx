@@ -117,8 +117,8 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
         @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.7;transform:scale(0.95)} }
         @keyframes shimmer { 0%{background-position:200% center} 100%{background-position:-200% center} }
         @keyframes slideInToast { from{opacity:0;transform:translateX(40px) scale(0.95)} to{opacity:1;transform:translateX(0) scale(1)} }
-        .nav-btn:hover { background:rgba(0,113,227,0.07) !important; color:#0071E3 !important; }
-        .row-hover:hover { background:rgba(0,113,227,0.04) !important; transition:background 0.15s; }
+        .nav-btn:hover { background:var(--accent-hover,rgba(37,99,235,0.07)) !important; }
+        .row-hover:hover { background:rgba(0,0,0,0.03) !important; transition:background 0.15s; }
         .card-hover { transition:transform 0.2s ease, box-shadow 0.2s ease; }
         .card-hover:hover { transform:translateY(-2px); box-shadow:0 10px 36px rgba(0,0,0,0.13) !important; }
         .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
@@ -198,9 +198,9 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
                           style={{ background:"none", border:"none", cursor:activeFY===startFY?"default":"pointer", color:activeFY===startFY?t.border:t.textSub, fontSize:10, padding:"0 1px", lineHeight:1, opacity:activeFY===startFY?0.3:1 }}>‹</button>
                       )}
                       <div onClick={e=>{e.stopPropagation(); setViewingFY(isPast?null:null);}}
-                        style={{ display:"flex", alignItems:"center", gap:4, padding:"2px 7px", borderRadius:20, background:isPast?`rgba(255,159,10,0.15)`:`${t.accent}15`, border:`1px solid ${isPast?"rgba(255,159,10,0.4)":`${t.accent}30`}`, cursor:"default" }}>
-                        <div style={{ width:5, height:5, borderRadius:"50%", background:isPast?"#FF9F0A":t.accent, flexShrink:0 }}/>
-                        <span style={{ fontSize:10, fontWeight:700, color:isPast?"#FF9F0A":t.accent, letterSpacing:"0.02em" }}>FY {activeFY}</span>
+                        style={{ display:"flex", alignItems:"center", gap:4, padding:"2px 7px", borderRadius:20, background:isPast?t.warningBg:`${t.accent}15`, border:`1px solid ${isPast?t.warning+'66':`${t.accent}30`}`, cursor:"default" }}>
+                        <div style={{ width:5, height:5, borderRadius:"50%", background:isPast?t.warning:t.accent, flexShrink:0 }}/>
+                        <span style={{ fontSize:10, fontWeight:700, color:isPast?t.warning:t.accent, letterSpacing:"0.02em" }}>FY {activeFY}</span>
                       </div>
                       {years.length > 1 && (
                         <button onClick={e=>{e.stopPropagation();cycleYear(1);}} disabled={activeFY===currentFY}
@@ -246,7 +246,7 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
             style={{ display:"flex", alignItems:"center", gap:(!collapsed||isMobile)?10:0, padding:"10px 12px", borderRadius:14, background:profileOpen?`${t.accent}10`:t.surfaceAlt, border:`1px solid ${profileOpen?`${t.accent}40`:t.border}`, justifyContent:collapsed&&!isMobile?"center":"flex-start", cursor:(!collapsed||isMobile)?"pointer":"default", transition:"all 0.2s ease" }}>
             <div style={{ position:"relative", flexShrink:0 }}>
               <Avatar name={displayName} size={32}/>
-              <div style={{ position:"absolute", bottom:0, right:0, width:8, height:8, borderRadius:"50%", background:"#34C759", border:`1.5px solid ${t.surface}` }}/>
+              <div style={{ position:"absolute", bottom:0, right:0, width:8, height:8, borderRadius:"50%", background:t.positive, border:`1.5px solid ${t.surface}` }}/>
             </div>
             {(!collapsed || isMobile) && (
               <div style={{ flex:1, minWidth:0 }}>
@@ -288,7 +288,7 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
               {/* Role */}
               <p style={{ fontSize:10, fontWeight:700, color:t.textSub, textTransform:"uppercase", letterSpacing:"0.07em", margin:"0 0 4px" }}>Role</p>
               <div style={{ marginBottom:12 }}>
-                <span style={{ fontSize:12, fontWeight:700, padding:"4px 10px", borderRadius:20, background:isSuperAdmin?`${t.accent}18`:"rgba(52,199,89,0.1)", color:isSuperAdmin?t.accent:"#34C759", textTransform:"uppercase", letterSpacing:"0.04em" }}>
+                <span style={{ fontSize:12, fontWeight:700, padding:"4px 10px", borderRadius:20, background:isSuperAdmin?`${t.accent}18`:t.positiveBg, color:isSuperAdmin?t.accent:t.positive, textTransform:"uppercase", letterSpacing:"0.04em" }}>
                   {isSuperAdmin?"Super Admin":"Admin"}
                 </span>
               </div>
@@ -316,9 +316,9 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
               <button
                 onClick={()=>supabase.auth.signOut()}
                 title="Sign out"
-                style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"8px 10px", borderRadius:10, border:"1px solid rgba(255,55,95,0.2)", background:"rgba(255,55,95,0.04)", color:"#FF375F", fontSize:12, fontWeight:500, cursor:"pointer", transition:"all 0.15s ease" }}
-                onMouseEnter={e=>{ e.currentTarget.style.background="rgba(255,55,95,0.1)"; e.currentTarget.style.borderColor="rgba(255,55,95,0.4)"; }}
-                onMouseLeave={e=>{ e.currentTarget.style.background="rgba(255,55,95,0.04)"; e.currentTarget.style.borderColor="rgba(255,55,95,0.2)"; }}
+                style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"8px 10px", borderRadius:10, border:`1px solid ${t.negative}33`, background:t.negativeBg, color:t.negative, fontSize:12, fontWeight:500, cursor:"pointer", transition:"all 0.15s ease" }}
+                onMouseEnter={e=>{ e.currentTarget.style.background=t.negativeBg; e.currentTarget.style.borderColor=t.negative+"88"; }}
+                onMouseLeave={e=>{ e.currentTarget.style.background=t.negativeBg; e.currentTarget.style.borderColor=t.negative+"33"; }}
               >
                 <span style={{ fontSize:14 }}>↪</span>
                 <span>Sign Out</span>
@@ -327,7 +327,7 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
           ) : (
             <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
               <button onClick={onSwitchOrg} title="Switch organisation" style={{ width:"100%", padding:"8px 0", background:"none", border:"none", cursor:"pointer", color:t.textSub, fontSize:16, display:"flex", alignItems:"center", justifyContent:"center", borderRadius:8 }}>⇄</button>
-              <button onClick={()=>supabase.auth.signOut()} title="Sign out" style={{ width:"100%", padding:"8px 0", background:"rgba(255,55,95,0.06)", border:"1px solid rgba(255,55,95,0.15)", cursor:"pointer", color:"#FF375F", fontSize:14, display:"flex", alignItems:"center", justifyContent:"center", borderRadius:8 }}>↪</button>
+              <button onClick={()=>supabase.auth.signOut()} title="Sign out" style={{ width:"100%", padding:"8px 0", background:t.negativeBg, border:`1px solid ${t.negative}25`, cursor:"pointer", color:t.negative, fontSize:14, display:"flex", alignItems:"center", justifyContent:"center", borderRadius:8 }}>↪</button>
             </div>
           )}
         </div>
@@ -379,11 +379,11 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
 
         {/* ── Viewing past year banner ── */}
         {isViewingPastYear && (
-          <div style={{ marginBottom:20, padding:"12px 18px", borderRadius:12, background:"rgba(255,159,10,0.1)", border:"1px solid rgba(255,159,10,0.3)", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, flexWrap:"wrap" }}>
+          <div style={{ marginBottom:20, padding:"12px 18px", borderRadius:12, background:t.warningBg, border:`1px solid ${t.warning}44`, display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, flexWrap:"wrap" }}>
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
               <span style={{ fontSize:16 }}>📅</span>
               <div>
-                <p style={{ fontSize:13, fontWeight:600, margin:0, color:"#FF9F0A" }}>Viewing FY {viewingFY} — Read Only</p>
+                <p style={{ fontSize:13, fontWeight:600, margin:0, color:t.warning }}>Viewing FY {viewingFY} — Read Only</p>
                 <p style={{ fontSize:11, color:t.textSub, margin:0 }}>You are browsing historical data. Switch back to record new transactions.</p>
               </div>
             </div>
