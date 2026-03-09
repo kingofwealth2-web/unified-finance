@@ -360,15 +360,19 @@ export function OrgPicker({ session, onSelect, allowAutoEnter = true }) {
   }
 
   async function handleDeleteOrg(org) {
-    // Delete all related data then the org itself
+    // Delete all related data in safe dependency order, then the org itself.
+    await supabase.from("audit_log").delete().eq("org_id", org.id);
     await Promise.all([
       supabase.from("contributions").delete().eq("org_id", org.id),
       supabase.from("expenses").delete().eq("org_id", org.id),
       supabase.from("income_sources").delete().eq("org_id", org.id),
-      supabase.from("profiles").delete().eq("org_id", org.id),
-      supabase.from("org_members").delete().eq("org_id", org.id),
+      supabase.from("payment_types").delete().eq("org_id", org.id),
+      supabase.from("expense_categories").delete().eq("org_id", org.id),
     ]);
+    await supabase.from("profiles").delete().eq("org_id", org.id);
+    // Delete org_settings before org_members (RLS on org_settings checks get_user_org_ids())
     await supabase.from("org_settings").delete().eq("id", org.id);
+    await supabase.from("org_members").delete().eq("org_id", org.id);
     setOrgs(prev => prev.filter(o => o.id !== org.id));
     setUserMemberships(prev => prev.filter(m => m.org_id !== org.id));
   }
