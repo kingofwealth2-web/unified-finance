@@ -4,6 +4,7 @@ import { EmptyState } from "./ui/index.jsx";
 function DonutChart({ data, fmt, t, size = 220 }) {
   const [hovered, setHovered] = useState(null);
   const [animated, setAnimated] = useState(false);
+  const uid = useState(() => Math.random().toString(36).slice(2,7))[0];
   useEffect(() => { const tm = setTimeout(() => setAnimated(true), 120); return () => clearTimeout(tm); }, []);
 
   const total = data.reduce((s, d) => s + d.value, 0);
@@ -34,7 +35,7 @@ function DonutChart({ data, fmt, t, size = 220 }) {
       <div style={{ position: "relative", flexShrink: 0 }}>
         <svg width={size} height={size} style={{ overflow: "visible" }}>
           <defs>
-            <filter id="dslice-glow" x="-30%" y="-30%" width="160%" height="160%">
+            <filter id={`dslice-glow-${uid}`} x="-30%" y="-30%" width="160%" height="160%">
               <feGaussianBlur stdDeviation="4" result="blur"/>
               <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
             </filter>
@@ -50,7 +51,7 @@ function DonutChart({ data, fmt, t, size = 220 }) {
                   transform: isHov ? "scale(1.05)" : "scale(1)",
                   transition: "opacity 0.2s ease, transform 0.25s cubic-bezier(0.34,1.56,0.64,1)",
                   cursor: "pointer",
-                  filter: isHov ? "url(#dslice-glow)" : "none",
+                  filter: isHov ? `url(#dslice-glow-${uid})` : "none",
                 }}
                 onMouseEnter={() => setHovered(i)}
                 onMouseLeave={() => setHovered(null)}
@@ -88,6 +89,7 @@ function DonutChart({ data, fmt, t, size = 220 }) {
 function BarChart({ data, fmt, t, height = 220 }) {
   const [animated, setAnimated] = useState(false);
   const [hovered, setHovered] = useState(null);
+  const uid = useState(() => Math.random().toString(36).slice(2,7))[0];
   useEffect(() => { const tm = setTimeout(() => setAnimated(true), 160); return () => clearTimeout(tm); }, []);
   if (!data || data.length === 0) return <EmptyState message="No data yet." t={t} />;
 
@@ -101,11 +103,11 @@ function BarChart({ data, fmt, t, height = 220 }) {
   return (
     <svg width="100%" viewBox={`0 0 ${svgW} ${height}`} preserveAspectRatio="xMidYMid meet" style={{ overflow: "visible", display: "block" }}>
       <defs>
-        <linearGradient id="ig" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`ig-${uid}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={t.positive} stopOpacity="1"/>
           <stop offset="100%" stopColor={t.positive} stopOpacity="0.55"/>
         </linearGradient>
-        <linearGradient id="eg" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`eg-${uid}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={t.negative} stopOpacity="1"/>
           <stop offset="100%" stopColor={t.negative} stopOpacity="0.55"/>
         </linearGradient>
@@ -132,11 +134,11 @@ function BarChart({ data, fmt, t, height = 220 }) {
         return (
           <g key={i} onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)} style={{ cursor: "pointer" }}>
             {isHov && <rect x={cx - bW - 6} y={padT} width={bW * 2 + 18} height={chartH} fill={t.accent} fillOpacity={0.04} rx={6}/>}
-            <rect x={cx - bW - 4} y={padT + chartH - incH} width={bW} height={incH} fill="url(#ig)" rx={4}
+            <rect x={cx - bW - 4} y={padT + chartH - incH} width={bW} height={incH} fill={`url(#ig-${uid})`} rx={4}
               style={{ transition: `height 0.75s cubic-bezier(0.34,1.1,0.64,1) ${i*0.06}s, y 0.75s cubic-bezier(0.34,1.1,0.64,1) ${i*0.06}s` }}
               opacity={hovered === null ? 1 : isHov ? 1 : 0.45}
             />
-            <rect x={cx + 4} y={padT + chartH - expH} width={bW} height={expH} fill="url(#eg)" rx={4}
+            <rect x={cx + 4} y={padT + chartH - expH} width={bW} height={expH} fill={`url(#eg-${uid})`} rx={4}
               style={{ transition: `height 0.75s cubic-bezier(0.34,1.1,0.64,1) ${i*0.06+0.04}s, y 0.75s cubic-bezier(0.34,1.1,0.64,1) ${i*0.06+0.04}s` }}
               opacity={hovered === null ? 1 : isHov ? 1 : 0.45}
             />
@@ -164,6 +166,7 @@ function BarChart({ data, fmt, t, height = 220 }) {
 function LineChart({ data, fmt, t, height = 220 }) {
   const [prog, setProg] = useState(0);
   const [hovered, setHovered] = useState(null);
+  const uid = useState(() => Math.random().toString(36).slice(2,7))[0];
   useEffect(() => {
     let start = null;
     const run = (ts) => {
@@ -202,12 +205,12 @@ function LineChart({ data, fmt, t, height = 220 }) {
   return (
     <svg width="100%" viewBox={`0 0 ${svgW} ${height}`} preserveAspectRatio="xMidYMid meet" style={{ overflow: "visible", display: "block" }}>
       <defs>
-        <linearGradient id="lag" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`lag-${uid}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={t.accent} stopOpacity="0.28"/>
           <stop offset="100%" stopColor={t.accent} stopOpacity="0.02"/>
         </linearGradient>
-        <clipPath id="lcp"><rect x={padL} y={0} width={clipW} height={height}/></clipPath>
-        <filter id="lglow" x="-20%" y="-20%" width="140%" height="140%">
+        <clipPath id={`lcp-${uid}`}><rect x={padL} y={0} width={clipW} height={height}/></clipPath>
+        <filter id={`lglow-${uid}`} x="-20%" y="-20%" width="140%" height="140%">
           <feGaussianBlur stdDeviation="2.5" result="b"/>
           <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
         </filter>
@@ -226,8 +229,8 @@ function LineChart({ data, fmt, t, height = 220 }) {
         );
       })}
 
-      <path d={areaPath} fill="url(#lag)" clipPath="url(#lcp)"/>
-      <path d={linePath} fill="none" stroke={t.accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" clipPath="url(#lcp)" filter="url(#lglow)"/>
+      <path d={areaPath} fill={`url(#lag-${uid})`} clipPath={`url(#lcp-${uid})`}/>
+      <path d={linePath} fill="none" stroke={t.accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" clipPath={`url(#lcp-${uid})`} filter={`url(#lglow-${uid})`}/>
 
       {pts.map((pt, i) => {
         const shown = pt.x - padL <= clipW;

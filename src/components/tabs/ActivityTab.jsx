@@ -9,10 +9,10 @@ export function ActivityTab({
   activityDateTo, setActivityDateTo,
   activityPage, setActivityPage,
   showPrintView, setShowPrintView,
-  exportFinancialReport, orgName,
+  orgName,
   handleDeleteContribution, handleDeleteExpenseEntry,
   setEditingContribution, setEditingExpenseEntry,
-  ACTIVITY_PAGE_SIZE,
+  ACTIVITY_PAGE_SIZE = 20,
 }) {
   const iStyle = (t) => ({ width:"100%", padding:"11px 14px", borderRadius:10, border:`1px solid ${t.borderStrong}`, fontSize:14, color:t.text, background:t.inputBg, outline:"none", boxSizing:"border-box", fontFamily:"inherit", transition:"border-color 0.15s" });
   // Build full activity list from raw data (not capped at 10)

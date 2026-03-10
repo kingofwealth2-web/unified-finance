@@ -7,13 +7,11 @@ export function FinancialSummaryTab({
   exportDateFrom, setExportDateFrom,
   exportDateTo, setExportDateTo,
 }) {
-  const [showPrint, setShowPrint] = useState(false);
-
   // ── Date filter helpers ──────────────────────────────────────
   const inRange = (dateStr) => {
     if (!dateStr) return true;
     const d = new Date(dateStr);
-    if (exportDateFrom && d < new Date(exportDateFrom)) return false;
+    if (exportDateFrom && d < new Date(exportDateFrom + "T00:00:00")) return false;
     if (exportDateTo   && d > new Date(exportDateTo + "T23:59:59")) return false;
     return true;
   };
@@ -74,7 +72,7 @@ export function FinancialSummaryTab({
     contributions.reduce((acc, c) => {
       const id = c.member_id;
       const name = c.profiles?.full_name || "Unknown";
-      if (!acc[id]) acc[id] = { name, total: 0, count: 0 };
+      if (!acc[id]) acc[id] = { id, name, total: 0, count: 0 };
       acc[id].total += Number(c.amount);
       acc[id].count++;
       return acc;
@@ -240,7 +238,7 @@ export function FinancialSummaryTab({
       ["MEMBER CONTRIBUTIONS"],
       ["Date", "Member", "Payment Type", "Note", "Amount"],
       ...contributions.map(c => [
-        new Date(c.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}),
+        c.created_at ? c.created_at.slice(0,10) : "",
         c.profiles?.full_name || "Unknown",
         c.payment_types?.name || "Uncategorised",
         c.note || "",
@@ -254,7 +252,7 @@ export function FinancialSummaryTab({
         ["OTHER INCOME"],
         ["Date", "Label", "Source", "Note", "Amount"],
         ...incomeRows.map(i => [
-          new Date(i.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}),
+          i.created_at ? i.created_at.slice(0,10) : "",
           i.label || "",
           i.source || "",
           i.note || "",
@@ -269,7 +267,7 @@ export function FinancialSummaryTab({
         ["EXPENSES"],
         ["Date", "Label", "Category", "Amount"],
         ...expenseRows.map(e => [
-          new Date(e.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}),
+          e.created_at ? e.created_at.slice(0,10) : "",
           e.label || "",
           e.expense_categories?.name || "Uncategorised",
           Number(e.amount),
@@ -419,7 +417,7 @@ export function FinancialSummaryTab({
                         : ri===2 ? { bg:"linear-gradient(135deg,#CD7F32,#A0522D)", color:"#fff" }
                         : null;
             return (
-              <div key={m.name} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:`1px solid ${t.border}` }}>
+              <div key={m.id||m.name} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:`1px solid ${t.border}` }}>
                 <div style={{ display:"flex", alignItems:"center", gap:10 }}>
                   {medal
                     ? <span style={{ width:22, height:22, borderRadius:"50%", background:medal.bg, display:"inline-flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:800, color:medal.color, flexShrink:0 }}>{ri+1}</span>
