@@ -100,7 +100,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       const org = orgRows?.[0] || null;
       if (org) {
         setFmt(() => makeFmt(org.currency || "USD"));
-        setOrgForm({ name:org.name, address:org.address||"", contact_email:org.contact_email||"", contact_phone:org.contact_phone||"", currency:org.currency||"USD", financial_year_format:org.financial_year_format||"single", financial_year_start:org.financial_year_start||new Date().getFullYear() });
+        setOrgForm({ name:org.name, address:org.address||"", contact_email:org.contact_email||"", contact_phone:org.contact_phone||"", currency:org.currency||"USD", financial_year_format:org.financial_year_format||"single", financial_year_start:org.financial_year_start||new Date().getFullYear(), opening_balance:org.opening_balance??0 });
       }
 
       const me = (allProfiles||[]).find(p=>p.id===session?.user?.id);
@@ -210,7 +210,8 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
   async function handleAddContribution(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
     try {
-      const {error}=await supabase.from("contributions").insert({member_id:newContribution.member_id,amount:Number(newContribution.amount),payment_type_id:newContribution.payment_type_id||null,note:newContribution.note,type:"other",org_id:currentOrg.id,financial_year:data.org?.financial_year_start||new Date().getFullYear(),created_at:newContribution.date?new Date(newContribution.date).toISOString():new Date().toISOString()});
+      if (!newContribution.member_id) { setFormError("Please select a member."); setFormLoading(false); return; }
+      const {error}=await supabase.from("contributions").insert({member_id:newContribution.member_id,amount:Number(newContribution.amount),payment_type_id:newContribution.payment_type_id||null,note:newContribution.note,type:"other",org_id:currentOrg.id,financial_year:data.org?.financial_year_start||new Date().getFullYear(),created_at:newContribution.date?new Date(newContribution.date+"T12:00:00").toISOString():new Date().toISOString()});
       if(error)throw error;
       const memberName = data.allPeople.find(p=>p.id===newContribution.member_id)?.full_name||"Member";
       await logAudit("create","contribution",null,memberName,`Recorded contribution of ${newContribution.amount} for ${memberName}`,null,{amount:newContribution.amount,note:newContribution.note});
@@ -220,7 +221,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
   async function handleAddExpense(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
     try {
-      const {error}=await supabase.from("expenses").insert({category_id:newExpense.category_id,amount:Number(newExpense.amount),label:newExpense.label,recorded_by:session?.user?.id,org_id:currentOrg.id,financial_year:data.org?.financial_year_start||new Date().getFullYear(),created_at:newExpense.date?new Date(newExpense.date).toISOString():new Date().toISOString()});
+      const {error}=await supabase.from("expenses").insert({category_id:newExpense.category_id,amount:Number(newExpense.amount),label:newExpense.label,recorded_by:session?.user?.id,org_id:currentOrg.id,financial_year:data.org?.financial_year_start||new Date().getFullYear(),created_at:newExpense.date?new Date(newExpense.date+"T12:00:00").toISOString():new Date().toISOString()});
       if(error)throw error;
       const catName = data.categories?.find(c=>c.id===newExpense.category_id)?.name||"Expense";
       await logAudit("create","expense",null,null,`Recorded expense: ${newExpense.label} (${newExpense.amount}) under ${catName}`,null,{amount:newExpense.amount,label:newExpense.label});
@@ -256,10 +257,18 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
     } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleDeletePaymentType(id) {
-    const pt = data.paymentTypes.find(p=>p.id===id);
-    await supabase.from("payment_types").delete().eq("id",id);
-    await logAudit("delete","payment_type",id,null,`Deleted payment type: ${pt?.name||id}`,{name:pt?.name},null);
-    fetchAllData();
+    try {
+      const pt = data.paymentTypes.find(p=>p.id===id);
+      const contribCount = (data.rawContributions||[]).filter(c=>c.payment_type_id===id).length;
+      const warning = contribCount > 0
+        ? `"${pt?.name}" has ${contribCount} contribution${contribCount!==1?"s":""} recorded against it. Those contributions will become uncategorised. Delete anyway?`
+        : `Delete payment type "${pt?.name}"? This cannot be undone.`;
+      if (!window.confirm(warning)) return;
+      const {error}=await supabase.from("payment_types").delete().eq("id",id);
+      if(error) throw error;
+      await logAudit("delete","payment_type",id,null,`Deleted payment type: ${pt?.name||id}`,{name:pt?.name},null);
+      fetchAllData();
+    } catch(err) { toast("Failed to delete payment type: " + err.message); }
   }
   async function handleEditExpenseCategory(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
@@ -272,16 +281,23 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
     } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleDeleteExpenseCategory(id) {
-    const cat = data.expenses.find(c=>c.id===id);
-    await supabase.from("expenses").delete().eq("category_id",id);
-    await supabase.from("expense_categories").delete().eq("id",id);
-    await logAudit("delete","expense_category",id,null,`Deleted expense category: ${cat?.label||id}`,{name:cat?.label},null);
-    fetchAllData();
+    try {
+      const cat = data.expenses.find(c=>c.id===id);
+      const {e1}=await supabase.from("expenses").delete().eq("category_id",id);
+      const {error}=await supabase.from("expense_categories").delete().eq("id",id);
+      if(error) throw error;
+      await logAudit("delete","expense_category",id,null,`Deleted expense category: ${cat?.label||id}`,{name:cat?.label},null);
+      fetchAllData();
+    } catch(err) { toast("Failed to delete category: " + err.message); }
   }
   async function handleStartNewYear() {
     try {
       const org = data.org;
       if (!org) return;
+      if (viewingFY !== null && viewingFY !== org.financial_year_start) {
+        toast("Please switch back to the current year before starting a new financial year.");
+        return;
+      }
       const newYear = (org.financial_year_start || new Date().getFullYear()) + 1;
       const closingBalance = data.totalBalance || 0;
 
@@ -333,19 +349,25 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
   }
 
   async function handleDeactivatePerson(id, currentStatus) {
-    const newStatus = currentStatus === "Active" ? "inactive" : "active";
-    const person = data.allPeople.find(p=>p.id===id);
-    await supabase.from("profiles").update({ status: newStatus }).eq("id", id);
-    await logAudit("edit","person",id,person?.full_name,`${newStatus==="active"?"Activated":"Deactivated"} person: ${person?.full_name||id}`,{status:currentStatus},{status:newStatus});
-    toast(newStatus === "active" ? "Member activated" : "Member deactivated"); fetchAllData();
+    try {
+      const newStatus = currentStatus === "Active" ? "inactive" : "active";
+      const person = data.allPeople.find(p=>p.id===id);
+      const {error}=await supabase.from("profiles").update({ status: newStatus }).eq("id", id);
+      if(error) throw error;
+      await logAudit("edit","person",id,person?.full_name,`${newStatus==="active"?"Activated":"Deactivated"} person: ${person?.full_name||id}`,{status:currentStatus},{status:newStatus});
+      toast(newStatus === "active" ? "Member activated" : "Member deactivated"); fetchAllData();
+    } catch(err) { toast("Failed to update member status: " + err.message); }
   }
 
   async function handleDeletePerson(id) {
-    const person = data.allPeople.find(p=>p.id===id);
-    await supabase.from("contributions").delete().eq("member_id", id);
-    await supabase.from("profiles").delete().eq("id", id);
-    await logAudit("delete","person",id,person?.full_name,`Deleted person: ${person?.full_name||id}`,{full_name:person?.full_name},null);
-    fetchAllData();
+    try {
+      const person = data.allPeople.find(p=>p.id===id);
+      await supabase.from("contributions").delete().eq("member_id", id);
+      const {error}=await supabase.from("profiles").delete().eq("id", id);
+      if(error) throw error;
+      await logAudit("delete","person",id,person?.full_name,`Deleted person: ${person?.full_name||id}`,{full_name:person?.full_name},null);
+      fetchAllData();
+    } catch(err) { toast("Failed to delete person: " + err.message); }
   }
 
   function exportToCSV(filename, headers, rows) {
@@ -395,10 +417,13 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
 
   // ── Income handlers ───────────────────────────────────────────
   async function handleDeleteIncomeSource(id) {
-    const item = (data.rawIncome||[]).find(i=>i.id===id);
-    await supabase.from("income_sources").delete().eq("id", id);
-    await logAudit("delete","income",id,null,`Deleted income: ${item?.label||id}`,{label:item?.label,amount:item?.amount},null);
-    toast("Income deleted"); fetchAllData();
+    try {
+      const item = (data.rawIncome||[]).find(i=>i.id===id);
+      const {error}=await supabase.from("income_sources").delete().eq("id", id);
+      if(error) throw error;
+      await logAudit("delete","income",id,null,`Deleted income: ${item?.label||id}`,{label:item?.label,amount:item?.amount},null);
+      toast("Income deleted"); fetchAllData();
+    } catch(err) { toast("Failed to delete income: " + err.message); }
   }
 
   async function handleAddIncome(e) {
@@ -407,7 +432,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       const {error}=await supabase.from("income_sources").insert({
         label:newIncome.label, amount:Number(newIncome.amount),
         source:newIncome.source||null, note:newIncome.note||null,
-        created_at:newIncome.date?new Date(newIncome.date).toISOString():new Date().toISOString(),
+        created_at:newIncome.date?new Date(newIncome.date+"T12:00:00").toISOString():new Date().toISOString(),
         org_id:currentOrg.id,
         financial_year:data.org?.financial_year_start||new Date().getFullYear(),
       });
@@ -423,7 +448,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       const {error}=await supabase.from("income_sources").update({
         label:editingIncomeSource.label, amount:Number(editingIncomeSource.amount),
         source:editingIncomeSource.source||null, note:editingIncomeSource.note||null,
-        ...(editingIncomeSource.date ? { created_at: new Date(editingIncomeSource.date).toISOString() } : {}),
+        ...(editingIncomeSource.date ? { created_at: new Date(editingIncomeSource.date+"T12:00:00").toISOString() } : {}),
       }).eq("id",editingIncomeSource.id);
       if(error)throw error;
       await logAudit("edit","income",editingIncomeSource.id,null,`Edited income: ${editingIncomeSource.label}`,null,{label:editingIncomeSource.label,amount:editingIncomeSource.amount});
@@ -445,8 +470,9 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
           type: "other",
           org_id: currentOrg.id,
           financial_year: data.org?.financial_year_start || new Date().getFullYear(),
-          created_at: bulkContributions.date ? new Date(bulkContributions.date).toISOString() : new Date().toISOString(),
+          created_at: bulkContributions.date ? new Date(bulkContributions.date+"T12:00:00").toISOString() : new Date().toISOString(),
         }));
+      if (!bulkContributions.payment_type_id) { setFormError("Please select a payment type."); setFormLoading(false); return; }
       if (entries.length === 0) { setFormError("No amounts entered."); setFormLoading(false); return; }
       const {error} = await supabase.from("contributions").insert(entries);
       if(error) throw error;
@@ -476,7 +502,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
         amount: Number(editingContribution.amount),
         payment_type_id: editingContribution.payment_type_id || null,
         note: editingContribution.note,
-        ...(editingContribution.date ? { created_at: new Date(editingContribution.date).toISOString() } : {}),
+        ...(editingContribution.date ? { created_at: new Date(editingContribution.date+"T12:00:00").toISOString() } : {}),
       }).eq("id", editingContribution.id);
       if (error) throw error;
       await logAudit("edit", "contribution", editingContribution.id,
@@ -490,12 +516,15 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
   }
 
   async function handleDeleteContribution(c) {
-    await supabase.from("contributions").delete().eq("id", c.id);
-    await logAudit("delete", "contribution", c.id, c.profiles?.full_name || "Member",
-      `Deleted contribution of ${c.amount} for ${c.profiles?.full_name || "Member"}`,
-      { amount: c.amount }, null
-    );
-    fetchAllData();
+    try {
+      const {error}=await supabase.from("contributions").delete().eq("id", c.id);
+      if(error) throw error;
+      await logAudit("delete", "contribution", c.id, c.profiles?.full_name || "Member",
+        `Deleted contribution of ${c.amount} for ${c.profiles?.full_name || "Member"}`,
+        { amount: c.amount }, null
+      );
+      fetchAllData();
+    } catch(err) { toast("Failed to delete contribution: " + err.message); }
   }
 
   // ── Edit expense entry ─────────────────────────────────────────
@@ -507,7 +536,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
         amount: Number(editingExpenseEntry.amount),
         label: editingExpenseEntry.label,
         category_id: editingExpenseEntry.category_id,
-        ...(editingExpenseEntry.date ? { created_at: new Date(editingExpenseEntry.date).toISOString() } : {}),
+        ...(editingExpenseEntry.date ? { created_at: new Date(editingExpenseEntry.date+"T12:00:00").toISOString() } : {}),
       }).eq("id", editingExpenseEntry.id);
       if (error) throw error;
       await logAudit("edit", "expense", editingExpenseEntry.id,
@@ -521,12 +550,15 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
   }
 
   async function handleDeleteExpenseEntry(ex) {
-    await supabase.from("expenses").delete().eq("id", ex.id);
-    await logAudit("delete", "expense", ex.id, null,
-      `Deleted expense: ${ex.label} (${ex.amount})`,
-      { amount: ex.amount, label: ex.label }, null
-    );
-    fetchAllData();
+    try {
+      const {error}=await supabase.from("expenses").delete().eq("id", ex.id);
+      if(error) throw error;
+      await logAudit("delete", "expense", ex.id, null,
+        `Deleted expense: ${ex.label} (${ex.amount})`,
+        { amount: ex.amount, label: ex.label }, null
+      );
+      fetchAllData();
+    } catch(err) { toast("Failed to delete expense: " + err.message); }
   }
 
   const isSuperAdmin = userRole === "super_admin";

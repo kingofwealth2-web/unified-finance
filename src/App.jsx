@@ -183,7 +183,9 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
                 {fyText && (() => {
                   const currentFY = app.data.org?.financial_year_start || new Date().getFullYear();
                   const activeFY = viewingFY ?? currentFY;
-                  const startFY = Math.min(currentFY, 2024);
+                  // Derive earliest year from actual data, not a hardcoded floor
+                  const dataYears = (app.data.allTimeContributions||[]).map(c=>c.financial_year).filter(Boolean);
+                  const startFY = dataYears.length > 0 ? Math.min(...dataYears, currentFY) : currentFY;
                   const years = Array.from({ length: currentFY - startFY + 1 }, (_, i) => startFY + i);
                   const isPast = activeFY !== currentFY;
                   const cycleYear = (dir) => {
