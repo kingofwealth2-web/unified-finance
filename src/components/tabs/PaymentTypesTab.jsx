@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Card, ChartCard, Btn, EmptyState } from "../ui/index.jsx";
+import { Card, ChartCard, Btn, EmptyState, toast } from "../ui/index.jsx";
 import { DonutChart } from "../Charts.jsx";
 
 export function PaymentTypesTab({
@@ -11,7 +11,9 @@ export function PaymentTypesTab({
 }) {
   const currency = data.org?.currency || "";
   const [ptView, setPtView] = useState({});
-  const [memberSearch, setMemberSearch] = useState("");
+  const [memberSearchMap, setMemberSearchMap] = useState({});
+  const getMemberSearch = (ptId) => memberSearchMap[ptId] || "";
+  const setMemberSearch = (ptId, val) => setMemberSearchMap(prev => ({ ...prev, [ptId]: val }));
 
   function getView(ptId) { return ptView[ptId] || "rankings"; }
   function setView(ptId, v) { setPtView(prev => ({ ...prev, [ptId]: v })); }
@@ -137,7 +139,7 @@ export function PaymentTypesTab({
       <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:20, gap:10 }}>
         <Btn t={t} onClick={()=>triggerPrint("all")} variant="secondary">🖨 Print All</Btn>
         {!isViewingPastYear && <>
-          <Btn t={t} onClick={()=>openModal("addContribution")} variant="secondary">+ Record Payment</Btn>
+          <Btn t={t} onClick={()=>{ if(data.paymentTypes.length===0){toast("Create a payment type first.");return;} openModal("addContribution"); }} variant="secondary">+ Record Payment</Btn>
           <Btn t={t} onClick={()=>{ setBulkContributions({ payment_type_id:"", note:"", date:new Date().toISOString().slice(0,10), amounts:{} }); openModal("bulkContribution"); }} variant="secondary">+ Bulk Add</Btn>
           {isSuperAdmin&&<Btn t={t} onClick={()=>openModal("addPaymentType")}>+ New Payment Type</Btn>}
         </>}
@@ -190,7 +192,7 @@ export function PaymentTypesTab({
                         <div style={{ height:8, background:t.surfaceAlt, borderRadius:99, overflow:"hidden", marginBottom:10 }}>
                           <div style={{ height:"100%", width:`${pct}%`, background:pt.color, borderRadius:99, transition:"width 0.8s cubic-bezier(0.4,0,0.2,1)", boxShadow:`0 0 8px ${pt.color}55` }}/>
                         </div>
-                        <p style={{ fontSize:12, color:t.textSub, margin:0 }}><span style={{ color:"#34C759", fontWeight:600 }}>{fmt(pt.goal-pt.total)} remaining</span> · {pct}% reached</p>
+                        <p style={{ fontSize:12, color:t.textSub, margin:0 }}>{pt.goal-pt.total>=0?<span style={{ color:"#34C759", fontWeight:600 }}>{fmt(pt.goal-pt.total)} remaining</span>:<span style={{ color:t.negative, fontWeight:600 }}>{fmt(pt.total-pt.goal)} over goal</span>} · {pct}% reached</p>
                       </>
                     )}
                   </div>
@@ -218,8 +220,8 @@ export function PaymentTypesTab({
                         <input
                           type="text"
                           placeholder="Search members..."
-                          value={memberSearch}
-                          onChange={e=>setMemberSearch(e.target.value)}
+                          value={getMemberSearch(pt.id)}
+                          onChange={e=>setMemberSearch(pt.id, e.target.value)}
                           style={{ width:"100%", padding:"9px 14px", borderRadius:10, border:`1px solid ${t.border}`, background:t.inputBg, color:t.text, fontSize:13, outline:"none", boxSizing:"border-box" }}
                         />
                       </div>
@@ -229,15 +231,14 @@ export function PaymentTypesTab({
                         <div style={{ padding:"20px 32px" }}>
                           {(() => {
                             // Keep original index (ri) so rankings don't re-number when filtering
+                            const memberSearch = getMemberSearch(pt.id);
                             const filteredMembers = memberSearch.trim()
                               ? pt.members.map((m, ri) => ({ m, ri })).filter(({ m }) => m.name.toLowerCase().includes(memberSearch.toLowerCase()))
                               : pt.members.map((m, ri) => ({ m, ri }));
-                            if (filteredMembers.length === 0) {
-                              return <p style={{ fontSize:13, color:t.textSub, margin:0, textAlign:"center", padding:"8px 0" }}>{memberSearch ? `No members matching "${memberSearch}".` : "No contributions recorded yet."}</p>;
-                            }
-                            return (
-                              <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                                {filteredMembers.map(({ m, ri })=>{
+                            return filteredMembers.length===0
+                              ? <p style={{ fontSize:13, color:t.textSub, margin:0, textAlign:"center", padding:"8px 0" }}>{memberSearch ? `No members matching "${memberSearch}".` : "No contributions recorded yet."}</p>
+                              : <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                                  {filteredMembers.map(({ m, ri })=>{
                                   const pct2=Math.round((m.total/pt.total)*100);
                                   // Medal is based on original rank (ri) — always preserved regardless of filtering
                                   const medal = ri===0?{label:"1",bg:"linear-gradient(135deg,#FFD700,#FFA500)",color:"#7A4F00",shadow:"0 2px 8px rgba(255,180,0,0.5)"}
@@ -266,7 +267,6 @@ export function PaymentTypesTab({
                                   );
                                 })}
                               </div>
-                            );
                           })()}
                         </div>
                       )}
@@ -275,6 +275,7 @@ export function PaymentTypesTab({
                       {view==="contributions"&&(
                         <div style={{ padding:"20px 32px" }}>
                           {(() => {
+                            const memberSearch = getMemberSearch(pt.id);
                             const filteredContribs = memberSearch.trim()
                               ? contributions.filter(c => (c.profiles?.full_name||"Unknown").toLowerCase().includes(memberSearch.toLowerCase()))
                               : contributions;
@@ -300,17 +301,17 @@ export function PaymentTypesTab({
                                             setEditingContribution({
                                               id:c.id, member_name:memberName, amount:c.amount,
                                               payment_type_id:c.payment_type_id||"", note:c.note||"",
-                                              date:c.created_at?new Date(c.created_at).toISOString().slice(0,10):new Date().toISOString().slice(0,10),
+                                              date:c.created_at?c.created_at.slice(0,10):new Date().toISOString().slice(0,10),
                                             });
                                             openModal("editContribution");
                                           }}>Edit</Btn>
-                                          <Btn size="sm" variant="danger" t={t} onClick={()=>handleDeleteContribution(c)}>Delete</Btn>
+                                          {isSuperAdmin&&<Btn size="sm" variant="danger" t={t} onClick={()=>handleDeleteContribution(c)}>Delete</Btn>}
                                         </div>
                                       </div>
                                     </div>
                                   );
                                   })}
-                              </div>;
+                              </div>
                           })()}
                         </div>
                       )}

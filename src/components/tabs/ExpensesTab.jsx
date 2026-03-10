@@ -76,7 +76,9 @@ export function ExpensesTab({
                         <div style={{ height:"100%", width:`${pct}%`, background:exp.color, borderRadius:99, transition:"width 0.8s cubic-bezier(0.4,0,0.2,1)", boxShadow:`0 0 8px ${exp.color}55` }}/>
                       </div>
                       <p style={{ fontSize:12, color:t.textSub, margin:"0 0 0" }}>
-                        <span style={{ color:"#34C759", fontWeight:600 }}>{fmt(exp.budget - exp.amount)} remaining</span>
+                        {exp.budget-exp.amount>=0
+                          ?<span style={{ color:"#34C759", fontWeight:600 }}>{fmt(exp.budget-exp.amount)} remaining</span>
+                          :<span style={{ color:t.negative, fontWeight:600 }}>{fmt(exp.amount-exp.budget)} over budget</span>}
                       </p>
                     </>
                   )}
@@ -101,7 +103,7 @@ export function ExpensesTab({
                               <span style={{ fontSize:14, fontWeight:700, color:"#FF375F" }}>-{fmt(entry.amount)}</span>
                               {!isViewingPastYear && (
                                 <>
-                                  <Btn size="sm" variant="secondary" t={t} onClick={()=>{setEditingExpenseEntry({id:entry.id,label:entry.label,amount:entry.amount,category_id:entry.category_id||"",date:entry.created_at?new Date(entry.created_at).toISOString().slice(0,10):new Date().toISOString().slice(0,10)});openModal("editExpenseEntry");}}>Edit</Btn>
+                                  <Btn size="sm" variant="secondary" t={t} onClick={()=>{setEditingExpenseEntry({id:entry.id,label:entry.label,amount:entry.amount,category_id:entry.category_id||"",date:entry.created_at?entry.created_at.slice(0,10):new Date().toISOString().slice(0,10)});openModal("editExpenseEntry");}}>Edit</Btn>
                                   <Btn size="sm" variant="danger" t={t} onClick={()=>handleDeleteExpenseEntry(entry)}>Del</Btn>
                                 </>
                               )}

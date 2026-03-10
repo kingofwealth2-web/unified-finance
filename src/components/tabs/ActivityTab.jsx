@@ -122,7 +122,20 @@ export function ActivityTab({
                       <h3 style={{ fontSize:15, fontWeight:700, margin:0, color:t.text }}>All Activity <span style={{ fontSize:13, fontWeight:400, color:t.textSub }}>({filtered.length})</span></h3>
                       <div style={{ display:"flex", gap:8 }}>
                         <Btn t={t} onClick={()=>setShowPrintView(true)} variant="secondary" style={{ fontSize:12 }}>🖨 Print View</Btn>
-                        <Btn t={t} onClick={exportFinancialReport} variant="secondary" style={{ fontSize:12 }}>↓ Export CSV</Btn>
+                        <Btn t={t} onClick={()=>{
+                          const escape = (v) => `"${String(v ?? "").replace(/"/g,'""')}"`;
+                          const rows = filtered.map(item=>[
+                            new Date(item.date).toLocaleDateString(),
+                            item.positive?"Income":"Expense",
+                            item.name,
+                            item.action,
+                            item.positive?item.rawAmount:-item.rawAmount,
+                          ]);
+                          const csv = [["Date","Type","Name","Description","Amount"].map(escape).join(","),...rows.map(r=>r.map(escape).join(","))].join("\n");
+                          const blob = new Blob([csv],{type:"text/csv"});
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement("a"); a.href=url; a.download=`activity-export-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(url);
+                        }} variant="secondary" style={{ fontSize:12 }}>↓ Export CSV</Btn>
                       </div>
                     </div>
       

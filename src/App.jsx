@@ -49,7 +49,7 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
   const handleCancelConfirm = () => setConfirm(null);
 
   // ── Wrapped delete handlers with confirm + toast ──
-  const confirmDeleteContribution = (c) => withConfirm("Delete Contribution", `Remove this contribution of ${c.amount ? `GHS ${Number(c.amount).toLocaleString()}` : "this entry"}? This cannot be undone.`, "Delete", () => { app.handleDeleteContribution(c); toast("Contribution deleted"); });
+  const confirmDeleteContribution = (c) => withConfirm("Delete Contribution", `Remove this contribution of ${c.amount ? app.fmt(c.amount) : "this entry"}? This cannot be undone.`, "Delete", () => { app.handleDeleteContribution(c); toast("Contribution deleted"); });
   const confirmDeleteExpenseEntry = (ex) => withConfirm("Delete Expense", `Remove "${ex.label || "this expense"}"? This cannot be undone.`, "Delete", () => { app.handleDeleteExpenseEntry(ex); toast("Expense deleted"); });
   const confirmDeletePerson = (id, name) => withConfirm("Delete Person", `Remove ${name || "this person"} and all their contributions? This cannot be undone.`, "Delete", () => { app.handleDeletePerson(id); toast(`${name || "Person"} deleted`); });
   const confirmDeletePaymentType = (id, name) => withConfirm("Delete Payment Type", `Remove "${name || "this payment type"}"? This cannot be undone.`, "Delete", () => { app.handleDeletePaymentType(id); toast("Payment type deleted"); });
@@ -505,7 +505,7 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
               setEditingPaymentType={app.setEditingPaymentType}
               handleDeletePaymentType={(id) => confirmDeletePaymentType(id, app.data?.paymentTypes?.find(p=>p.id===id)?.name)}
               setEditingExpenseCategory={app.setEditingExpenseCategory}
-              handleDeleteExpenseCategory={(id) => confirmDeleteExpenseCategory(id, app.data?.expenseCategories?.find(c=>c.id===id)?.name)}
+              handleDeleteExpenseCategory={(id) => confirmDeleteExpenseCategory(id, app.data?.expenses?.find(c=>c.id===id)?.label)}
               onStartNewYear={() => withConfirm(
                 "Start New Financial Year",
                 `This will archive FY${app.data?.org?.financial_year_start} and start FY${(app.data?.org?.financial_year_start||0)+1}. Your current balance of ${app.fmt(app.data?.totalBalance||0)} becomes the new opening balance. This cannot be undone.`,

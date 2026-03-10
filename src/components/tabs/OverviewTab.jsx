@@ -65,7 +65,10 @@ export function OverviewTab({
     .sort((a,b) => b.pct - a.pct);
 
   // ── Year-to-date calculations ──────────────────────────────
-  const fyStart = data.org?.financial_year_start || now.getFullYear();
+  // Use the year of the actual data being shown (handles past-year browsing correctly)
+  const fyStart = (data.rawContributions?.length > 0
+    ? data.rawContributions[data.rawContributions.length-1]?.financial_year
+    : null) || data.org?.financial_year_start || now.getFullYear();
   const fyFormat = data.org?.financial_year_format || "single";
   // Determine FY start date: Jan 1 of fyStart year (or April 1 etc if you ever add month)
   const fyStartDate = new Date(fyStart, 0, 1); // Jan 1
@@ -535,14 +538,14 @@ export function OverviewTab({
                           <div className="row-actions" style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
                             <span style={{ fontSize:15, fontWeight:700, color:item.positive?t.positive:t.negative }}>{item.amount}</span>
                             {item.id.startsWith("c-")?(
-                              <><Btn size="sm" variant="secondary" t={t} onClick={()=>{const c=data.rawContributions.find(r=>`c-${r.id}`===item.id);if(c){setEditingContribution({id:c.id,member_name:c.profiles?.full_name||"",amount:c.amount,payment_type_id:c.payment_type_id||"",note:c.note||"",date:c.created_at?new Date(c.created_at).toISOString().slice(0,10):new Date().toISOString().slice(0,10)});openModal("editContribution");}}}>Edit</Btn>
-                              <Btn size="sm" variant="danger" t={t} onClick={()=>{const c=data.rawContributions.find(r=>`c-${r.id}`===item.id);if(c)handleDeleteContribution(c);}}>Del</Btn></>
+                              <><Btn size="sm" variant="secondary" t={t} onClick={()=>{const c=data.rawContributions.find(r=>`c-${r.id}`===item.id);if(c){setEditingContribution({id:c.id,member_name:c.profiles?.full_name||"",amount:c.amount,payment_type_id:c.payment_type_id||"",note:c.note||"",date:c.created_at?c.created_at.slice(0,10):new Date().toISOString().slice(0,10)});openModal("editContribution");}}}>Edit</Btn>
+                              {isSuperAdmin&&<Btn size="sm" variant="danger" t={t} onClick={()=>{const c=data.rawContributions.find(r=>`c-${r.id}`===item.id);if(c)handleDeleteContribution(c);}}>Del</Btn>}</>
                             ):item.id.startsWith("i-")?(
-                              <><Btn size="sm" variant="secondary" t={t} onClick={()=>{const inc=(data.rawIncome||[]).find(r=>`i-${r.id}`===item.id);if(inc){setEditingIncomeSource({id:inc.id,label:inc.label||"",amount:inc.amount,source:inc.source||"",note:inc.note||"",date:inc.created_at?new Date(inc.created_at).toISOString().slice(0,10):new Date().toISOString().slice(0,10)});openModal("editIncome");}}}>Edit</Btn>
-                              <Btn size="sm" variant="danger" t={t} onClick={()=>{const inc=(data.rawIncome||[]).find(r=>`i-${r.id}`===item.id);if(inc)handleDeleteIncomeSource(inc.id);}}>Del</Btn></>
+                              <><Btn size="sm" variant="secondary" t={t} onClick={()=>{const inc=(data.rawIncome||[]).find(r=>`i-${r.id}`===item.id);if(inc){setEditingIncomeSource({id:inc.id,label:inc.label||"",amount:inc.amount,source:inc.source||"",note:inc.note||"",date:inc.created_at?inc.created_at.slice(0,10):new Date().toISOString().slice(0,10)});openModal("editIncome");}}}>Edit</Btn>
+                              {isSuperAdmin&&<Btn size="sm" variant="danger" t={t} onClick={()=>{const inc=(data.rawIncome||[]).find(r=>`i-${r.id}`===item.id);if(inc)handleDeleteIncomeSource(inc.id);}}>Del</Btn>}</>
                             ):(
-                              <><Btn size="sm" variant="secondary" t={t} onClick={()=>{const ex=data.rawExpenses.find(r=>`e-${r.id}`===item.id);if(ex){setEditingExpenseEntry({id:ex.id,label:ex.label,amount:ex.amount,category_id:ex.category_id||"",date:ex.created_at?new Date(ex.created_at).toISOString().slice(0,10):new Date().toISOString().slice(0,10)});openModal("editExpenseEntry");}}}>Edit</Btn>
-                              <Btn size="sm" variant="danger" t={t} onClick={()=>{const ex=data.rawExpenses.find(r=>`e-${r.id}`===item.id);if(ex)handleDeleteExpenseEntry(ex);}}>Del</Btn></>
+                              <><Btn size="sm" variant="secondary" t={t} onClick={()=>{const ex=data.rawExpenses.find(r=>`e-${r.id}`===item.id);if(ex){setEditingExpenseEntry({id:ex.id,label:ex.label,amount:ex.amount,category_id:ex.category_id||"",date:ex.created_at?ex.created_at.slice(0,10):new Date().toISOString().slice(0,10)});openModal("editExpenseEntry");}}}>Edit</Btn>
+                              {isSuperAdmin&&<Btn size="sm" variant="danger" t={t} onClick={()=>{const ex=data.rawExpenses.find(r=>`e-${r.id}`===item.id);if(ex)handleDeleteExpenseEntry(ex);}}>Del</Btn>}</>
                             )}
                           </div>
                         </div>
