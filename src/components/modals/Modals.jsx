@@ -41,8 +41,6 @@ export function Modals({
     closeModal();
   };
 
-  // Clean close — used by submit handlers (no dirty check needed)
-  const cleanClose = () => { setIsDirty(false); closeModal(); };
   const iStyle = (t) => ({ width:"100%", padding:"11px 14px", borderRadius:10, border:`1px solid ${t.borderStrong}`, fontSize:14, color:t.text, background:t.inputBg, outline:"none", boxSizing:"border-box", fontFamily:"inherit", transition:"border-color 0.15s" });
   const filteredMembers = (data.allPeople||[]).filter(p =>
     p.role === "member" &&
@@ -221,7 +219,7 @@ export function Modals({
                               <input
                                 type="number" min="0" step="0.01"
                                 value={val}
-                                onChange={e => setBulkContributions(prev => ({ ...prev, amounts:{ ...prev.amounts, [p.id]: e.target.value } }))}
+                                onChange={e => { markDirty(); setBulkContributions(prev => ({ ...prev, amounts:{ ...prev.amounts, [p.id]: e.target.value } })); }}
                                 placeholder="0.00"
                                 style={{ width:110, padding:"8px 12px", borderRadius:8, border:`1px solid ${hasVal ? t.accent+"60" : t.borderStrong}`, background:t.surface, color:t.text, fontSize:14, outline:"none", textAlign:"right", fontFamily:"inherit", transition:"border-color 0.15s" }}
                               />

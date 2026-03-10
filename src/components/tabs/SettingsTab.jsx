@@ -57,7 +57,7 @@ export function SettingsTab({ data, t, fmt, isSuperAdmin, openModal, orgName, se
             <h3 style={{ fontSize:15, fontWeight:700, margin:0, color:t.text }}>System Users</h3>
             <p style={{ fontSize:13, color:t.textSub, margin:"4px 0 0" }}>People who can log into {orgName}</p>
           </div>
-          <Btn t={t} onClick={()=>openModal("addUser")}>+ Add User</Btn>
+          {isSuperAdmin && <Btn t={t} onClick={()=>openModal("addUser")}>+ Add User</Btn>}
         </div>
         <div>
           {(data.users||[]).map((user, i) => (
@@ -89,7 +89,7 @@ export function SettingsTab({ data, t, fmt, isSuperAdmin, openModal, orgName, se
             <h3 style={{ fontSize:15, fontWeight:700, margin:0, color:t.text }}>Payment Types</h3>
             <p style={{ fontSize:13, color:t.textSub, margin:"4px 0 0" }}>Categories people can contribute towards</p>
           </div>
-          <Btn t={t} onClick={()=>openModal("addPaymentType")}>+ New Type</Btn>
+          {isSuperAdmin && <Btn t={t} onClick={()=>openModal("addPaymentType")}>+ New Type</Btn>}
         </div>
         {data.paymentTypes.length===0 ? <EmptyState message="No payment types yet." t={t}/> :
           <div>
@@ -107,8 +107,8 @@ export function SettingsTab({ data, t, fmt, isSuperAdmin, openModal, orgName, se
                     <p style={{ fontSize:14, fontWeight:600, margin:0, color:t.text }}>{fmt(pt.total)}</p>
                     {pt.goal>0 && <p style={{ fontSize:11, color:t.textSub, margin:0 }}>Goal: {fmt(pt.goal)}</p>}
                   </div>
-                  <Btn size="sm" variant="secondary" t={t} onClick={()=>{ setEditingPaymentType({...pt,goal:pt.goal||""}); openModal("editPaymentType"); }}>Edit</Btn>
-                  <Btn size="sm" variant="danger" t={t} onClick={()=>handleDeletePaymentType(pt.id)}>Delete</Btn>
+                  {isSuperAdmin && <Btn size="sm" variant="secondary" t={t} onClick={()=>{ setEditingPaymentType({...pt,goal:pt.goal||""}); openModal("editPaymentType"); }}>Edit</Btn>}
+                  {isSuperAdmin && <Btn size="sm" variant="danger" t={t} onClick={()=>handleDeletePaymentType(pt.id)}>Delete</Btn>}
                 </div>
               </div>
             ))}
@@ -122,7 +122,7 @@ export function SettingsTab({ data, t, fmt, isSuperAdmin, openModal, orgName, se
             <h3 style={{ fontSize:15, fontWeight:700, margin:0, color:t.text }}>Expense Categories</h3>
             <p style={{ fontSize:13, color:t.textSub, margin:"4px 0 0" }}>Categories for tracking organisational spending</p>
           </div>
-          <Btn t={t} onClick={()=>openModal("addExpenseCategory")}>+ New Category</Btn>
+          {isSuperAdmin && <Btn t={t} onClick={()=>openModal("addExpenseCategory")}>+ New Category</Btn>}
         </div>
         {data.expenses.length===0 ? <EmptyState message="No expense categories yet." t={t}/> :
           <div>
@@ -146,8 +146,8 @@ export function SettingsTab({ data, t, fmt, isSuperAdmin, openModal, orgName, se
                       <p style={{ fontSize:14, fontWeight:600, margin:0, color:t.text }}>{fmt(exp.amount)} spent</p>
                       {exp.budget>0 && <p style={{ fontSize:11, color:t.textSub, margin:0 }}>Budget: {fmt(exp.budget)}</p>}
                     </div>
-                    <Btn size="sm" variant="secondary" t={t} onClick={()=>{ setEditingExpenseCategory({...exp,budget:exp.budget||"",name:exp.label}); openModal("editExpenseCategory"); }}>Edit</Btn>
-                    <Btn size="sm" variant="danger" t={t} onClick={()=>handleDeleteExpenseCategory(exp.id)}>Delete</Btn>
+                    {isSuperAdmin && <Btn size="sm" variant="secondary" t={t} onClick={()=>{ setEditingExpenseCategory({...exp,budget:exp.budget||"",name:exp.label}); openModal("editExpenseCategory"); }}>Edit</Btn>}
+                    {isSuperAdmin && <Btn size="sm" variant="danger" t={t} onClick={()=>handleDeleteExpenseCategory(exp.id)}>Delete</Btn>}
                   </div>
                 </div>
               );

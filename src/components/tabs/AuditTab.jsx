@@ -128,7 +128,7 @@ export function AuditTab({ auditLog, t }) {
     return (auditLog||[]).filter(e => {
       if (filterAction !== "all" && e.action !== filterAction) return false;
       if (filterEntity !== "all" && e.entity !== filterEntity) return false;
-      if (dateFrom) { const d = new Date(e.created_at); if (d < new Date(dateFrom)) return false; }
+      if (dateFrom) { const d = new Date(e.created_at); if (d < new Date(dateFrom + "T00:00:00")) return false; }
       if (dateTo)   { const d = new Date(e.created_at); if (d > new Date(dateTo + "T23:59:59")) return false; }
       return true;
     });
