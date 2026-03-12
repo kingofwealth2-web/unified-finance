@@ -5,6 +5,7 @@ import App from './App.jsx'
 import Auth from './Auth.jsx'
 import { OrgPicker } from './components/OrgPicker.jsx'
 import { supabase } from './lib/supabaseClient.js'
+import LandingPage from './components/LandingPage.jsx'
 
 function Root() {
   const [session, setSession] = useState(null)
@@ -12,6 +13,7 @@ function Root() {
   const [currentOrg, setCurrentOrg] = useState(null)
   const [orgRole, setOrgRole] = useState(null)
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false)
+  const [showLanding, setShowLanding] = useState(true)
   const switchedRef = useRef(false)
 
   // Scope sessionStorage keys to user so different users don't share org
@@ -68,6 +70,8 @@ function Root() {
   }
 
   if (checking) return null
+
+  if (showLanding && !session && !isPasswordRecovery) return <LandingPage onSignIn={() => setShowLanding(false)} />
 
   if (!session || isPasswordRecovery) return <Auth isPasswordRecovery={isPasswordRecovery} onPasswordReset={() => setIsPasswordRecovery(false)} />
 
