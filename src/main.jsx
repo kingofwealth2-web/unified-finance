@@ -6,6 +6,7 @@ import Auth from './Auth.jsx'
 import { OrgPicker } from './components/OrgPicker.jsx'
 import { supabase } from './lib/supabaseClient.js'
 import LandingPage from './components/LandingPage.jsx'
+import MemberPortal from './components/MemberPortal.jsx'
 
 function Root() {
   const [session, setSession] = useState(null)
@@ -14,6 +15,8 @@ function Root() {
   const [orgRole, setOrgRole] = useState(null)
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false)
   const [showLanding, setShowLanding] = useState(true)
+  const [userRole, setUserRole] = useState(null)
+  const [memberOrgId, setMemberOrgId] = useState(null)
   const switchedRef = useRef(false)
 
   // Scope sessionStorage keys to user so different users don't share org
@@ -40,6 +43,13 @@ function Root() {
 
     return () => subscription.unsubscribe()
   }, [])
+
+  // Fetch role from profiles when session loads
+  useEffect(() => {
+    if (!session) { setUserRole(null); return; }
+    supabase.from("profiles").select("role, org_id").eq("id", session.user.id).maybeSingle()
+      .then(({ data }) => { setUserRole(data?.role || null); setMemberOrgId(data?.org_id || null); })
+  }, [session?.user?.id])
 
   // Restore org from sessionStorage when session loads — but not if user just switched
   useEffect(() => {
@@ -75,6 +85,12 @@ function Root() {
   if (showLanding && !session && !isPasswordRecovery) return <LandingPage onSignIn={() => setShowLanding(false)} />
 
   if (!session || isPasswordRecovery) return <Auth isPasswordRecovery={isPasswordRecovery} onPasswordReset={() => setIsPasswordRecovery(false)} onGoHome={() => setShowLanding(true)} />
+
+  // Members skip OrgPicker — their org is on their profile
+  if (session && userRole === "member") {
+    const memberOrgId = null; // fetched inside MemberPortal via profile
+    return <MemberPortal session={session} orgId={memberOrgId}/>
+  }
 
   if (!currentOrg) return (
     <OrgPicker

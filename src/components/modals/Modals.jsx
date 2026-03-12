@@ -82,12 +82,12 @@ export function Modals({
                   <form onSubmit={handleAddUser} onInput={markDirty}>
                     <Field label="Full Name" t={t}><Input t={t} value={newUser.full_name} onChange={e=>setNewUser({...newUser,full_name:e.target.value})} placeholder="John Doe" required/></Field>
                     <Field label="Email" t={t}><Input t={t} type="email" value={newUser.email} onChange={e=>setNewUser({...newUser,email:e.target.value})} placeholder="john@example.com" required/></Field>
-                    <Field label="Password" t={t}><Input t={t} type="password" value={newUser.password} onChange={e=>setNewUser({...newUser,password:e.target.value})} placeholder="Min. 6 characters" required minLength={6}/></Field>
-                    <Field label="Role" t={t}><Select t={t} value={newUser.role} onChange={e=>setNewUser({...newUser,role:e.target.value})}><option value="admin">Admin (Manager)</option></Select></Field>
+                    <Field label="Role" t={t}><Select t={t} value={newUser.role} onChange={e=>setNewUser({...newUser,role:e.target.value})}><option value="admin">Admin (Manager)</option><option value="member">Member (View own payments)</option></Select></Field>
+                    <p style={{ fontSize:12, color:t.textSub, margin:"-8px 0 16px", lineHeight:1.5 }}>An invite email will be sent to the address above. They will set their own password.</p>
                     {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
                     <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
                       <Btn variant="secondary" t={t} type="button" onClick={safeClose}>Cancel</Btn>
-                      <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Creating...":"Create User"}</Btn>
+                      <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Sending invite...":"Send Invite"}</Btn>
                     </div>
                   </form>
                 </Modal>

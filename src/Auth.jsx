@@ -41,7 +41,7 @@ const features = [
 ];
 
 export default function Auth({ isPasswordRecovery = false, onPasswordReset = () => {}, onGoHome = null }) {
-  // ── view: "login" | "signup" | "forgot" | "reset"
+  // ── view: "login" | "signup" | "forgot" | "reset" | "invite"
   const [view, setView]               = useState(isPasswordRecovery ? "reset" : "login");
 
   // shared fields
@@ -76,7 +76,9 @@ export default function Auth({ isPasswordRecovery = false, onPasswordReset = () 
 
     // Fallback: check URL hash directly
     const hash = window.location.hash;
-    if (hash.includes("type=recovery")) {
+    if (hash.includes("type=invite")) {
+      setView("invite");
+    } else if (hash.includes("type=recovery")) {
       setView("reset");
     } else if (hash.includes("error=access_denied") && hash.includes("otp_expired")) {
       setView("forgot");
@@ -161,6 +163,22 @@ export default function Auth({ isPasswordRecovery = false, onPasswordReset = () 
     setLoading(false);
   }
 
+  async function handleAcceptInvite(e) {
+    e.preventDefault();
+    if (password !== confirmPassword) { setError("Passwords don't match."); return; }
+    if (password.length < 6) { setError("Password must be at least 6 characters."); return; }
+    setLoading(true); setError(null);
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) { setError(error.message); setLoading(false); return; }
+    setSuccess("Password set! Welcome to Unified Finance.");
+    setTimeout(() => {
+      window.location.hash = "";
+      onPasswordReset();
+      switchView("login");
+    }, 1500);
+    setLoading(false);
+  }
+
   // ── Theme tokens ──────────────────────────────────────────────
   const bg        = isDark ? "#0A0A0F"              : "#F5F5FA";
   const surface   = isDark ? "rgba(28,28,36,0.95)"  : "rgba(255,255,255,0.92)";
@@ -192,6 +210,36 @@ export default function Auth({ isPasswordRecovery = false, onPasswordReset = () 
   function renderForm() {
 
     // ── Reset password ──
+    if (view === "invite") return (
+      <div key="invite">
+        <p style={{ fontSize:14, color:textSub, marginBottom:24, lineHeight:1.6 }}>
+          You've been invited to <strong style={{ color:text }}>Unified Finance</strong>. Set a password to activate your account.
+        </p>
+        <form onSubmit={handleAcceptInvite}>
+          <div style={{ marginBottom:16 }}>
+            <label style={{ display:"block", fontSize:12, fontWeight:600, color:textSub, marginBottom:6, textTransform:"uppercase", letterSpacing:"0.05em" }}>New Password</label>
+            <input type="password" value={password} onChange={e=>setPassword(e.target.value)} required minLength={6}
+              placeholder="Min. 6 characters"
+              style={{ width:"100%", padding:"12px 14px", borderRadius:10, border:`1px solid ${borderColor}`, background:inputBg, color:text, fontSize:14, outline:"none", fontFamily:"inherit", boxSizing:"border-box" }}
+            />
+          </div>
+          <div style={{ marginBottom:20 }}>
+            <label style={{ display:"block", fontSize:12, fontWeight:600, color:textSub, marginBottom:6, textTransform:"uppercase", letterSpacing:"0.05em" }}>Confirm Password</label>
+            <input type="password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} required minLength={6}
+              placeholder="Repeat password"
+              style={{ width:"100%", padding:"12px 14px", borderRadius:10, border:`1px solid ${borderColor}`, background:inputBg, color:text, fontSize:14, outline:"none", fontFamily:"inherit", boxSizing:"border-box" }}
+            />
+          </div>
+          {error   && <p style={{ fontSize:13, color:"#FF375F", marginBottom:14 }}>{error}</p>}
+          {success && <p style={{ fontSize:13, color:"#34C759", marginBottom:14 }}>{success}</p>}
+          <button type="submit" disabled={loading}
+            style={{ width:"100%", padding:"13px", borderRadius:10, background:`linear-gradient(135deg, ${accent}, #34AADC)`, color:"#fff", border:"none", fontSize:14, fontWeight:700, cursor:loading?"not-allowed":"pointer", opacity:loading?0.7:1, fontFamily:"inherit" }}>
+            {loading ? "Activating…" : "Activate Account"}
+          </button>
+        </form>
+      </div>
+    );
+
     if (view === "reset") return (
       <div key="reset">
         <div style={{ marginBottom: 44, ...fadeUp(0.08) }}>

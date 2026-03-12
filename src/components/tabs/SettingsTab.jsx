@@ -70,8 +70,10 @@ export function SettingsTab({ data, t, fmt, isSuperAdmin, openModal, orgName, se
                 </div>
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                <span style={{ fontSize:11, fontWeight:700, padding:"4px 10px", borderRadius:20, textTransform:"uppercase", letterSpacing:"0.04em", background:user.role==="super_admin"?`${t.accent}18`:"rgba(52,199,89,0.1)", color:user.role==="super_admin"?t.accent:"#34C759" }}>
-                  {user.role==="super_admin"?"Super Admin":"Admin"}
+                <span style={{ fontSize:11, fontWeight:700, padding:"4px 10px", borderRadius:20, textTransform:"uppercase", letterSpacing:"0.04em",
+                  background: user.role==="super_admin" ? `${t.accent}18` : user.role==="member" ? "rgba(167,139,250,0.12)" : "rgba(52,199,89,0.1)",
+                  color:      user.role==="super_admin" ? t.accent            : user.role==="member" ? "#A78BFA"                 : "#34C759" }}>
+                  {user.role==="super_admin" ? "Super Admin" : user.role==="member" ? "Member" : "Admin"}
                 </span>
                 {user.id===session?.user?.id && <span style={{ fontSize:11, color:t.textSub, fontStyle:"italic" }}>You</span>}
                 {isSuperAdmin && user.id!==session?.user?.id && user.role!=="super_admin" && (
