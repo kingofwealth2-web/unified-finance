@@ -40,7 +40,7 @@ const features = [
   },
 ];
 
-export default function Auth({ isPasswordRecovery = false, onPasswordReset = () => {} }) {
+export default function Auth({ isPasswordRecovery = false, onPasswordReset = () => {}, onGoHome = null }) {
   // ── view: "login" | "signup" | "forgot" | "reset"
   const [view, setView]               = useState(isPasswordRecovery ? "reset" : "login");
 
@@ -378,8 +378,13 @@ export default function Auth({ isPasswordRecovery = false, onPasswordReset = () 
 
         {/* Top bar */}
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: view === "signup" ? 32 : 60, ...fadeUp(0) }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <div style={{ width:36, height:36, borderRadius:10, background:`linear-gradient(135deg, ${accent}, #34AADC)`, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:`0 4px 14px ${accentGlow}`, flexShrink:0 }}>
+          <div
+            onClick={onGoHome || undefined}
+            title={onGoHome ? "Back to home" : undefined}
+            style={{ display:"flex", alignItems:"center", gap:10, cursor: onGoHome ? "pointer" : "default", userSelect:"none" }}>
+            <div style={{ width:36, height:36, borderRadius:10, background:`linear-gradient(135deg, ${accent}, #34AADC)`, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:`0 4px 14px ${accentGlow}`, flexShrink:0, transition:"transform 0.15s, box-shadow 0.15s" }}
+              onMouseEnter={e=>{ if(onGoHome){ e.currentTarget.style.transform="scale(1.08)"; e.currentTarget.style.boxShadow=`0 6px 20px ${accentGlow}`; }}}
+              onMouseLeave={e=>{ e.currentTarget.style.transform="scale(1)"; e.currentTarget.style.boxShadow=`0 4px 14px ${accentGlow}`; }}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8h5M9 8h5M8 2v5M8 9v5" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
             </div>
             <div>

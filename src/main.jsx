@@ -69,11 +69,12 @@ function Root() {
     sessionStorage.removeItem(ROLE_KEY)
   }
 
+
   if (checking) return null
 
   if (showLanding && !session && !isPasswordRecovery) return <LandingPage onSignIn={() => setShowLanding(false)} />
 
-  if (!session || isPasswordRecovery) return <Auth isPasswordRecovery={isPasswordRecovery} onPasswordReset={() => setIsPasswordRecovery(false)} />
+  if (!session || isPasswordRecovery) return <Auth isPasswordRecovery={isPasswordRecovery} onPasswordReset={() => setIsPasswordRecovery(false)} onGoHome={() => setShowLanding(true)} />
 
   if (!currentOrg) return (
     <OrgPicker
