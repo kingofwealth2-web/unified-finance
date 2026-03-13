@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../lib/supabaseClient.js";
 import { useMemberData } from "../hooks/useMemberData.js";
 
@@ -86,7 +86,43 @@ export default function MemberPortal({ session, orgId }) {
   const { data, fmt, refresh } = useMemberData({ session, orgId });
   const [tab, setTab] = useState("dashboard");
   const [filterType, setFilterType] = useState("all");
+  const [notifications, setNotifications] = useState([]);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef(null);
   const [isDark, setIsDark] = useState(() => localStorage.getItem("unified-theme") === "dark");
+
+  // Fetch notifications
+  const fetchNotifications = useCallback(async () => {
+    if (!session?.user?.id || !orgId) return;
+    const { data } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("member_id", session.user.id)
+      .eq("org_id", orgId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (data) setNotifications(data);
+  }, [session?.user?.id, orgId]);
+
+  useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
+
+  // Mark all as read when panel opens
+  useEffect(() => {
+    if (!notifOpen || !session?.user?.id) return;
+    const unread = notifications.filter(n => !n.is_read).map(n => n.id);
+    if (unread.length === 0) return;
+    supabase.from("notifications").update({ is_read: true }).in("id", unread)
+      .then(() => setNotifications(prev => prev.map(n => ({ ...n, is_read: true }))));
+  }, [notifOpen]);
+
+  // Close panel on outside click
+  useEffect(() => {
+    function handle(e) { if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false); }
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, []);
+
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   // Theme tokens
   const t = isDark ? {
@@ -202,6 +238,60 @@ export default function MemberPortal({ session, orgId }) {
               style={{ background: "none", border: "none", cursor: "pointer", color: t.textSub, fontSize: 17, padding: 4, lineHeight: 1 }}>
               {isDark ? "☀️" : "🌙"}
             </button>
+
+            {/* Bell */}
+            <div ref={notifRef} style={{ position: "relative" }}>
+              <button onClick={() => setNotifOpen(o => !o)}
+                style={{ background: "none", border: "none", cursor: "pointer", color: t.textSub, padding: "4px 6px", lineHeight: 1, position: "relative", borderRadius: 8, transition: "background 0.15s" }}
+                title="Notifications">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                {unreadCount > 0 && (
+                  <span style={{ position: "absolute", top: 1, right: 1, width: 16, height: 16, borderRadius: "50%", background: t.negative, color: "#fff", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Dropdown panel */}
+              {notifOpen && (
+                <div style={{ position: "absolute", top: "calc(100% + 10px)", right: 0, width: 320, maxHeight: 420, overflowY: "auto", background: t.surface, border: `1px solid ${t.border}`, borderRadius: 16, boxShadow: "0 8px 32px rgba(0,0,0,0.2)", zIndex: 100 }}>
+                  <div style={{ padding: "14px 16px 10px", borderBottom: `1px solid ${t.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Notifications</span>
+                    {notifications.length > 0 && (
+                      <button onClick={() => {
+                        supabase.from("notifications").update({ is_read: true }).eq("member_id", session.user.id)
+                          .then(() => setNotifications(prev => prev.map(n => ({ ...n, is_read: true }))));
+                      }} style={{ fontSize: 11, color: t.accent, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+                  {notifications.length === 0 ? (
+                    <div style={{ padding: "32px 16px", textAlign: "center", color: t.textSub, fontSize: 13 }}>No notifications yet</div>
+                  ) : notifications.map((n, i) => (
+                    <div key={n.id} style={{ padding: "12px 16px", borderBottom: i < notifications.length - 1 ? `1px solid ${t.border}` : "none", background: n.is_read ? "none" : `${t.accent}08`, transition: "background 0.15s" }}>
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                        <div style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, background: n.type === "reminder" ? `${t.warning}18` : `${t.accent}18` }}>
+                          {n.type === "reminder" ? "⏰" : "💬"}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                            <span style={{ fontSize: 13, fontWeight: n.is_read ? 500 : 700, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.title}</span>
+                            {!n.is_read && <div style={{ width: 7, height: 7, borderRadius: "50%", background: t.accent, flexShrink: 0 }}/>}
+                          </div>
+                          <p style={{ fontSize: 12, color: t.textSub, margin: "3px 0 0", lineHeight: 1.5 }}>{n.message}</p>
+                          <p style={{ fontSize: 10, color: t.textSub, margin: "5px 0 0", opacity: 0.6 }}>{new Date(n.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <button onClick={() => supabase.auth.signOut()}
               style={{ fontSize: 12, fontWeight: 600, color: t.negative, background: `${t.negative}12`, border: `1px solid ${t.negative}25`, borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontFamily: "inherit" }}>
               Sign Out

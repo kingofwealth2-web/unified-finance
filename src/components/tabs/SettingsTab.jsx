@@ -1,10 +1,77 @@
+import { useState } from "react";
+import { supabase } from "../../lib/supabaseClient.js";
 import { Card, Btn, Avatar, EmptyState } from "../ui/index.jsx";
 import { fyLabel } from "../../constants.js";
 
 export function SettingsTab({ data, t, fmt, isSuperAdmin, openModal, orgName, session,
   setEditingPaymentType, handleDeletePaymentType,
   setEditingExpenseCategory, handleDeleteExpenseCategory,
-  handleDeleteUser, onStartNewYear }) {
+  handleDeleteUser, onStartNewYear, toast }) {
+
+  const [notifMemberId, setNotifMemberId] = useState("");
+  const [notifTitle, setNotifTitle]       = useState("");
+  const [notifMsg, setNotifMsg]           = useState("");
+  const [notifLoading, setNotifLoading]   = useState(false);
+  const [reminderLoading, setReminderLoading] = useState(false);
+
+  const members = (data.allPeople || []).filter(p => p.role === "member" && p.status === "active");
+
+  // Members with zero contributions this FY
+  const currentFY = data.org?.financial_year_start;
+  const unpaidMembers = members.filter(m => {
+    const hasPaid = (data.contributions || []).some(c => c.member_id === m.id && c.financial_year === currentFY);
+    return !hasPaid;
+  });
+
+  async function sendNotification(memberId, type, title, message) {
+    const { error } = await supabase.from("notifications").insert({
+      org_id: data.org?.id,
+      member_id: memberId,
+      type,
+      title,
+      message,
+      created_by: session?.user?.id,
+    });
+    if (error) throw error;
+  }
+
+  async function handleSendCustom(e) {
+    e.preventDefault();
+    if (!notifMemberId || !notifTitle || !notifMsg) return;
+    setNotifLoading(true);
+    try {
+      await sendNotification(notifMemberId, "message", notifTitle, notifMsg);
+      toast("Message sent");
+      setNotifMemberId(""); setNotifTitle(""); setNotifMsg("");
+    } catch(err) { toast("Failed: " + err.message); }
+    finally { setNotifLoading(false); }
+  }
+
+  async function handleSendReminder(memberId, memberName) {
+    setReminderLoading(true);
+    try {
+      await sendNotification(memberId, "reminder",
+        "Payment Reminder",
+        `Hi ${memberName.split(" ")[0]}, this is a reminder that you have an outstanding payment for the current financial year. Please make your contribution at your earliest convenience.`
+      );
+      toast("Reminder sent to " + memberName);
+    } catch(err) { toast("Failed: " + err.message); }
+    finally { setReminderLoading(false); }
+  }
+
+  async function handleSendAllReminders() {
+    setReminderLoading(true);
+    try {
+      await Promise.all(unpaidMembers.map(m =>
+        sendNotification(m.id, "reminder",
+          "Payment Reminder",
+          `Hi ${m.full_name.split(" ")[0]}, this is a reminder that you have an outstanding payment for the current financial year. Please make your contribution at your earliest convenience.`
+        )
+      ));
+      toast(`Reminders sent to ${unpaidMembers.length} member${unpaidMembers.length !== 1 ? "s" : ""}`);
+    } catch(err) { toast("Failed: " + err.message); }
+    finally { setReminderLoading(false); }
+  }
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:24 }}>
@@ -157,6 +224,64 @@ export function SettingsTab({ data, t, fmt, isSuperAdmin, openModal, orgName, se
           </div>
         }
       </Card>
+
+
+      {/* ── Notifications ── */}
+      {isSuperAdmin && (
+        <Card t={t} style={{ animation:"slideUp 0.3s ease" }}>
+          <h3 style={{ fontSize:15, fontWeight:700, margin:"0 0 4px", color:t.text }}>Notifications</h3>
+          <p style={{ fontSize:13, color:t.textSub, margin:"0 0 20px" }}>Send in-app messages to members</p>
+
+          {/* Payment reminders */}
+          <div style={{ marginBottom:24, paddingBottom:24, borderBottom:`1px solid ${t.border}` }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+              <div>
+                <p style={{ fontSize:13, fontWeight:600, color:t.text, margin:0 }}>Payment Reminders</p>
+                <p style={{ fontSize:12, color:t.textSub, margin:"2px 0 0" }}>
+                  {unpaidMembers.length === 0 ? "All members have paid this year 🎉" : `${unpaidMembers.length} member${unpaidMembers.length !== 1 ? "s" : ""} yet to contribute this year`}
+                </p>
+              </div>
+              {unpaidMembers.length > 0 && (
+                <Btn t={t} size="sm" onClick={handleSendAllReminders} disabled={reminderLoading}>
+                  {reminderLoading ? "Sending…" : `Remind All (${unpaidMembers.length})`}
+                </Btn>
+              )}
+            </div>
+            {unpaidMembers.length > 0 && (
+              <div style={{ display:"flex", flexDirection:"column", gap:8, maxHeight:220, overflowY:"auto" }}>
+                {unpaidMembers.map(m => (
+                  <div key={m.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 14px", background:`${t.border}`, borderRadius:10 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                      <Avatar name={m.full_name} size={30} t={t}/>
+                      <span style={{ fontSize:13, fontWeight:500, color:t.text }}>{m.full_name}</span>
+                    </div>
+                    <Btn t={t} size="sm" variant="secondary" onClick={() => handleSendReminder(m.id, m.full_name)} disabled={reminderLoading}>
+                      Send Reminder
+                    </Btn>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Custom message */}
+          <p style={{ fontSize:13, fontWeight:600, color:t.text, margin:"0 0 12px" }}>Custom Message</p>
+          <form onSubmit={handleSendCustom} style={{ display:"flex", flexDirection:"column", gap:12 }}>
+            <select value={notifMemberId} onChange={e => setNotifMemberId(e.target.value)} required
+              style={{ padding:"10px 12px", borderRadius:10, border:`1px solid ${t.border}`, background:t.inputBg||t.surface, color:notifMemberId ? t.text : t.textSub, fontSize:13, fontFamily:"inherit", outline:"none" }}>
+              <option value="">Select member…</option>
+              {members.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+            </select>
+            <input value={notifTitle} onChange={e => setNotifTitle(e.target.value)} placeholder="Title" required
+              style={{ padding:"10px 12px", borderRadius:10, border:`1px solid ${t.border}`, background:t.inputBg||t.surface, color:t.text, fontSize:13, fontFamily:"inherit", outline:"none" }}/>
+            <textarea value={notifMsg} onChange={e => setNotifMsg(e.target.value)} placeholder="Message…" required rows={3}
+              style={{ padding:"10px 12px", borderRadius:10, border:`1px solid ${t.border}`, background:t.inputBg||t.surface, color:t.text, fontSize:13, fontFamily:"inherit", outline:"none", resize:"vertical" }}/>
+            <div style={{ display:"flex", justifyContent:"flex-end" }}>
+              <Btn t={t} type="submit" disabled={notifLoading}>{notifLoading ? "Sending…" : "Send Message"}</Btn>
+            </div>
+          </form>
+        </Card>
+      )}
 
     </div>
   );

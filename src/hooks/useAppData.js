@@ -15,7 +15,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
   const [fmt, setFmt] = useState(() => makeFmt("USD"));
 
   const [modal, setModal] = useState(null);
-  const [newUser, setNewUser] = useState({ full_name:"", email:"", password:"", role:"admin" });
+  const [newUser, setNewUser] = useState({ full_name:"", email:"", role:"admin" });
   const [newPerson, setNewPerson] = useState({ full_name:"", status:"active", monthly_target:"" });
   const [newContribution, setNewContribution] = useState({ member_id:"", amount:"", payment_type_id:"", note:"", date: new Date().toISOString().slice(0,10) });
   const [newExpense, setNewExpense] = useState({ category_id:"", amount:"", label:"", date: new Date().toISOString().slice(0,10) });
@@ -168,6 +168,54 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
     } catch(err) { alert(err.message); }
   }
 
+  async function handleSendNotification({ member_id, type, title, body }) {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase.from("notifications").insert({
+      org_id: currentOrg.id,
+      member_id,
+      type,
+      title,
+      body,
+      is_read: false,
+      created_by: user?.id || null,
+    });
+    if (error) throw error;
+    await logAudit("create","notification",member_id,title,`Sent ${type} notification to member: ${title}`,null,{ type, member_id });
+    toast(type === "reminder" ? "Reminder sent" : "Message sent");
+  }
+
+  async function handleSendBulkReminder({ member_ids, title, body }) {
+    const { data: { user } } = await supabase.auth.getUser();
+    const rows = member_ids.map(member_id => ({
+      org_id: currentOrg.id,
+      member_id,
+      type: "reminder",
+      title,
+      body,
+      is_read: false,
+      created_by: user?.id || null,
+    }));
+    const { error } = await supabase.from("notifications").insert(rows);
+    if (error) throw error;
+    await logAudit("create","notification",null,title,`Sent bulk reminder to ${member_ids.length} members`,null,{ count: member_ids.length });
+    toast(`Reminder sent to ${member_ids.length} member${member_ids.length !== 1 ? "s" : ""}`);
+  }
+
+  async function handleDeleteNotification(id) {
+    const { error } = await supabase.from("notifications").delete().eq("id", id);
+    if (error) throw error;
+    toast("Notification deleted");
+  }
+
+  async function fetchSentNotifications() {
+    const { data, error } = await supabase.from("notifications")
+      .select("*, profiles!notifications_member_id_fkey(full_name)")
+      .eq("org_id", currentOrg?.id)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    return error ? [] : data;
+  }
+
   async function handleAddUser(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
     try {
@@ -183,7 +231,6 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
           },
           body: JSON.stringify({
             email: newUser.email,
-            password: newUser.password,
             full_name: newUser.full_name,
             role: newUser.role,
             org_id: currentOrg.id,
@@ -192,10 +239,10 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
       );
 
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Failed to create user");
+      if (!response.ok) throw new Error(result.error || "Failed to send invite");
 
-      await logAudit("create","user",result.user_id,newUser.full_name,`Created user ${newUser.full_name} (${newUser.email})`,null,{email:newUser.email,role:newUser.role});
-      closeModal(); setNewUser({full_name:"",email:"",password:"",role:"admin"}); toast("User created successfully"); fetchAllData();
+      await logAudit("create","user",result.user_id,newUser.full_name,`Invited ${newUser.full_name} (${newUser.email}) as ${newUser.role}`,null,{email:newUser.email,role:newUser.role});
+      closeModal(); setNewUser({full_name:"",email:"",role:"admin"}); toast(`Invite sent to ${newUser.email}`); fetchAllData();
     } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleAddPerson(e) {
@@ -604,6 +651,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
     activityDateFrom, setActivityDateFrom, activityDateTo, setActivityDateTo,
     activityPage, setActivityPage, showPrintView, setShowPrintView,
     handleDeleteUser, handleAddUser, handleAddPerson, handleAddContribution, handleAddExpense,
+    handleSendNotification, handleSendBulkReminder, handleDeleteNotification, fetchSentNotifications,
     handleAddPaymentType, handleAddExpenseCategory,
     handleEditPaymentType, handleDeletePaymentType,
     handleEditExpenseCategory, handleDeleteExpenseCategory,

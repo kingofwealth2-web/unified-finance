@@ -9,6 +9,7 @@ export function useMemberData({ session, orgId }) {
     org: null,
     rankOverall: null,        // { rank, total_members, member_total }
     rankByType: [],           // [{ payment_type_id, payment_type_name, member_total, rank, total_members }]
+    notifications: [],        // [{ id, type, title, body, read, created_at }]
     loading: true,
   });
 
@@ -24,6 +25,7 @@ export function useMemberData({ session, orgId }) {
         { data: orgRows },
         { data: rankOverall },
         { data: rankByType },
+        { data: notifications },
       ] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", uid).maybeSingle(),
         supabase.from("contributions")
@@ -35,6 +37,7 @@ export function useMemberData({ session, orgId }) {
         supabase.from("org_settings").select("*").eq("id", orgId).limit(1),
         supabase.rpc("get_member_rank", { p_user_id: uid, p_org_id: orgId }),
         supabase.rpc("get_member_rank_by_type", { p_user_id: uid, p_org_id: orgId }),
+        supabase.from("notifications").select("*").eq("member_id", uid).order("created_at", { ascending: false }),
       ]);
 
       setData({
@@ -44,6 +47,7 @@ export function useMemberData({ session, orgId }) {
         org:           orgRows?.[0] || null,
         rankOverall:   rankOverall?.[0] || null,
         rankByType:    rankByType || [],
+        notifications: notifications || [],
         loading: false,
       });
     } catch (err) {
@@ -60,5 +64,12 @@ export function useMemberData({ session, orgId }) {
     return `${currency} ${Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  return { data, fmt, refresh: fetchAll };
+  async function markAllRead() {
+    const unread = data.notifications.filter(n => !n.read).map(n => n.id);
+    if (unread.length === 0) return;
+    await supabase.from("notifications").update({ read: true }).in("id", unread);
+    setData(d => ({ ...d, notifications: d.notifications.map(n => ({ ...n, read: true })) }));
+  }
+
+  return { data, fmt, refresh: fetchAll, markAllRead };
 }
