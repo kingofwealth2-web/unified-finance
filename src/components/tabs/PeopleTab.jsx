@@ -3,12 +3,117 @@ import { createPortal } from "react-dom";
 import { Card, ChartCard, Btn, Avatar, EmptyState } from "../ui/index.jsx";
 import { ContributorBars } from "../Charts.jsx";
 
+// Lightweight preview wrapper — renders MemberPortal data for a specific member
+// by fetching their contributions/profile directly via supabase
+import { supabase } from "../../lib/supabaseClient.js";
+import { useEffect, useState } from "react";
+
+function PortalPreviewShim({ memberId, memberName, t }) {
+  const [profile, setProfile]           = useState(null);
+  const [contributions, setContributions] = useState([]);
+  const [paymentTypes, setPaymentTypes] = useState([]);
+  const [loading, setLoading]           = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      const [{ data: p }, { data: c }, { data: pt }] = await Promise.all([
+        supabase.from("profiles").select("*").eq("id", memberId).maybeSingle(),
+        supabase.from("contributions").select("*, payment_types(id,name,color)").eq("member_id", memberId).order("created_at", { ascending:false }),
+        supabase.from("payment_types").select("*"),
+      ]);
+      setProfile(p); setContributions(c||[]); setPaymentTypes(pt||[]);
+      setLoading(false);
+    }
+    load();
+  }, [memberId]);
+
+  if (loading) return <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"60vh", color:"rgba(255,255,255,0.4)", fontSize:14 }}>Loading…</div>;
+
+  const totalPaid  = contributions.reduce((s,c) => s + Number(c.amount), 0);
+  const fmt = (n) => `${Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+  const typeMap = {};
+  contributions.forEach(c => {
+    const name  = c.payment_types?.name  || "Other";
+    const color = c.payment_types?.color || "#8E8E93";
+    if (!typeMap[name]) typeMap[name] = { value:0, color, name };
+    typeMap[name].value += Number(c.amount);
+  });
+  const segments = Object.values(typeMap).sort((a,b) => b.value - a.value);
+
+  return (
+    <div style={{ background:"#0A0A0F", minHeight:"100%", color:"#F5F5F7", fontFamily:"-apple-system,'SF Pro Display',sans-serif", padding:"28px 24px" }}>
+      <div style={{ maxWidth:900, margin:"0 auto", display:"flex", flexDirection:"column", gap:20 }}>
+        <div>
+          <h1 style={{ fontSize:22, fontWeight:700, letterSpacing:"-0.4px", margin:0 }}>Hi, {memberName.split(" ")[0]} 👋</h1>
+          <p style={{ fontSize:13, color:"rgba(255,255,255,0.45)", margin:"4px 0 0" }}>Preview — as seen by the member</p>
+        </div>
+        {/* Stat cards */}
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14 }}>
+          {[
+            { label:"Total Paid", value: fmt(totalPaid), color:"#4ECDC4" },
+            { label:"Contributions", value: contributions.length, color:"#A78BFA" },
+            { label:"Last Payment", value: contributions[0] ? fmt(contributions[0].amount) : "—", color:"#FF9F0A" },
+          ].map((s,i) => (
+            <div key={i} style={{ background:"#13141A", border:"1px solid rgba(255,255,255,0.09)", borderRadius:16, padding:"18px 20px" }}>
+              <p style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.45)", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:8 }}>{s.label}</p>
+              <p style={{ fontSize:20, fontWeight:700, color:s.color, letterSpacing:"-0.5px", margin:0 }}>{s.value}</p>
+            </div>
+          ))}
+        </div>
+        {/* Payment breakdown */}
+        {segments.length > 0 && (
+          <div style={{ background:"#13141A", border:"1px solid rgba(255,255,255,0.09)", borderRadius:16, padding:"20px 24px" }}>
+            <p style={{ fontSize:12, fontWeight:700, color:"rgba(255,255,255,0.45)", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:16 }}>Payment Breakdown</p>
+            <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+              {segments.map((s,i) => {
+                const pct = Math.round((s.value / totalPaid) * 100);
+                return (
+                  <div key={i}>
+                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+                      <span style={{ fontSize:13, color:"rgba(255,255,255,0.7)", display:"flex", alignItems:"center", gap:8 }}>
+                        <span style={{ width:8, height:8, borderRadius:2, background:s.color, display:"inline-block" }}/>
+                        {s.name}
+                      </span>
+                      <span style={{ fontSize:13, fontWeight:700, color:"#F5F5F7" }}>{fmt(s.value)}</span>
+                    </div>
+                    <div style={{ height:5, borderRadius:3, background:"rgba(255,255,255,0.07)" }}>
+                      <div style={{ height:"100%", width:`${pct}%`, background:s.color, borderRadius:3, transition:"width 0.8s ease" }}/>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {/* Recent payments */}
+        {contributions.length > 0 && (
+          <div style={{ background:"#13141A", border:"1px solid rgba(255,255,255,0.09)", borderRadius:16, padding:"8px 0" }}>
+            {contributions.slice(0,10).map((c,i) => (
+              <div key={c.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"12px 20px", borderBottom: i<Math.min(contributions.length,10)-1?"1px solid rgba(255,255,255,0.05)":"none" }}>
+                <div>
+                  <span style={{ fontSize:14, fontWeight:600, color:"#F5F5F7" }}>{c.payment_types?.name||"Uncategorised"}</span>
+                  {c.note && <p style={{ fontSize:12, color:"rgba(255,255,255,0.4)", margin:"2px 0 0" }}>{c.note}</p>}
+                </div>
+                <div style={{ textAlign:"right" }}>
+                  <p style={{ fontSize:14, fontWeight:700, color:"#34C759", margin:0 }}>{fmt(c.amount)}</p>
+                  <p style={{ fontSize:11, color:"rgba(255,255,255,0.35)", margin:"2px 0 0" }}>{new Date(c.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function PeopleTab({
   data, t, fmt, isSuperAdmin, openModal,
   setEditingPerson, handleDeletePerson, handleDeleteContribution, handleDeactivatePerson,
   setEditingContribution, isViewingPastYear,
 }) {
   const [peopleSearch, setPeopleSearch] = useState("");
+  const [portalPreviewMember, setPortalPreviewMember] = useState(null);
   const [selectedMember, setSelectedMember] = useState(null);
   const [memberReport, setMemberReport] = useState(null); // full report view
   const [reportFilters, setReportFilters] = useState({ from:"", to:"", payment_type_id:"", search:"" });
@@ -101,6 +206,7 @@ export function PeopleTab({
                               <span style={{ fontSize:11, fontWeight:600, padding:"4px 10px", borderRadius:20, background:p.status==="Active"?"rgba(52,199,89,0.12)":"rgba(142,142,147,0.12)", color:p.status==="Active"?"#34C759":"#8E8E93" }}>{p.status}</span>
                               <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
                                 {!isViewingPastYear && <>
+                                  <Btn size="sm" variant="secondary" t={t} onClick={e=>{e.stopPropagation();setPortalPreviewMember(p);}}>Portal View</Btn>
                                   <Btn size="sm" variant="secondary" t={t} onClick={e=>{e.stopPropagation();setEditingPerson({id:p.id,full_name:p.name,status:p.status==="Active"?"active":"inactive",monthly_target:p.target||""});openModal("editPerson");}}>Edit</Btn>
                                   <Btn size="sm" variant="secondary" t={t} onClick={e=>{e.stopPropagation();handleDeactivatePerson(p.id,p.status);}}>{p.status==="Active"?"Deactivate":"Activate"}</Btn>
                                   {isSuperAdmin && <Btn size="sm" variant="danger" t={t} onClick={e=>{e.stopPropagation();handleDeletePerson(p.id);}}>Delete</Btn>}
@@ -149,6 +255,28 @@ export function PeopleTab({
                       ))}</div>;
                     })()}
                   </Card>
+      {/* ── Portal Preview ── */}
+      {portalPreviewMember && createPortal(
+        <div style={{ position:"fixed", inset:0, zIndex:9999, display:"flex", flexDirection:"column" }}>
+          <div style={{ position:"relative", zIndex:1, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 20px", background:"#13141A", borderBottom:"1px solid rgba(255,255,255,0.09)" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+              <div style={{ width:8, height:8, borderRadius:"50%", background:"#34C759" }}/>
+              <span style={{ fontSize:13, fontWeight:600, color:"#F5F5F7", fontFamily:"inherit" }}>
+                Previewing portal as <strong>{portalPreviewMember.name}</strong>
+              </span>
+            </div>
+            <button onClick={() => setPortalPreviewMember(null)}
+              style={{ fontSize:13, fontWeight:700, color:"#FF375F", background:"rgba(255,55,95,0.12)", border:"1px solid rgba(255,55,95,0.25)", borderRadius:8, padding:"6px 16px", cursor:"pointer", fontFamily:"inherit" }}>
+              ✕ Exit Preview
+            </button>
+          </div>
+          <div style={{ flex:1, overflowY:"auto" }}>
+            <PortalPreviewShim memberId={portalPreviewMember.id} memberName={portalPreviewMember.name} t={t}/>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {/* ── Member Report Portal ── */}
       {memberReport && createPortal(
         (() => {

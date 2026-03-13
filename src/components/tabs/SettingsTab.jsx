@@ -13,6 +13,9 @@ export function SettingsTab({ data, t, fmt, isSuperAdmin, openModal, orgName, se
   const [notifMsg, setNotifMsg]           = useState("");
   const [notifLoading, setNotifLoading]   = useState(false);
   const [reminderLoading, setReminderLoading] = useState(false);
+  const [sentNotifs, setSentNotifs]       = useState([]);
+  const [sentLoading, setSentLoading]     = useState(false);
+  const [historyOpen, setHistoryOpen]     = useState(false);
 
   const members = (data.allPeople || []).filter(p => p.role === "member" && p.status === "active");
 
@@ -33,6 +36,24 @@ export function SettingsTab({ data, t, fmt, isSuperAdmin, openModal, orgName, se
       created_by: session?.user?.id,
     });
     if (error) throw error;
+  }
+
+  async function fetchSentNotifs() {
+    setSentLoading(true);
+    const { data: rows } = await supabase
+      .from("notifications")
+      .select("*, profiles!notifications_member_id_fkey(full_name)")
+      .eq("org_id", data.org?.id)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    setSentNotifs(rows || []);
+    setSentLoading(false);
+  }
+
+  async function handleDeleteNotif(id) {
+    await supabase.from("notifications").delete().eq("id", id);
+    setSentNotifs(prev => prev.filter(n => n.id !== id));
+    toast("Notification deleted");
   }
 
   async function handleSendCustom(e) {
@@ -280,6 +301,50 @@ export function SettingsTab({ data, t, fmt, isSuperAdmin, openModal, orgName, se
               <Btn t={t} type="submit" disabled={notifLoading}>{notifLoading ? "Sending…" : "Send Message"}</Btn>
             </div>
           </form>
+
+          {/* ── Notification History ── */}
+          <div style={{ marginTop:24, paddingTop:24, borderTop:`1px solid ${t.border}` }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+              <p style={{ fontSize:13, fontWeight:600, color:t.text, margin:0 }}>Sent History</p>
+              <Btn t={t} size="sm" variant="secondary" onClick={() => { setHistoryOpen(o=>!o); if (!historyOpen) fetchSentNotifs(); }}>
+                {historyOpen ? "Hide" : "Show"}
+              </Btn>
+            </div>
+            {historyOpen && (
+              sentLoading ? (
+                <p style={{ fontSize:13, color:t.textSub }}>Loading…</p>
+              ) : sentNotifs.length === 0 ? (
+                <p style={{ fontSize:13, color:t.textSub }}>No notifications sent yet.</p>
+              ) : (
+                <div style={{ display:"flex", flexDirection:"column", gap:8, maxHeight:320, overflowY:"auto" }}>
+                  {sentNotifs.map(n => (
+                    <div key={n.id} style={{ display:"flex", alignItems:"flex-start", gap:12, padding:"11px 14px", background:`${t.border}`, borderRadius:10 }}>
+                      <span style={{ fontSize:16, flexShrink:0, marginTop:1 }}>{n.type==="reminder"?"⏰":"💬"}</span>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8 }}>
+                          <div>
+                            <span style={{ fontSize:13, fontWeight:700, color:t.text }}>{n.title}</span>
+                            <span style={{ fontSize:11, color:t.textSub, marginLeft:8 }}>→ {n.profiles?.full_name || "Unknown"}</span>
+                          </div>
+                          <span style={{ fontSize:10, color:t.textSub, flexShrink:0 }}>{new Date(n.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span>
+                        </div>
+                        <p style={{ fontSize:12, color:t.textSub, margin:"3px 0 0", lineHeight:1.5 }}>{n.body}</p>
+                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:6 }}>
+                          <span style={{ fontSize:10, fontWeight:600, padding:"2px 8px", borderRadius:20, background:n.is_read?"rgba(52,199,89,0.1)":"rgba(255,159,10,0.1)", color:n.is_read?"#34C759":"#FF9F0A" }}>
+                            {n.is_read ? "Read" : "Unread"}
+                          </span>
+                          <button onClick={() => handleDeleteNotif(n.id)}
+                            style={{ fontSize:11, color:t.negative, background:"none", border:"none", cursor:"pointer", fontFamily:"inherit", fontWeight:600, padding:0 }}>
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            )}
+          </div>
         </Card>
       )}
 

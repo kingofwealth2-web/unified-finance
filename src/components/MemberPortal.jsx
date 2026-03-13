@@ -86,6 +86,11 @@ export default function MemberPortal({ session, orgId }) {
   const { data, fmt, refresh } = useMemberData({ session, orgId });
   const [tab, setTab] = useState("dashboard");
   const [filterType, setFilterType] = useState("all");
+  const [editMode, setEditMode]       = useState(false);
+  const [editName, setEditName]       = useState("");
+  const [editTarget, setEditTarget]   = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileMsg, setProfileMsg]   = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef(null);
@@ -445,7 +450,52 @@ export default function MemberPortal({ session, orgId }) {
         {tab === "profile" && (
           <div className="mp-anim" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <Card>
-              <p style={{ fontSize: 12, fontWeight: 700, color: t.textSub, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 20 }}>Your Profile</p>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 20 }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: t.textSub, textTransform: "uppercase", letterSpacing: "0.07em", margin:0 }}>Your Profile</p>
+                {!editMode && (
+                  <button onClick={() => { setEditMode(true); setEditName(data.profile?.full_name||""); setEditTarget(data.profile?.monthly_target||""); setProfileMsg(null); }}
+                    style={{ fontSize:12, fontWeight:600, color:t.accent, background:`${t.accent}12`, border:`1px solid ${t.accent}25`, borderRadius:8, padding:"5px 14px", cursor:"pointer", fontFamily:"inherit" }}>
+                    Edit
+                  </button>
+                )}
+              </div>
+
+              {editMode ? (
+                <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+                  <div>
+                    <label style={{ fontSize:10, fontWeight:700, color:t.textSub, textTransform:"uppercase", letterSpacing:"0.07em", display:"block", marginBottom:6 }}>Full Name</label>
+                    <input value={editName} onChange={e=>setEditName(e.target.value)}
+                      style={{ width:"100%", padding:"11px 14px", borderRadius:10, border:`1px solid ${t.border}`, background:t.surface, color:t.text, fontSize:14, fontFamily:"inherit", outline:"none", boxSizing:"border-box" }}/>
+                  </div>
+                  <div>
+                    <label style={{ fontSize:10, fontWeight:700, color:t.textSub, textTransform:"uppercase", letterSpacing:"0.07em", display:"block", marginBottom:6 }}>Monthly Target (optional)</label>
+                    <input type="number" min="0" step="0.01" value={editTarget} onChange={e=>setEditTarget(e.target.value)}
+                      placeholder="e.g. 100"
+                      style={{ width:"100%", padding:"11px 14px", borderRadius:10, border:`1px solid ${t.border}`, background:t.surface, color:t.text, fontSize:14, fontFamily:"inherit", outline:"none", boxSizing:"border-box" }}/>
+                  </div>
+                  {profileMsg && <p style={{ fontSize:13, color: profileMsg.ok ? t.positive : t.negative, margin:0 }}>{profileMsg.text}</p>}
+                  <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
+                    <button onClick={() => { setEditMode(false); setProfileMsg(null); }}
+                      style={{ fontSize:13, fontWeight:600, color:t.textSub, background:"none", border:`1px solid ${t.border}`, borderRadius:8, padding:"8px 18px", cursor:"pointer", fontFamily:"inherit" }}>
+                      Cancel
+                    </button>
+                    <button disabled={profileSaving} onClick={async () => {
+                      if (!editName.trim()) { setProfileMsg({ ok:false, text:"Name cannot be empty." }); return; }
+                      setProfileSaving(true);
+                      const { error } = await supabase.from("profiles").update({
+                        full_name: editName.trim(),
+                        monthly_target: editTarget ? Number(editTarget) : 0,
+                      }).eq("id", session.user.id);
+                      if (error) { setProfileMsg({ ok:false, text:error.message }); }
+                      else { setProfileMsg({ ok:true, text:"Profile updated!" }); setEditMode(false); refresh(); }
+                      setProfileSaving(false);
+                    }}
+                      style={{ fontSize:13, fontWeight:700, color:"#fff", background:`linear-gradient(135deg,${t.accent},#34AADC)`, border:"none", borderRadius:8, padding:"8px 18px", cursor:profileSaving?"not-allowed":"pointer", fontFamily:"inherit", opacity:profileSaving?0.7:1 }}>
+                      {profileSaving ? "Saving…" : "Save Changes"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
                 {[
                   { label: "Full Name",       value: data.profile?.full_name || "—" },
@@ -461,6 +511,7 @@ export default function MemberPortal({ session, orgId }) {
                   </div>
                 ))}
               </div>
+              )}
             </Card>
 
             {data.profile?.monthly_target > 0 && (
