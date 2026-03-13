@@ -11,8 +11,10 @@ const Avatar = ({ name, size = 36 }) => {
 };
 
 const Modal = ({ title, onClose, children, t }) => createPortal(
-  <div style={{ position:"fixed", inset:0, zIndex:1000, background:"rgba(0,0,0,0.5)", backdropFilter:"blur(8px)", display:"flex", alignItems:"center", justifyContent:"center", padding:20, animation:"fadeIn 0.15s ease" }} onClick={onClose}>
-    <div className="app-scroll" style={{ background:t.surface, borderRadius:24, padding:"36px 40px", width:"100%", maxWidth:460, boxShadow:t.shadow, maxHeight:"90vh", overflowY:"auto", border:`1px solid ${t.border}`, animation:"slideUp 0.2s cubic-bezier(0.34,1.56,0.64,1)" }} onClick={e=>e.stopPropagation()}>
+  <div style={{ position:"fixed", inset:0, zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center", padding:20, animation:"fadeIn 0.15s ease" }}>
+    {/* Backdrop in its own layer — keeps backdropFilter from trapping native <select> dropdowns */}
+    <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.5)", backdropFilter:"blur(8px)" }} onClick={onClose}/>
+    <div style={{ position:"relative", zIndex:1, background:t.surface, borderRadius:24, padding:"36px 40px", width:"100%", maxWidth:460, boxShadow:t.shadow, maxHeight:"90vh", overflowY:"auto", border:`1px solid ${t.border}`, animation:"slideUp 0.2s cubic-bezier(0.34,1.56,0.64,1)" }} onClick={e=>e.stopPropagation()}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:28 }}>
         <h3 style={{ fontSize:18, fontWeight:700, margin:0, letterSpacing:"-0.4px", color:t.text }}>{title}</h3>
         <button onClick={onClose} style={{ background:"none", border:"none", fontSize:22, cursor:"pointer", color:t.textSub, lineHeight:1 }}>×</button>
@@ -132,8 +134,9 @@ const ToastContainer = () => {
 const ConfirmDialog = ({ confirm, onConfirm, onCancel, t }) => {
   if (!confirm) return null;
   return createPortal(
-    <div style={{ position:"fixed", inset:0, zIndex:2000, background:"rgba(0,0,0,0.6)", backdropFilter:"blur(8px)", display:"flex", alignItems:"center", justifyContent:"center", padding:20, animation:"fadeIn 0.15s ease" }} onClick={onCancel}>
-      <div style={{ background:t.surface, borderRadius:20, padding:"28px 32px", width:"100%", maxWidth:380, boxShadow:t.shadow, border:`1px solid ${t.border}`, animation:"slideUp 0.2s cubic-bezier(0.34,1.56,0.64,1)" }} onClick={e=>e.stopPropagation()}>
+    <div style={{ position:"fixed", inset:0, zIndex:2000, display:"flex", alignItems:"center", justifyContent:"center", padding:20, animation:"fadeIn 0.15s ease" }}>
+      <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.6)", backdropFilter:"blur(8px)" }} onClick={onCancel}/>
+      <div style={{ position:"relative", zIndex:1, background:t.surface, borderRadius:20, padding:"28px 32px", width:"100%", maxWidth:380, boxShadow:t.shadow, border:`1px solid ${t.border}`, animation:"slideUp 0.2s cubic-bezier(0.34,1.56,0.64,1)" }} onClick={e=>e.stopPropagation()}>
         <div style={{ textAlign:"center", marginBottom:20 }}>
           <div style={{ width:48, height:48, borderRadius:"50%", background:"rgba(255,55,95,0.1)", border:"1.5px solid rgba(255,55,95,0.3)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 14px", fontSize:22 }}>⚠️</div>
           <h3 style={{ fontSize:17, fontWeight:700, margin:"0 0 8px", color:t.text }}>{confirm.title||"Are you sure?"}</h3>
@@ -169,31 +172,6 @@ const ChartCard = ({title,subtitle,children,t,style={}}) => (
     {children}
   </Card>
 );
-
-const fyLabel = (start, format) => format === "split" ? `${start}/${start+1}` : `${start}`;
-
-function buildMonthly(contributions, expenses) {
-  const months = {};
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
-    const key = `${d.getFullYear()}-${d.getMonth()}`;
-    months[key] = { label: d.toLocaleString("en-US",{month:"short"}), income:0, expense:0 };
-  }
-  (contributions||[]).forEach(c=>{const d=new Date(c.created_at);const k=`${d.getFullYear()}-${d.getMonth()}`;if(months[k])months[k].income+=Number(c.amount);});
-  (expenses||[]).forEach(e=>{const d=new Date(e.created_at);const k=`${d.getFullYear()}-${d.getMonth()}`;if(months[k])months[k].expense+=Number(e.amount);});
-  return Object.values(months);
-}
-
-function buildTimeline(contributions) {
-  const months = {};
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
-    const key = `${d.getFullYear()}-${d.getMonth()}`;
-    months[key] = { label: d.toLocaleString("en-US",{month:"short"}), value:0 };
-  }
-  (contributions||[]).forEach(c=>{const d=new Date(c.created_at);const k=`${d.getFullYear()}-${d.getMonth()}`;if(months[k])months[k].value+=Number(c.amount);});
-  return Object.values(months);
-}
 
 // ── Skeleton loading components ───────────────────────────────
 const SkeletonBox = ({ w="100%", h=16, r=8, style={} }) => (

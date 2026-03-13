@@ -220,14 +220,14 @@ export default function Auth({ isPasswordRecovery = false, onPasswordReset = () 
             <label style={{ display:"block", fontSize:12, fontWeight:600, color:textSub, marginBottom:6, textTransform:"uppercase", letterSpacing:"0.05em" }}>New Password</label>
             <input type="password" value={password} onChange={e=>setPassword(e.target.value)} required minLength={6}
               placeholder="Min. 6 characters"
-              style={{ width:"100%", padding:"12px 14px", borderRadius:10, border:`1px solid ${borderColor}`, background:inputBg, color:text, fontSize:14, outline:"none", fontFamily:"inherit", boxSizing:"border-box" }}
+              style={{ width:"100%", padding:"12px 14px", borderRadius:10, border:`1px solid ${border}`, background:inputBg, color:text, fontSize:14, outline:"none", fontFamily:"inherit", boxSizing:"border-box" }}
             />
           </div>
           <div style={{ marginBottom:20 }}>
             <label style={{ display:"block", fontSize:12, fontWeight:600, color:textSub, marginBottom:6, textTransform:"uppercase", letterSpacing:"0.05em" }}>Confirm Password</label>
             <input type="password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} required minLength={6}
               placeholder="Repeat password"
-              style={{ width:"100%", padding:"12px 14px", borderRadius:10, border:`1px solid ${borderColor}`, background:inputBg, color:text, fontSize:14, outline:"none", fontFamily:"inherit", boxSizing:"border-box" }}
+              style={{ width:"100%", padding:"12px 14px", borderRadius:10, border:`1px solid ${border}`, background:inputBg, color:text, fontSize:14, outline:"none", fontFamily:"inherit", boxSizing:"border-box" }}
             />
           </div>
           {error   && <p style={{ fontSize:13, color:"#FF375F", marginBottom:14 }}>{error}</p>}

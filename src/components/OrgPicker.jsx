@@ -363,6 +363,7 @@ export function OrgPicker({ session, onSelect, allowAutoEnter = true }) {
     // Delete all related data in safe dependency order, then the org itself.
     await supabase.from("audit_log").delete().eq("org_id", org.id);
     await Promise.all([
+      supabase.from("notifications").delete().eq("org_id", org.id),
       supabase.from("contributions").delete().eq("org_id", org.id),
       supabase.from("expenses").delete().eq("org_id", org.id),
       supabase.from("income_sources").delete().eq("org_id", org.id),

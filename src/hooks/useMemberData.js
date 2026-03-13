@@ -65,10 +65,10 @@ export function useMemberData({ session, orgId }) {
   };
 
   async function markAllRead() {
-    const unread = data.notifications.filter(n => !n.read).map(n => n.id);
+    const unread = data.notifications.filter(n => !n.is_read).map(n => n.id);
     if (unread.length === 0) return;
-    await supabase.from("notifications").update({ read: true }).in("id", unread);
-    setData(d => ({ ...d, notifications: d.notifications.map(n => ({ ...n, read: true })) }));
+    await supabase.from("notifications").update({ is_read: true }).in("id", unread);
+    setData(d => ({ ...d, notifications: d.notifications.map(n => ({ ...n, is_read: true })) }));
   }
 
   return { data, fmt, refresh: fetchAll, markAllRead };

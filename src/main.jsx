@@ -86,9 +86,8 @@ function Root() {
 
   if (!session || isPasswordRecovery) return <Auth isPasswordRecovery={isPasswordRecovery} onPasswordReset={() => setIsPasswordRecovery(false)} onGoHome={() => setShowLanding(true)} />
 
-  // Members skip OrgPicker — their org is on their profile
+  // Members skip OrgPicker — their org is stored on their profile row
   if (session && userRole === "member") {
-    const memberOrgId = null; // fetched inside MemberPortal via profile
     return <MemberPortal session={session} orgId={memberOrgId}/>
   }
 

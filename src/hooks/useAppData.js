@@ -12,7 +12,6 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
   const [data, setData] = useState({ totalBalance:0, totalContributions:0, totalIncome:0, totalExpenses:0, people:[], expenses:[], recentActivity:[], users:[], paymentTypes:[], allPeople:[], org:null, rawContributions:[], rawExpenses:[] });
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState(null);
-  const [fmt, setFmt] = useState(() => makeFmt("USD"));
 
   const [modal, setModal] = useState(null);
   const [newUser, setNewUser] = useState({ full_name:"", email:"", role:"admin" });
@@ -99,7 +98,6 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
 
       const org = orgRows?.[0] || null;
       if (org) {
-        setFmt(() => makeFmt(org.currency || "USD"));
         setOrgForm({ name:org.name, address:org.address||"", contact_email:org.contact_email||"", contact_phone:org.contact_phone||"", currency:org.currency||"USD", financial_year_format:org.financial_year_format||"single", financial_year_start:org.financial_year_start||new Date().getFullYear(), opening_balance:org.opening_balance??0 });
       }
 
@@ -306,11 +304,6 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
   async function handleDeletePaymentType(id) {
     try {
       const pt = data.paymentTypes.find(p=>p.id===id);
-      const contribCount = (data.rawContributions||[]).filter(c=>c.payment_type_id===id).length;
-      const warning = contribCount > 0
-        ? `"${pt?.name}" has ${contribCount} contribution${contribCount!==1?"s":""} recorded against it. Those contributions will become uncategorised. Delete anyway?`
-        : `Delete payment type "${pt?.name}"? This cannot be undone.`;
-      if (!window.confirm(warning)) return;
       const {error}=await supabase.from("payment_types").delete().eq("id",id);
       if(error) throw error;
       await logAudit("delete","payment_type",id,null,`Deleted payment type: ${pt?.name||id}`,{name:pt?.name},null);
@@ -330,7 +323,8 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
   async function handleDeleteExpenseCategory(id) {
     try {
       const cat = data.expenses.find(c=>c.id===id);
-      const {e1}=await supabase.from("expenses").delete().eq("category_id",id);
+      const {error: expErr}=await supabase.from("expenses").delete().eq("category_id",id);
+      if(expErr) throw expErr;
       const {error}=await supabase.from("expense_categories").delete().eq("id",id);
       if(error) throw error;
       await logAudit("delete","expense_category",id,null,`Deleted expense category: ${cat?.label||id}`,{name:cat?.label},null);

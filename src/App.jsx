@@ -54,7 +54,7 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
   const confirmDeletePerson = (id, name) => withConfirm("Delete Person", `Remove ${name || "this person"} and all their contributions? This cannot be undone.`, "Delete", () => { app.handleDeletePerson(id); toast(`${name || "Person"} deleted`); });
   const confirmDeletePaymentType = (id, name) => withConfirm("Delete Payment Type", `Remove "${name || "this payment type"}"? This cannot be undone.`, "Delete", () => { app.handleDeletePaymentType(id); toast("Payment type deleted"); });
   const confirmDeleteExpenseCategory = (id, name) => withConfirm("Delete Category", `Remove "${name || "this category"}" and all its expenses? This cannot be undone.`, "Delete", () => { app.handleDeleteExpenseCategory(id); toast("Category deleted"); });
-  const confirmDeleteIncomeSource = (id, label) => withConfirm("Delete Income", `Remove "${label || "this income entry"}"? This cannot be undone.`, "Delete", () => app.handleDeleteIncomeSource(id));
+  const confirmDeleteIncomeSource = (id, label) => withConfirm("Delete Income", `Remove "${label || "this income entry"}"? This cannot be undone.`, "Delete", () => { app.handleDeleteIncomeSource(id); toast("Income entry deleted"); });
 
   // ── User profile ──
   const myProfile = (app.data.users||[]).find(u => u.id === session?.user?.id);
@@ -199,8 +199,8 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
                         <button onClick={e=>{e.stopPropagation();cycleYear(-1);}} disabled={activeFY===startFY}
                           style={{ background:"none", border:"none", cursor:activeFY===startFY?"default":"pointer", color:activeFY===startFY?t.border:t.textSub, fontSize:10, padding:"0 1px", lineHeight:1, opacity:activeFY===startFY?0.3:1 }}>‹</button>
                       )}
-                      <div onClick={e=>{e.stopPropagation(); setViewingFY(isPast?null:null);}}
-                        style={{ display:"flex", alignItems:"center", gap:4, padding:"2px 7px", borderRadius:20, background:isPast?t.warningBg:`${t.accent}15`, border:`1px solid ${isPast?t.warning+'66':`${t.accent}30`}`, cursor:"default" }}>
+                      <div onClick={e=>{e.stopPropagation(); if(isPast) setViewingFY(null);}}
+                        style={{ display:"flex", alignItems:"center", gap:4, padding:"2px 7px", borderRadius:20, background:isPast?t.warningBg:`${t.accent}15`, border:`1px solid ${isPast?t.warning+'66':`${t.accent}30`}`, cursor:isPast?"pointer":"default" }}>
                         <div style={{ width:5, height:5, borderRadius:"50%", background:isPast?t.warning:t.accent, flexShrink:0 }}/>
                         <span style={{ fontSize:10, fontWeight:700, color:isPast?t.warning:t.accent, letterSpacing:"0.02em" }}>FY {activeFY}</span>
                       </div>
@@ -514,6 +514,7 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
                 "Start New Year",
                 () => app.handleStartNewYear()
               )}
+              toast={app.toast}
             />
           )}
 

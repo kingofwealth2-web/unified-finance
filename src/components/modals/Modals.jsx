@@ -140,7 +140,7 @@ export function Modals({
                           ✓ {(data.allPeople||[]).find(p=>p.id===newContribution.member_id)?.full_name}
                         </p>
                       )}
-                      <input type="hidden" value={newContribution.member_id} required/>
+                      <input type="hidden" value={newContribution.member_id}/>
                     </Field>
                     <Field label="Payment Type" t={t}><Select t={t} value={newContribution.payment_type_id} onChange={e=>setNewContribution({...newContribution,payment_type_id:e.target.value})} required><option value="">Select type...</option>{data.paymentTypes.map(pt=><option key={pt.id} value={pt.id}>{pt.name}</option>)}</Select></Field>
                     <Field label="Amount" t={t}><Input t={t} type="number" min="1" step="0.01" value={newContribution.amount} onChange={e=>setNewContribution({...newContribution,amount:e.target.value})} placeholder="0.00" required/></Field>
