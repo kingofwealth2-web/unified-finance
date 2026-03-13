@@ -92,8 +92,8 @@ function AnimatedBars({ data, delay = 0 }) {
             <div style={{
               width: "100%", borderRadius: "4px 4px 0 0",
               height: `${pct}%`,
-              background: "linear-gradient(180deg,#4ECDC4 0%,rgba(78,205,196,0.3) 100%)",
-              boxShadow: "0 0 6px rgba(78,205,196,0.3)",
+              background: "linear-gradient(180deg,#0071E3 0%,rgba(0,113,227,0.3) 100%)",
+              boxShadow: "0 0 6px rgba(0,113,227,0.3)",
               minHeight: pct > 0 ? 2 : 0,
             }}/>
             <span style={{ fontSize: 8, color: "rgba(255,255,255,0.35)", whiteSpace: "nowrap" }}>{d.label}</span>
@@ -225,7 +225,7 @@ export default function LandingPage({ onSignIn }) {
   });
 
   const donutData = [
-    { value: 62, color: "#4ECDC4" },
+    { value: 62, color: "#0071E3" },
     { value: 23, color: "#A78BFA" },
     { value: 15, color: "#FB7185" },
   ];
@@ -240,7 +240,7 @@ export default function LandingPage({ onSignIn }) {
   ];
 
   const features = [
-    { icon: "💳", title: "Payment Tracking",     desc: "Record contributions with custom payment types, goals, and live rankings.",         color: "#4ECDC4" },
+    { icon: "💳", title: "Payment Tracking",     desc: "Record contributions with custom payment types, goals, and live rankings.",         color: "#0071E3" },
     { icon: "📊", title: "Financial Insights",   desc: "Charts reveal income trends, expense breakdowns, and top contributors instantly.", color: "#A78BFA" },
     { icon: "👥", title: "Member Management",    desc: "Track history, set monthly targets, and manage active vs. inactive members.",       color: "#FB7185" },
     { icon: "🏛",  title: "Multi-Organisation",  desc: "Manage multiple orgs from one account with full isolation and role-based access.",  color: "#FBBF24" },
@@ -255,16 +255,16 @@ export default function LandingPage({ onSignIn }) {
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         .lp-btn-primary {
-          background: linear-gradient(135deg,#4ECDC4,#2DD4BF);
+          background: linear-gradient(135deg,#0071E3,#34AADC);
           color: #020810; border: none;
           padding: 13px 28px; border-radius: 100px;
           font-size: 14px; font-weight: 700; cursor: pointer;
           transition: transform 0.2s, box-shadow 0.2s;
           font-family: inherit;
-          box-shadow: 0 0 24px rgba(78,205,196,0.28);
+          box-shadow: 0 0 24px rgba(0,113,227,0.28);
           white-space: nowrap;
         }
-        .lp-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 36px rgba(78,205,196,0.45); }
+        .lp-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 36px rgba(0,113,227,0.45); }
 
         .lp-btn-ghost {
           background: rgba(255,255,255,0.07); color: #fff;
@@ -322,7 +322,7 @@ export default function LandingPage({ onSignIn }) {
 
       {/* Background glows */}
       <div aria-hidden="true" style={{ position:"fixed",inset:0,pointerEvents:"none",zIndex:0,overflow:"hidden" }}>
-        <div style={{ position:"absolute",top:"-15%",left:"-15%",width:600,height:600,borderRadius:"50%",background:"radial-gradient(circle,rgba(78,205,196,0.09) 0%,transparent 70%)",animation:"lp-pulse 9s ease-in-out infinite" }}/>
+        <div style={{ position:"absolute",top:"-15%",left:"-15%",width:600,height:600,borderRadius:"50%",background:"radial-gradient(circle,rgba(0,113,227,0.09) 0%,transparent 70%)",animation:"lp-pulse 9s ease-in-out infinite" }}/>
         <div style={{ position:"absolute",bottom:"-15%",right:"-10%",width:500,height:500,borderRadius:"50%",background:"radial-gradient(circle,rgba(167,139,250,0.07) 0%,transparent 70%)",animation:"lp-pulse 12s ease-in-out infinite 3s" }}/>
       </div>
 
@@ -338,7 +338,7 @@ export default function LandingPage({ onSignIn }) {
         animation:"lp-fadeup 0.5s ease",
       }}>
         <div style={{ display:"flex",alignItems:"center",gap:9,flexShrink:0 }}>
-          <div style={{ width:32,height:32,borderRadius:9,background:"linear-gradient(135deg,#4ECDC4,#2DD4BF)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,boxShadow:"0 0 16px rgba(78,205,196,0.35)" }}>
+          <div style={{ width:32,height:32,borderRadius:9,background:"linear-gradient(135deg,#0071E3,#34AADC)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,boxShadow:"0 0 16px rgba(0,113,227,0.35)" }}>
             <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
               <path d="M2 8h5M9 8h5M8 2v5M8 9v5" stroke="#020810" strokeWidth="2.2" strokeLinecap="round"/>
             </svg>
@@ -355,8 +355,8 @@ export default function LandingPage({ onSignIn }) {
       <section className="lp-hero" style={{ position:"relative",zIndex:1,minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"110px 40px 72px",textAlign:"center" }}>
 
         {/* Badge */}
-        <div style={{ display:"inline-flex",alignItems:"center",gap:8,padding:"5px 14px 5px 6px",borderRadius:100,background:"rgba(78,205,196,0.1)",border:"1px solid rgba(78,205,196,0.22)",marginBottom:26,animation:"lp-fadeup 0.6s ease 0.1s both",flexWrap:"nowrap" }}>
-          <span style={{ fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:100,background:"#4ECDC4",color:"#020810",letterSpacing:"0.06em",whiteSpace:"nowrap" }}>NEW</span>
+        <div style={{ display:"inline-flex",alignItems:"center",gap:8,padding:"5px 14px 5px 6px",borderRadius:100,background:"rgba(0,113,227,0.1)",border:"1px solid rgba(0,113,227,0.22)",marginBottom:26,animation:"lp-fadeup 0.6s ease 0.1s both",flexWrap:"nowrap" }}>
+          <span style={{ fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:100,background:"#0071E3",color:"#020810",letterSpacing:"0.06em",whiteSpace:"nowrap" }}>NEW</span>
           <span style={{ fontSize:12,color:"rgba(255,255,255,0.6)",fontWeight:500,whiteSpace:"nowrap" }}>Multi-organisation finance management</span>
         </div>
 
@@ -372,7 +372,7 @@ export default function LandingPage({ onSignIn }) {
           animation:"lp-fadeup 0.7s ease 0.2s both",
         }}>
           Your organisation's{" "}
-          <span style={{ background:"linear-gradient(120deg,#4ECDC4 0%,#A78BFA 55%,#FB7185 100%)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text" }}>
+          <span style={{ background:"linear-gradient(120deg,#0071E3 0%,#A78BFA 55%,#FB7185 100%)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text" }}>
             finances, mastered.
           </span>
         </h1>
@@ -391,7 +391,7 @@ export default function LandingPage({ onSignIn }) {
         {/* ── DASHBOARD MOCKUP ── */}
         <div style={{ position:"relative",marginTop:60,width:"100%",maxWidth:920,animation:"lp-fadeup 0.9s ease 0.62s both" }}>
           {/* glow under */}
-          <div style={{ position:"absolute",bottom:-32,left:"50%",transform:"translateX(-50%)",width:"50%",height:64,background:"radial-gradient(ellipse,rgba(78,205,196,0.15) 0%,transparent 70%)",pointerEvents:"none" }}/>
+          <div style={{ position:"absolute",bottom:-32,left:"50%",transform:"translateX(-50%)",width:"50%",height:64,background:"radial-gradient(ellipse,rgba(0,113,227,0.15) 0%,transparent 70%)",pointerEvents:"none" }}/>
 
           <div style={{ background:"rgba(10,12,22,0.94)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:22,padding:"18px 18px 22px",boxShadow:"0 28px 80px rgba(0,0,0,0.65),inset 0 1px 0 rgba(255,255,255,0.06)" }}>
             {/* Fake title bar */}
@@ -406,7 +406,7 @@ export default function LandingPage({ onSignIn }) {
             {/* Stat cards — 3 col desktop, 1 col mobile */}
             <div className="mock-grid-top" style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:10 }}>
               {[
-                { label:"Contributions", value:"GHS 284,500", sub:"+12.4% this month", color:"#4ECDC4" },
+                { label:"Contributions", value:"GHS 284,500", sub:"+12.4% this month", color:"#0071E3" },
                 { label:"Expenses",      value:"GHS 61,200",  sub:"8 categories",      color:"#FB7185" },
                 { label:"Net Balance",   value:"GHS 223,300", sub:"Healthy surplus ✓", color:"#A78BFA" },
               ].map((s,i) => (
@@ -426,7 +426,7 @@ export default function LandingPage({ onSignIn }) {
                 <div style={{ display:"flex",flexDirection:"column",alignItems:"center",gap:8 }}>
                   <AnimatedDonut segments={donutData} size={110} delay={900}/>
                   <div style={{ width:"100%",display:"flex",flexDirection:"column",gap:5 }}>
-                    {[["Monthly Dues","#4ECDC4","62%"],["Annual Levy","#A78BFA","23%"],["Building Fund","#FB7185","15%"]].map(([l,c,p]) => (
+                    {[["Monthly Dues","#0071E3","62%"],["Annual Levy","#A78BFA","23%"],["Building Fund","#FB7185","15%"]].map(([l,c,p]) => (
                       <div key={l} style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}>
                         <div style={{ display:"flex",alignItems:"center",gap:5 }}>
                           <div style={{ width:6,height:6,borderRadius:2,background:c,flexShrink:0 }}/>
@@ -451,7 +451,7 @@ export default function LandingPage({ onSignIn }) {
                 <AnimatedLine data={lineData} delay={1100}/>
                 <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)",paddingTop:8,display:"flex",flexDirection:"column",gap:5 }}>
                   {[
-                    { name:"Kwame M.",   amt:"+500",    color:"#4ECDC4" },
+                    { name:"Kwame M.",   amt:"+500",    color:"#0071E3" },
                     { name:"Abena O.",   amt:"+1,200",  color:"#A78BFA" },
                     { name:"Office Rent",amt:"-4,500",  color:"#FB7185" },
                   ].map((a,i) => (
@@ -485,7 +485,7 @@ export default function LandingPage({ onSignIn }) {
             { n:5,     s:"×",  label:"Faster than spreadsheets" },
           ].map((s,i) => (
             <div key={i} {...rv(`stat-${i}`, i*0.1)}>
-              <div style={{ fontFamily:"Syne,sans-serif",fontSize:"clamp(26px,3.5vw,40px)",fontWeight:800,letterSpacing:"-1px",background:"linear-gradient(135deg,#4ECDC4,#A78BFA)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",lineHeight:1 }}>
+              <div style={{ fontFamily:"Syne,sans-serif",fontSize:"clamp(26px,3.5vw,40px)",fontWeight:800,letterSpacing:"-1px",background:"linear-gradient(135deg,#0071E3,#A78BFA)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",lineHeight:1 }}>
                 <Counter target={s.n} suffix={s.s} delay={i*100} decimals={s.dec||0}/>
               </div>
               <p style={{ fontSize:12,color:"rgba(255,255,255,0.38)",marginTop:6,lineHeight:1.4 }}>{s.label}</p>
@@ -497,7 +497,7 @@ export default function LandingPage({ onSignIn }) {
       {/* ── FEATURES ── */}
       <section id="features" className="lp-section" style={{ position:"relative",zIndex:1,padding:"72px 40px",maxWidth:1080,margin:"0 auto" }}>
         <div {...rv("feat-head")} style={{ textAlign:"center",marginBottom:48,...rv("feat-head").style }}>
-          <p style={{ fontSize:11,fontWeight:700,color:"#4ECDC4",textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:12 }}>Everything you need</p>
+          <p style={{ fontSize:11,fontWeight:700,color:"#0071E3",textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:12 }}>Everything you need</p>
           <h2 style={{ fontFamily:"Syne,sans-serif",fontSize:"clamp(24px,4vw,42px)",fontWeight:800,letterSpacing:"-0.8px",lineHeight:1.18,color:"#fff" }}>
             Built for organisations that{" "}
             <span style={{ color:"rgba(255,255,255,0.28)" }}>take finances seriously.</span>
@@ -521,7 +521,7 @@ export default function LandingPage({ onSignIn }) {
       {/* ── CTA ── */}
       <section className="lp-section" style={{ position:"relative",zIndex:1,padding:"72px 40px",textAlign:"center" }}>
         <div {...rv("cta")} style={{ maxWidth:560,margin:"0 auto",...rv("cta").style }}>
-          <div className="cta-box" style={{ padding:"48px 40px",background:"linear-gradient(135deg,rgba(78,205,196,0.07) 0%,rgba(167,139,250,0.07) 100%)",border:"1px solid rgba(78,205,196,0.17)",borderRadius:26,boxShadow:"0 0 50px rgba(78,205,196,0.06)" }}>
+          <div className="cta-box" style={{ padding:"48px 40px",background:"linear-gradient(135deg,rgba(0,113,227,0.07) 0%,rgba(167,139,250,0.07) 100%)",border:"1px solid rgba(0,113,227,0.17)",borderRadius:26,boxShadow:"0 0 50px rgba(0,113,227,0.06)" }}>
             <div style={{ fontSize:32,marginBottom:14 }}>✦</div>
             <h2 style={{ fontFamily:"Syne,sans-serif",fontSize:"clamp(22px,4vw,36px)",fontWeight:800,letterSpacing:"-0.6px",marginBottom:12,lineHeight:1.18 }}>
               Ready to take control?
@@ -539,7 +539,7 @@ export default function LandingPage({ onSignIn }) {
       {/* ── FOOTER ── */}
       <footer className="lp-footer" style={{ position:"relative",zIndex:1,padding:"24px 40px",borderTop:"1px solid rgba(255,255,255,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:14 }}>
         <div style={{ display:"flex",alignItems:"center",gap:8 }}>
-          <div style={{ width:26,height:26,borderRadius:7,background:"linear-gradient(135deg,#4ECDC4,#2DD4BF)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+          <div style={{ width:26,height:26,borderRadius:7,background:"linear-gradient(135deg,#0071E3,#34AADC)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
               <path d="M2 8h5M9 8h5M8 2v5M8 9v5" stroke="#020810" strokeWidth="2.2" strokeLinecap="round"/>
             </svg>
