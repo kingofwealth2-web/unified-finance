@@ -1,12 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { supabase } from "../../lib/supabaseClient.js";
 import { Card, ChartCard, Btn, Avatar, EmptyState } from "../ui/index.jsx";
 import { ContributorBars } from "../Charts.jsx";
-
-// Lightweight preview wrapper — renders MemberPortal data for a specific member
-// by fetching their contributions/profile directly via supabase
-import { supabase } from "../../lib/supabaseClient.js";
-import { useEffect, useState } from "react";
 
 function PortalPreviewShim({ memberId, memberName, t }) {
   const [profile, setProfile]           = useState(null);
