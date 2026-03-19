@@ -15,6 +15,14 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
 
   const [modal, setModal] = useState(null);
   const [newUser, setNewUser] = useState({ full_name:"", email:"", role:"admin" });
+  const [tempPassword, setTempPassword] = useState(null); // { password, full_name } | null
+
+  function genTempPassword() {
+    const digits = String(Math.floor(Math.random() * 9000) + 1000);
+    const symbols = ['!', '#', '$', '@'];
+    const symbol = symbols[Math.floor(Math.random() * symbols.length)];
+    return `Unified${digits}${symbol}`;
+  }
   const [newPerson, setNewPerson] = useState({ full_name:"", status:"active", monthly_target:"" });
   const [newContribution, setNewContribution] = useState({ member_id:"", amount:"", payment_type_id:"", note:"", date: new Date().toISOString().slice(0,10) });
   const [newExpense, setNewExpense] = useState({ category_id:"", amount:"", label:"", date: new Date().toISOString().slice(0,10) });
@@ -217,7 +225,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
   async function handleAddUser(e) {
     e.preventDefault(); setFormLoading(true); setFormError(null);
     try {
-      // Call Edge Function — creates auth user server-side with no session disruption
+      const password = genTempPassword();
       const { data: { session: adminSession } } = await supabase.auth.getSession();
       const response = await fetch(
         "https://jsxixfwjupxwruybyeut.supabase.co/functions/v1/create-user",
@@ -232,15 +240,19 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
             full_name: newUser.full_name,
             role: newUser.role,
             org_id: currentOrg.id,
+            password,
           }),
         }
       );
 
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Failed to send invite");
+      if (!response.ok) throw new Error(result.error || "Failed to create user");
 
-      await logAudit("create","user",result.user_id,newUser.full_name,`Invited ${newUser.full_name} (${newUser.email}) as ${newUser.role}`,null,{email:newUser.email,role:newUser.role});
-      closeModal(); setNewUser({full_name:"",email:"",role:"admin"}); toast(`Invite sent to ${newUser.email}`); fetchAllData();
+      await logAudit("create","user",result.user_id,newUser.full_name,`Created ${newUser.full_name} (${newUser.email}) as ${newUser.role}`,null,{email:newUser.email,role:newUser.role});
+      // Keep modal open — show the temp password for the admin to copy
+      setTempPassword({ password, full_name: newUser.full_name });
+      setNewUser({ full_name:"", email:"", role:"admin" });
+      fetchAllData();
     } catch(err){setFormError(err.message);} finally{setFormLoading(false);}
   }
   async function handleAddPerson(e) {
@@ -632,6 +644,7 @@ export function useAppData({ session, currentOrg, orgRole: initialOrgRole, viewi
     userRole, isSuperAdmin, orgName, navItems, monthlyData, timelineData,
     auditLog,
     newUser, setNewUser, newPerson, setNewPerson,
+    tempPassword, setTempPassword,
     newContribution, setNewContribution, newExpense, setNewExpense,
     newPaymentType, setNewPaymentType, newExpenseCategory, setNewExpenseCategory,
     orgForm, setOrgForm,

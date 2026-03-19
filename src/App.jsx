@@ -529,6 +529,7 @@ export default function App({ session, currentOrg, orgRole, onSwitchOrg }) {
         formLoading={app.formLoading} formError={app.formError}
         handleSaveOrg={app.handleSaveOrg}
         newUser={app.newUser} setNewUser={app.setNewUser} handleAddUser={app.handleAddUser}
+        tempPassword={app.tempPassword} setTempPassword={app.setTempPassword}
         newPerson={app.newPerson} setNewPerson={app.setNewPerson} handleAddPerson={app.handleAddPerson}
         newContribution={app.newContribution} setNewContribution={app.setNewContribution} handleAddContribution={app.handleAddContribution}
         bulkContributions={app.bulkContributions} setBulkContributions={app.setBulkContributions} handleBulkAddContributions={app.handleBulkAddContributions}

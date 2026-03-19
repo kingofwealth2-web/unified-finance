@@ -14,6 +14,7 @@ function Root() {
   const [currentOrg, setCurrentOrg] = useState(null)
   const [orgRole, setOrgRole] = useState(null)
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false)
+  const [isForceReset, setIsForceReset] = useState(false)
   const [showLanding, setShowLanding] = useState(true)
   const [userRole, setUserRole] = useState(null)
   const [memberOrgId, setMemberOrgId] = useState(null)
@@ -27,6 +28,10 @@ function Root() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
+      // Check force reset on initial load (e.g. page refresh while logged in)
+      if (session?.user?.user_metadata?.force_password_reset) {
+        setIsForceReset(true)
+      }
       setChecking(false)
     })
 
@@ -37,8 +42,15 @@ function Root() {
         return
       }
       setSession(session)
-      // Clear org when user signs out
-      if (!session) { setCurrentOrg(null); setOrgRole(null); switchedRef.current = false; setIsPasswordRecovery(false); }
+      // Check force reset on any sign-in event
+      if (session?.user?.user_metadata?.force_password_reset) {
+        setIsForceReset(true)
+      }
+      // Clear state when user signs out
+      if (!session) {
+        setCurrentOrg(null); setOrgRole(null); switchedRef.current = false
+        setIsPasswordRecovery(false); setIsForceReset(false)
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -85,6 +97,15 @@ function Root() {
   if (showLanding && !session && !isPasswordRecovery) return <LandingPage onSignIn={() => setShowLanding(false)} />
 
   if (!session || isPasswordRecovery) return <Auth isPasswordRecovery={isPasswordRecovery} onPasswordReset={() => setIsPasswordRecovery(false)} onGoHome={() => setShowLanding(true)} />
+
+  // Force password reset — user signed in with a temp password and must change it before proceeding
+  if (isForceReset) return (
+    <Auth
+      isForceReset={true}
+      onForceResetComplete={() => setIsForceReset(false)}
+      onGoHome={() => setShowLanding(true)}
+    />
+  )
 
   // Members skip OrgPicker — their org is stored on their profile row
   if (session && userRole === "member") {

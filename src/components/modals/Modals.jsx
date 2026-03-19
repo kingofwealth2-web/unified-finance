@@ -3,10 +3,38 @@ import { createPortal } from "react-dom";
 import { Modal, Field, Input, Textarea, Select, Btn, ColorPicker } from "../ui/index.jsx";
 import { CURRENCIES } from "../../constants.js";
 
+// ── Copy button with visual feedback ─────────────────────────────
+function CopyBtn({ value, t }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(value).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {
+      // Fallback for environments without clipboard API
+      const el = document.createElement("textarea");
+      el.value = value;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+  return (
+    <button onClick={copy}
+      style={{ padding:"8px 16px", borderRadius:8, border:`1px solid ${copied?"#34C759":t.borderStrong}`, background:copied?"rgba(52,199,89,0.12)":t.surfaceAlt, color:copied?"#34C759":t.accent, fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s", whiteSpace:"nowrap", flexShrink:0 }}>
+      {copied ? "✓ Copied!" : "Copy"}
+    </button>
+  );
+}
+
 export function Modals({
   modal, closeModal, t, data, orgForm, setOrgForm, formLoading, formError,
   handleSaveOrg,
   newUser, setNewUser, handleAddUser,
+  tempPassword, setTempPassword,
   newPerson, setNewPerson, handleAddPerson,
   newContribution, setNewContribution, handleAddContribution,
   bulkContributions, setBulkContributions, handleBulkAddContributions,
@@ -78,18 +106,52 @@ export function Modals({
                 </Modal>
               )}
               {modal==="addUser"&&(
-                <Modal title="Add New User" onClose={safeClose} t={t}>
-                  <form onSubmit={handleAddUser} onInput={markDirty}>
-                    <Field label="Full Name" t={t}><Input t={t} value={newUser.full_name} onChange={e=>setNewUser({...newUser,full_name:e.target.value})} placeholder="John Doe" required/></Field>
-                    <Field label="Email" t={t}><Input t={t} type="email" value={newUser.email} onChange={e=>setNewUser({...newUser,email:e.target.value})} placeholder="john@example.com" required/></Field>
-                    <Field label="Role" t={t}><Select t={t} value={newUser.role} onChange={e=>setNewUser({...newUser,role:e.target.value})}><option value="admin">Admin (Manager)</option><option value="member">Member (View own payments)</option></Select></Field>
-                    <p style={{ fontSize:12, color:t.textSub, margin:"-8px 0 16px", lineHeight:1.5 }}>An invite email will be sent to the address above. They will set their own password.</p>
-                    {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
-                    <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
-                      <Btn variant="secondary" t={t} type="button" onClick={safeClose}>Cancel</Btn>
-                      <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Sending invite...":"Send Invite"}</Btn>
+                <Modal
+                  title={tempPassword ? "User Created" : "Add New User"}
+                  onClose={tempPassword ? () => { setTempPassword(null); closeModal(); } : safeClose}
+                  t={t}
+                >
+                  {tempPassword ? (
+                    /* ── Success: show temp password ── */
+                    <div>
+                      <div style={{ display:"flex", alignItems:"center", gap:12, padding:"14px 16px", background:t.positiveBg, border:`1px solid ${t.positive}33`, borderRadius:12, marginBottom:20 }}>
+                        <span style={{ fontSize:20 }}>✅</span>
+                        <div>
+                          <p style={{ fontSize:14, fontWeight:600, color:t.positive, margin:0 }}>Account created for {tempPassword.full_name}</p>
+                          <p style={{ fontSize:12, color:t.textSub, margin:"2px 0 0" }}>Share the temporary password below. They must change it on first login.</p>
+                        </div>
+                      </div>
+
+                      <p style={{ fontSize:11, fontWeight:700, color:t.textSub, textTransform:"uppercase", letterSpacing:"0.07em", margin:"0 0 8px" }}>Temporary Password</p>
+                      <div style={{ display:"flex", alignItems:"center", gap:10, padding:"14px 16px", background:t.surfaceAlt, border:`1px solid ${t.borderStrong}`, borderRadius:12, marginBottom:24 }}>
+                        <code style={{ flex:1, fontSize:18, fontWeight:700, letterSpacing:"0.08em", color:t.text, fontFamily:"monospace", userSelect:"all" }}>
+                          {tempPassword.password}
+                        </code>
+                        <CopyBtn value={tempPassword.password} t={t}/>
+                      </div>
+
+                      <p style={{ fontSize:12, color:t.textSub, margin:"0 0 20px", lineHeight:1.6 }}>
+                        Send this password to the user via WhatsApp, SMS, or in person. They will be forced to change it the moment they sign in.
+                      </p>
+
+                      <div style={{ display:"flex", justifyContent:"flex-end" }}>
+                        <Btn t={t} onClick={() => { setTempPassword(null); closeModal(); }}>Done</Btn>
+                      </div>
                     </div>
-                  </form>
+                  ) : (
+                    /* ── Form ── */
+                    <form onSubmit={handleAddUser} onInput={markDirty}>
+                      <Field label="Full Name" t={t}><Input t={t} value={newUser.full_name} onChange={e=>setNewUser({...newUser,full_name:e.target.value})} placeholder="John Doe" required/></Field>
+                      <Field label="Email" t={t}><Input t={t} type="email" value={newUser.email} onChange={e=>setNewUser({...newUser,email:e.target.value})} placeholder="john@example.com" required/></Field>
+                      <Field label="Role" t={t}><Select t={t} value={newUser.role} onChange={e=>setNewUser({...newUser,role:e.target.value})}><option value="admin">Admin (Manager)</option><option value="member">Member (View own payments)</option></Select></Field>
+                      <p style={{ fontSize:12, color:t.textSub, margin:"-8px 0 16px", lineHeight:1.5 }}>A temporary password will be generated. Share it with the user — they'll be required to change it on first login.</p>
+                      {formError&&<p style={{ fontSize:13, color:"#FF375F", marginBottom:16 }}>{formError}</p>}
+                      <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 }}>
+                        <Btn variant="secondary" t={t} type="button" onClick={safeClose}>Cancel</Btn>
+                        <Btn t={t} type="submit" disabled={formLoading}>{formLoading?"Creating…":"Create User"}</Btn>
+                      </div>
+                    </form>
+                  )}
                 </Modal>
               )}
               {modal==="addPerson"&&(

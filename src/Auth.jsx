@@ -40,9 +40,9 @@ const features = [
   },
 ];
 
-export default function Auth({ isPasswordRecovery = false, onPasswordReset = () => {}, onGoHome = null }) {
-  // ── view: "login" | "signup" | "forgot" | "reset" | "invite"
-  const [view, setView]               = useState(isPasswordRecovery ? "reset" : "login");
+export default function Auth({ isPasswordRecovery = false, onPasswordReset = () => {}, onGoHome = null, isForceReset = false, onForceResetComplete = () => {} }) {
+  // ── view: "login" | "signup" | "forgot" | "reset" | "invite" | "force_reset"
+  const [view, setView] = useState(isPasswordRecovery ? "reset" : isForceReset ? "force_reset" : "login");
 
   // shared fields
   const [email, setEmail]             = useState("");
@@ -179,6 +179,23 @@ export default function Auth({ isPasswordRecovery = false, onPasswordReset = () 
     setLoading(false);
   }
 
+  async function handleForceReset(e) {
+    e.preventDefault();
+    if (password !== confirmPassword) { setError("Passwords don't match."); return; }
+    if (password.length < 6) { setError("Password must be at least 6 characters."); return; }
+    setLoading(true); setError(null);
+    const { error } = await supabase.auth.updateUser({
+      password,
+      data: { force_password_reset: false },
+    });
+    if (error) { setError(error.message); }
+    else {
+      setSuccess("Password updated! Taking you in…");
+      setTimeout(() => { onForceResetComplete(); }, 1500);
+    }
+    setLoading(false);
+  }
+
   // ── Theme tokens ──────────────────────────────────────────────
   const bg        = isDark ? "#0A0A0F"              : "#F5F5FA";
   const surface   = isDark ? "rgba(28,28,36,0.95)"  : "rgba(255,255,255,0.92)";
@@ -208,6 +225,45 @@ export default function Auth({ isPasswordRecovery = false, onPasswordReset = () 
 
   // ── Left panel content by view ────────────────────────────────
   function renderForm() {
+
+    // ── Force password reset (temp password, first login) ──
+    if (view === "force_reset") return (
+      <div key="force_reset">
+        <div style={{ marginBottom:28 }}>
+          <div style={{ width:48, height:48, borderRadius:14, background:`${accent}18`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, marginBottom:16 }}>🔒</div>
+          <h1 className="auth-heading" style={{ fontSize:28, fontWeight:800, letterSpacing:"-1px", color:text, margin:"0 0 8px", lineHeight:1.1 }}>
+            Set your password
+          </h1>
+          <p style={{ fontSize:14, color:textSub, margin:0, lineHeight:1.6 }}>
+            You're using a temporary password. Choose a new one to continue.
+          </p>
+        </div>
+        <form onSubmit={handleForceReset}>
+          <div style={{ marginBottom:16 }}>
+            <label style={{ display:"block", fontSize:12, fontWeight:600, color:textSub, marginBottom:6, textTransform:"uppercase", letterSpacing:"0.05em" }}>New Password</label>
+            <input type="password" value={password} onChange={e=>setPassword(e.target.value)} required minLength={6}
+              placeholder="Min. 6 characters"
+              className="auth-input"
+              style={{ width:"100%", padding:"13px 16px", borderRadius:12, border:`1.5px solid ${border}`, background:inputBg, color:text, fontSize:15, outline:"none", fontFamily:"inherit", boxSizing:"border-box" }}
+            />
+          </div>
+          <div style={{ marginBottom:24 }}>
+            <label style={{ display:"block", fontSize:12, fontWeight:600, color:textSub, marginBottom:6, textTransform:"uppercase", letterSpacing:"0.05em" }}>Confirm Password</label>
+            <input type="password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} required minLength={6}
+              placeholder="Repeat password"
+              className="auth-input"
+              style={{ width:"100%", padding:"13px 16px", borderRadius:12, border:`1.5px solid ${border}`, background:inputBg, color:text, fontSize:15, outline:"none", fontFamily:"inherit", boxSizing:"border-box" }}
+            />
+          </div>
+          {error   && <div style={{ background:"rgba(255,55,95,0.08)", border:"1px solid rgba(255,55,95,0.2)", borderRadius:10, padding:"10px 14px", marginBottom:18 }}><p style={{ fontSize:13, color:"#FF375F", margin:0 }}>{error}</p></div>}
+          {success && <div style={{ background:"rgba(52,199,89,0.08)",  border:"1px solid rgba(52,199,89,0.2)",  borderRadius:10, padding:"10px 14px", marginBottom:18 }}><p style={{ fontSize:13, color:"#34C759",  margin:0 }}>{success}</p></div>}
+          <button className="sign-btn" type="submit" disabled={loading}
+            style={{ width:"100%", padding:"15px", background: loading ? textMuted : `linear-gradient(135deg, ${accent} 0%, #34AADC 100%)`, color:"white", border:"none", borderRadius:12, fontSize:15, fontWeight:700, cursor: loading ? "not-allowed" : "pointer", boxShadow: loading ? "none" : `0 4px 20px ${accentGlow}` }}>
+            {loading ? "Saving…" : "Set Password & Continue →"}
+          </button>
+        </form>
+      </div>
+    );
 
     // ── Reset password ──
     if (view === "invite") return (
